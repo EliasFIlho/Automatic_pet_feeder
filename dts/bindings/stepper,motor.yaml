@@ -1,0 +1,10 @@
+description: GPIO pins to control one stepper motor direction and steps count
+
+compatible: "stepper,motor"
+
+properties:
+  gpios:
+    type: phandle-array
+    required: true
+    description: |
+      The GPIOs connected to the motor driver.
