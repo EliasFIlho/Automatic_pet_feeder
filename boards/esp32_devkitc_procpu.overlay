@@ -9,4 +9,10 @@
         gpios = <&gpio0 18 GPIO_ACTIVE_HIGH>,
                 <&gpio0 2 GPIO_ACTIVE_HIGH>;
     };
+
+
+    wifi_ap: wifi_ap {
+		compatible = "espressif,esp32-wifi";
+		status = "okay";
+	};
 };
