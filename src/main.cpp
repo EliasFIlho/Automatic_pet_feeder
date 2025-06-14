@@ -16,8 +16,8 @@
 /* STA Mode Configuration */
 
 // This is a temp solution until I made the AP mode to receive the credentials
-#define WIFI_SSID "LINKCE- 2G"
-#define WIFI_PSK "20122000"
+#define WIFI_SSID ""
+#define WIFI_PSK ""
 
 stepper motor;
 Wifi_Station network;
@@ -40,7 +40,7 @@ int main(void)
         ntp_obj.get_current_time();
         motor.move_for(100);
         k_msleep(3000);
-        
+
     }
 
     network.wifi_disconnect();
