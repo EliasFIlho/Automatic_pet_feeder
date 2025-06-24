@@ -8,7 +8,7 @@
 #define SSID_BUFFER_LEN 20
 
 //TODO: Add the AP mode methods for wifi credentials connection
-class Wifi_Station
+class WifiStation
 {
 private:
     char ssid[SSID_BUFFER_LEN];
@@ -23,7 +23,7 @@ private:
 
 
 public:
-    Wifi_Station();
+    WifiStation();
     void wifi_init(void);
     void set_wifi_credentials(const char *ssid, const char *psk);
     int wifi_connect();
@@ -32,5 +32,5 @@ public:
     void get_connection_status(void);
 
 
-    ~Wifi_Station();
+    ~WifiStation();
 };

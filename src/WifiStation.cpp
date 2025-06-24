@@ -2,7 +2,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/net/wifi_mgmt.h>
 #include <zephyr/net/dhcpv4_server.h>
-#include "wifi_station.hpp"
+#include "WifiStation.hpp"
 
 #define WIFI_CONNECT_TIMEOUT 60000
 #define WIFI_CALLBACK_FLAGS (NET_EVENT_WIFI_CONNECT_RESULT | NET_EVENT_WIFI_DISCONNECT_RESULT | NET_EVENT_WIFI_IFACE_STATUS)
@@ -55,17 +55,17 @@ static void dhcp4_event_handler(struct net_mgmt_event_callback *cb, uint32_t mgm
 }
 
 
-Wifi_Station::Wifi_Station()
+WifiStation::WifiStation()
 {
     k_sem_init(&wifi_connected, 0, 1);
     k_sem_init(&ipv4_connected, 0, 1);
 }
 
-Wifi_Station::~Wifi_Station()
+WifiStation::~WifiStation()
 {
 }
 
-void Wifi_Station::wifi_init(void)
+void WifiStation::wifi_init(void)
 {
     sta_iface = net_if_get_wifi_sta();
     net_mgmt_init_event_callback(&ipv4_cb, dhcp4_event_handler, WIFI_DHCP_CALLBACK_FLAGS);
@@ -74,7 +74,7 @@ void Wifi_Station::wifi_init(void)
     net_mgmt_add_event_callback(&wifi_cb);
 }
 
-int Wifi_Station::connect_to_wifi(char *ssid, char *psk)
+int WifiStation::connect_to_wifi(char *ssid, char *psk)
 {
 
     if (!sta_iface)
@@ -111,7 +111,7 @@ int Wifi_Station::connect_to_wifi(char *ssid, char *psk)
     return ret;
 }
 
-int Wifi_Station::wifi_wait_for_ip_addr(void)
+int WifiStation::wifi_wait_for_ip_addr(void)
 {
     struct wifi_iface_status status;
     if (!sta_iface)
@@ -160,7 +160,7 @@ int Wifi_Station::wifi_wait_for_ip_addr(void)
     return 0;
 }
 
-int Wifi_Station::wait_wifi_to_connect(void)
+int WifiStation::wait_wifi_to_connect(void)
 {
     printk("Waiting for wifi connection signal\n\r");
     if (k_sem_take(&wifi_connected, K_MSEC(WIFI_CONNECT_TIMEOUT)) != 0)
@@ -175,7 +175,7 @@ int Wifi_Station::wait_wifi_to_connect(void)
     }
 }
 
-int Wifi_Station::wifi_disconnect(void)
+int WifiStation::wifi_disconnect(void)
 {
     int ret;
 
@@ -184,6 +184,6 @@ int Wifi_Station::wifi_disconnect(void)
 }
 
 // TODO: Create object atributes and assign these parameters into
-void Wifi_Station::set_wifi_credentials(const char *ssid, const char *psk)
+void WifiStation::set_wifi_credentials(const char *ssid, const char *psk)
 {
 }
