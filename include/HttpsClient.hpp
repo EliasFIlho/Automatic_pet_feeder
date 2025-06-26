@@ -7,21 +7,19 @@
 class HttpsClient
 {
 private:
-    int socket;
+    int sock;
     struct zsock_addrinfo *res;
-    struct k_thread https_task;
-    k_tid_t https_thread_id;
     uint8_t recv_buf[512];
 
 private:
+    static void https_client_task(void *, void *, void *);
+    void setup_tls_credentials();
+public:
     int setup_socket();
     int connect_socket();
     void get_package();
-    static void https_client_task(void *arg1, void *, void *);
-public:
     HttpsClient();
     ~HttpsClient();
-    void start_client_https();
 };
 
 

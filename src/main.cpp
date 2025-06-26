@@ -12,7 +12,6 @@
 #include "SntpClient.hpp"
 #include "HttpsClient.hpp"
 
-
 #define WIFI_SSID "LINKCE- 2G"
 #define WIFI_PSK "20122000"
 
@@ -20,8 +19,6 @@ WifiStation network;
 StepperController motor;
 SntpClient sntp;
 HttpsClient client;
-
-
 
 int main(void)
 {
@@ -31,16 +28,24 @@ int main(void)
     network.wifi_init();
     network.connect_to_wifi(WIFI_SSID, WIFI_PSK);
 
-    // TODO: Check why this MF does not work!!!!
-    //client.start_client_https();
-    while (1)
+    
+    int ret = client.setup_socket();
+    if (ret != 0)
     {
-        sntp.update_current_time();
-
-        motor.move_for(400);
-
-        k_msleep(1000);
+        printk("Error to setup_socket - file number [%d]\r\n", ret);
+        network.wifi_disconnect();
     }
+    k_msleep(1000);
+    client.connect_socket();
+    k_msleep(1000);
+    client.get_package();
+
+    // while (1)
+    // {
+    //     sntp.update_current_time();
+    //     motor.move_for(400);
+
+    // }
 
     network.wifi_disconnect();
 
