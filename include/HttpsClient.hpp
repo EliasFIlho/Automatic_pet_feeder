@@ -2,7 +2,10 @@
 
 #include <zephyr/net/socket.h>
 #include <zephyr/net/http/client.h>
+#include <zephyr/net/tls_credentials.h>
 #include <zephyr/kernel.h>
+
+#define CONFIG_HTTP
 
 class HttpsClient
 {

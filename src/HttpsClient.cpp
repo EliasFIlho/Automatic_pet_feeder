@@ -6,11 +6,20 @@
 #include <string.h>
 #include "HttpsClient.hpp"
 
+#ifndef CONFIG_HTTP
+
 #include "certificate.hpp"
+#define HTTPS_REQUEST_PORT "443"
+
+#else
+
+#define HTTPS_REQUEST_PORT "80"
+
+#endif
 
 #define HTTPS_REQUEST_HOST "google.com"
 #define HTTPS_REQUEST_URL "/"
-#define HTTPS_REQUEST_PORT "80"
+
 #define HTTPS_REQUEST_TIMEOUT 3000
 
 #define HTTPS_THREAD_STACK_SIZE 8000
@@ -34,7 +43,7 @@ static int http_response_callback(struct http_response *resp, enum http_final_ca
     memcpy(temp_buf, resp->recv_buf, resp->data_len);
     temp_buf[resp->data_len] = '\0';
     printk("Received data:\r\n%s\r\n", temp_buf);
-    
+
     return 0;
 }
 
@@ -58,7 +67,7 @@ static void print_addrinfo(struct zsock_addrinfo **results)
     }
 }
 
-HttpsClient::HttpsClient() : sock(1)
+HttpsClient::HttpsClient() : sock(-1)
 {
 }
 
@@ -68,20 +77,46 @@ HttpsClient::~HttpsClient()
 
 int HttpsClient::setup_socket()
 {
+    int ret;
+#ifndef CONFIG_HTTP
+    ret = tls_credential_add(CA_CERTIFICATE_TAG, TLS_CREDENTIAL_CA_CERTIFICATE, ca_certificate, sizeof(ca_certificate));
+    if (ret != 0)
+    {
+        printk("Unable to add tls credentials\r\n");
+        return -1;
+    }
+    else
+    {
+        printk("TLS credentials added\r\n");
+    }
+#endif
+
     struct zsock_addrinfo hints;
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
-    int ret = zsock_getaddrinfo(HTTPS_REQUEST_HOST, HTTPS_REQUEST_PORT, &hints, &this->res);
+    ret = zsock_getaddrinfo(HTTPS_REQUEST_HOST, HTTPS_REQUEST_PORT, &hints, &this->res);
     if (ret != 0)
     {
         printk("Unable to get server address\r\n");
+        return -1;
     }
     else
     {
         print_addrinfo(&this->res);
     }
-
+#ifndef CONFIG_HTTP
+    this->sock = zsock_socket(this->res->ai_family, this->res->ai_socktype, IPPROTO_TLS_1_2);
+    if (this->sock < 0)
+    {
+        printk("Socket fails to create -> socket fd = [%d]\r\n", this->sock);
+        return -1;
+    }
+    else
+    {
+        printk("Socket created -> socket fd = [%d]\r\n", this->sock);
+    }
+#else
     this->sock = zsock_socket(this->res->ai_family, this->res->ai_socktype, this->res->ai_protocol);
     if (this->sock < 0)
     {
@@ -93,6 +128,37 @@ int HttpsClient::setup_socket()
         printk("Socket created -> socket fd = [%d]\r\n", this->sock);
         return 0;
     }
+#endif
+
+#ifndef CONFIG_HTTP
+    sec_tag_t sec_tag_opt[] = {
+        CA_CERTIFICATE_TAG,
+    };
+
+    ret = zsock_setsockopt(this->sock, SOL_TLS, TLS_SEC_TAG_LIST, sec_tag_opt, sizeof(sec_tag_opt));
+    if (ret != 0)
+    {
+        printk("Unable to set socket option for TLS - [%d]\r\n", ret);
+        return -1;
+    }
+    else
+    {
+        printk("Seted socket option for TLS - [%d]\r\n", ret);
+    }
+
+    ret = zsock_setsockopt(sock, SOL_TLS, TLS_HOSTNAME, HTTPS_REQUEST_HOST, sizeof(HTTPS_REQUEST_HOST));
+
+    if (ret != 0)
+    {
+        printk("Unable to set socket option HOST NAME for TLS - [%d]\r\n", ret);
+        return -1;
+    }
+    else
+    {
+        printk("Seted socket option HOST NAME for TLS - [%d]\r\n", ret);
+    }
+    return 0;
+#endif
 }
 int HttpsClient::connect_socket()
 {
@@ -113,7 +179,6 @@ void HttpsClient::get_package()
     int ret;
     struct http_request req;
     memset(&req, 0, sizeof(req));
-    printk("Obj socket [%d]\r\n", this->sock);
     req.method = HTTP_GET;
     req.url = HTTPS_REQUEST_URL;
     req.protocol = "HTTP/1.1";
