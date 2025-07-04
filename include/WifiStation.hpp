@@ -2,7 +2,6 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/net/wifi_mgmt.h>
-#include <zephyr/net/dhcpv4_server.h>
 
 #define PSK_BUFFER_LEN 20
 #define SSID_BUFFER_LEN 20
