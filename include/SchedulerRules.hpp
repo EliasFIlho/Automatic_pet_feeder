@@ -1,5 +1,7 @@
 #pragma once
 
+#include <zephyr/kernel.h>
+
 
 /*
 * I won't win nothing by using these flags, in terms of space since i still have the SpecifDateRule_t inside of the union.
