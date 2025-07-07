@@ -13,8 +13,8 @@
 #include "HttpsClient.hpp"
 #include "WifiSoftAp.hpp"
 
-#define WIFI_SSID "LINKCE- 2G"
-#define WIFI_PSK "20122000"
+#define WIFI_SSID ""
+#define WIFI_PSK ""
 
 WifiStation network;
 WifiSoftAp Sap;
