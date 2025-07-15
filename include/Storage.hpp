@@ -20,7 +20,7 @@ private:
 
 public:
     int init_storage();
-    int read_data(uint32_t id);
+    int read_data(uint32_t id, char *data, size_t buf_len);
     int write_data(uint32_t id, const char *data);
     Storage();
     ~Storage();

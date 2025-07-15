@@ -27,6 +27,8 @@ Storage fs;
 int main(void)
 {
 
+    char ssid[16];
+
     k_sleep(K_SECONDS(3));
     int ret = fs.init_storage();
 
@@ -34,7 +36,7 @@ int main(void)
         printk("Error to init Fs\r\n");
     }
 
-    ret = fs.read_data(SSID_ID);
+    ret = fs.read_data(SSID_ID,ssid,sizeof(ssid));
     
     if(ret < 0){
         printk("No data stored\r\n");
@@ -44,11 +46,12 @@ int main(void)
         }
     }else{
         printk("Data founded in FS\r\n");
+        printk("SSID data: [%s]\r\n",ssid);
     }
 
     printk("Initing wifi...\r\n");
     network.wifi_init();
-    network.connect_to_wifi(WIFI_SSID, WIFI_PSK);
+    network.connect_to_wifi(ssid, WIFI_PSK);
     ret = client.setup_socket();
     if (ret != 0)
     {

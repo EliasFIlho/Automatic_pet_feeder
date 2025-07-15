@@ -52,15 +52,15 @@ int Storage::init_storage()
     return 0;
 }
 
-int Storage::read_data(uint32_t id)
+int Storage::read_data(uint32_t id, char *data, size_t buf_len)
 {
-    char buf[BUFFER_LEN];
 
-    int rc = zms_read(&fs, id, &buf, sizeof(buf));
+    int rc = zms_read(&fs, id, data, buf_len);
     if (rc > 0)
     {
-        buf[rc] = '\0';
-        printk("ID: %u, IP Address: %s\r\n", id, buf);
+        data[rc] = '\0';
+        printk("Amout of readed data [%d]\r\n",rc);
+        //printk("ID: %u, IP Address: %s\r\n", id, data);
     }
     else
     {
@@ -72,7 +72,7 @@ int Storage::write_data(uint32_t id, const char *data)
 {
 
     printk("Adding IP_ADDRESS %s at id %u\n", data, id);
-    int rc = zms_write(&fs, id, data, strlen(data));
+    int rc = zms_write(&fs, id, data, strlen(data) - 1);
     if (rc < 0)
     {
         printk("Error while writing Entry rc=%d\n", rc);
