@@ -15,7 +15,7 @@ private:
     void get_rules(); // Acess filesystem and get the current scheduler (This function will be mocked for test since the filesystem module still not avaliable)
     void dispense_food(int amount); // Dispense a X amount of food (the amount calc will be defined after the mechanics)
     bool check_date(); // Compare current time stamp with the rules
-    void app(); // Application function (This may not work bcs is class member, but i'll see how this is done)
+    void app(); // Application function (This may not work bcs is class member, but i'll see how this is usually done)
 public:
     Application();
     ~Application();

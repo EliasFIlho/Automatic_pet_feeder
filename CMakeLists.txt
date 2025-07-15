@@ -7,8 +7,6 @@ project(scheduler_feeder)
 
 
 FILE(GLOB app_sources src/*.cpp)
-FILE(GLOB app_headers include/*.hpp)
-
 
 target_sources(app PRIVATE ${app_sources})
 target_include_directories(app PRIVATE ${CMAKE_SOURCE_DIR}/include)
