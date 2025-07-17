@@ -12,8 +12,10 @@
 #include "WifiSoftAp.hpp"
 #include "Storage.hpp"
 
-#define WIFI_SSID "LINKCE- 2G"
-#define WIFI_PSK "20122000"
+#define WIFI_SSID ""
+#define WIFI_PSK ""
+
+#define RE_WRITE 0
 
 WifiStation network;
 // WifiSoftAp Sap;
@@ -22,36 +24,72 @@ HttpsClient client;
 
 Storage fs;
 
-// TODO: Create the storage module using ZMS for, make the module works as a Sigleton for use control
+// TODO: Improve the storage module using ZMS
 
 int main(void)
 {
 
     char ssid[16];
+    char psk[16];
 
     k_sleep(K_SECONDS(3));
     int ret = fs.init_storage();
 
-    if(ret != 0){
+    if (ret != 0)
+    {
         printk("Error to init Fs\r\n");
     }
 
-    ret = fs.read_data(SSID_ID,ssid,sizeof(ssid));
-    
-    if(ret < 0){
-        printk("No data stored\r\n");
-        ret = fs.write_data(SSID_ID,WIFI_SSID);
-        if(ret < 0){
-            printk("Error to write SSID data\r\n");
-        }
-    }else{
-        printk("Data founded in FS\r\n");
-        printk("SSID data: [%s]\r\n",ssid);
+#if RE_WRITE
+    ret = fs.write_data(SSID_ID, WIFI_SSID);
+    if (ret < 0)
+    {
+        printk("Error to write SSID data\r\n");
     }
 
+    ret = fs.write_data(PASSWORD_ID, WIFI_PSK);
+    if (ret < 0)
+    {
+        printk("Error to write SSID data\r\n");
+    }
+#else
+    ret = fs.read_data(SSID_ID, ssid, sizeof(ssid));
+
+    if (ret < 0)
+    {
+        printk("No data stored\r\n");
+        ret = fs.write_data(SSID_ID, WIFI_SSID);
+        if (ret < 0)
+        {
+            printk("Error to write SSID data\r\n");
+        }
+    }
+    else
+    {
+        printk("Data founded in FS\r\n");
+        printk("SSID data: [%s]\r\n", ssid);
+    }
+
+    ret = fs.read_data(PASSWORD_ID, psk, sizeof(psk));
+    if (ret < 0)
+    {
+        printk("No data stored\r\n");
+        ret = fs.write_data(PASSWORD_ID, WIFI_PSK);
+        if (ret < 0)
+        {
+            printk("Error to write SSID data\r\n");
+        }
+    }
+    else
+    {
+        printk("Data founded in FS\r\n");
+        printk("PSK data: [%s]\r\n", psk);
+    }
+
+#endif
     printk("Initing wifi...\r\n");
     network.wifi_init();
-    network.connect_to_wifi(ssid, WIFI_PSK);
+    network.connect_to_wifi(ssid, psk);
     ret = client.setup_socket();
     if (ret != 0)
     {

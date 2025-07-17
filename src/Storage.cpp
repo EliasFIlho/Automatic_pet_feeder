@@ -13,6 +13,11 @@
 #define ZMS_PARTITION_OFFSET FIXED_PARTITION_OFFSET(ZMS_PARTITION)
 
 
+//TODO: Replace this for a enum
+#define STORAGE_ERROR_DEVICE -1
+#define STORAGE_ERROR_PAGE_INFO -2
+#define STORAGE_ERROR_MOUNT -3
+
 #define BUFFER_LEN 256
 
 Storage::Storage()
@@ -31,14 +36,14 @@ int Storage::init_storage()
     this->fs.flash_device = ZMS_PARTITION_DEVICE;
     if (!device_is_ready(this->fs.flash_device))
     {
-        return -1;
+        return STORAGE_ERROR_DEVICE;
     }
     this->fs.offset = ZMS_PARTITION_OFFSET;
     int ret = flash_get_page_info_by_offs(this->fs.flash_device, this->fs.offset, &info);
     if (ret)
     {
         printk("Unable to get page info, rc=%d\n", ret);
-        return -1;
+        return STORAGE_ERROR_PAGE_INFO;
     }
     this->fs.sector_size = info.size;
     this->fs.sector_count = 3U;
@@ -47,20 +52,19 @@ int Storage::init_storage()
     if (ret)
     {
         printk("Storage Init failed, rc=%d\n", ret);
-        return -1;
+        return STORAGE_ERROR_MOUNT;
     }
     return 0;
 }
 
-int Storage::read_data(uint32_t id, char *data, size_t buf_len)
+int Storage::read_data(uint32_t id, char *buf, size_t buf_len)
 {
 
-    int rc = zms_read(&fs, id, data, buf_len);
+    int rc = zms_read(&fs, id, buf, buf_len);
     if (rc > 0)
     {
-        data[rc] = '\0';
-        printk("Amout of readed data [%d]\r\n",rc);
-        //printk("ID: %u, IP Address: %s\r\n", id, data);
+        buf[rc] = '\0';
+        printk("Amount of readed data [%d]\r\n", rc);
     }
     else
     {
@@ -71,13 +75,14 @@ int Storage::read_data(uint32_t id, char *data, size_t buf_len)
 int Storage::write_data(uint32_t id, const char *data)
 {
 
-    printk("Adding IP_ADDRESS %s at id %u\n", data, id);
-    int rc = zms_write(&fs, id, data, strlen(data) - 1);
+    int rc = zms_write(&fs, id, data, strlen(data));
     if (rc < 0)
     {
         printk("Error while writing Entry rc=%d\n", rc);
-        return rc;
+    }else{
+        printk("Sucess to write data\r\n");
     }
 
     return rc;
 }
+

@@ -12,15 +12,14 @@
 #define PASSWORD_ID 1
 #define RULES_ID 2
 
+
 class Storage {
 
 private:
     struct zms_fs fs;
-
-
 public:
     int init_storage();
-    int read_data(uint32_t id, char *data, size_t buf_len);
+    int read_data(uint32_t id, char *buf, size_t buf_len);
     int write_data(uint32_t id, const char *data);
     Storage();
     ~Storage();
