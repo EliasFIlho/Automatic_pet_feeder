@@ -6,7 +6,7 @@
 
 
 /**
- * @brief Construct a new stepper::stepper object
+ * @brief Construct a new StepperController::StepperController object
  * 
  */
 StepperController::StepperController()
@@ -29,7 +29,7 @@ StepperController::StepperController()
 }
 
 /**
- * @brief Destroy the stepper::stepper object
+ * @brief Destroy the StepperController::StepperController object
  * 
  */
 StepperController::~StepperController()

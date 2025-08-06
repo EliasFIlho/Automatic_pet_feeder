@@ -11,6 +11,7 @@
 #include "HttpsClient.hpp"
 #include "WifiSoftAp.hpp"
 #include "Storage.hpp"
+#include "RTC.hpp"
 
 #define WIFI_SSID ""
 #define WIFI_PSK ""
@@ -18,22 +19,19 @@
 #define RE_WRITE 0
 
 WifiStation network;
-// WifiSoftAp Sap;
-
 HttpsClient client;
-
-Storage fs;
+RTC rtc;
 
 // TODO: Improve the storage module using ZMS
 
 int main(void)
 {
-
+    int ret;
     char ssid[16];
     char psk[16];
-
+    Storage& fs = Storage::getInstance();
     k_sleep(K_SECONDS(3));
-    int ret = fs.init_storage();
+    ret = fs.init_storage();
 
     if (ret != 0)
     {

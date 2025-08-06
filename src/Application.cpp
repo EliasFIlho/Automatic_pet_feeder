@@ -1,4 +1,5 @@
 #include "Application.hpp"
+#include "Storage.hpp"
 
 Application::Application()
 {
@@ -17,6 +18,7 @@ void Application::dispense_food(int amount)
 }
 bool Application::check_date()
 {
+    return true;
 }
 void Application::app()
 {

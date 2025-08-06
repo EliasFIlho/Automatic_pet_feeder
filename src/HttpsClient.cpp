@@ -2,13 +2,13 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/net/socket.h>
 #include <zephyr/net/http/client.h>
-#include <zephyr/net/tls_credentials.h>
 #include <string.h>
 #include "HttpsClient.hpp"
 
-#ifndef CONFIG_HTTP
+#ifndef CONFIG_HTTP_VERSION
 
 #include "certificate.hpp"
+#include <zephyr/net/tls_credentials.h>
 #define HTTPS_REQUEST_PORT "443"
 
 #else

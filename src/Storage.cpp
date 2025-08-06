@@ -13,10 +13,14 @@
 #define ZMS_PARTITION_OFFSET FIXED_PARTITION_OFFSET(ZMS_PARTITION)
 
 
-//TODO: Replace this for a enum
-#define STORAGE_ERROR_DEVICE -1
-#define STORAGE_ERROR_PAGE_INFO -2
-#define STORAGE_ERROR_MOUNT -3
+
+
+enum{
+    STORAGE_ERROR_MOUNT = -3,
+    STORAGE_ERROR_PAGE_INFO,
+    STORAGE_ERROR_DEVICE
+
+};
 
 #define BUFFER_LEN 256
 
@@ -86,3 +90,10 @@ int Storage::write_data(uint32_t id, const char *data)
     return rc;
 }
 
+
+Storage Storage::instance;
+
+Storage& Storage::getInstance(){
+    
+    return instance;
+}

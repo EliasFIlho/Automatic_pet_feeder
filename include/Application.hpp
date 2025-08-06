@@ -1,18 +1,18 @@
 #pragma once
 
 #include "StepperController.hpp"
-#include "SntpClient.hpp"
+#include "RTC.hpp"
 #include "SchedulerRules.hpp"
 
 class Application
 {
 private:
     StepperController motor;
-    SntpClient sntp;
+    RTC rtc;
     Rules_t rules;
 
 private:
-    void get_rules(); // Acess filesystem and get the current scheduler (This function will be mocked for test since the filesystem module still not avaliable)
+    void get_rules(); // Acess filesystem and get the current scheduler
     void dispense_food(int amount); // Dispense a X amount of food (the amount calc will be defined after the mechanics)
     bool check_date(); // Compare current time stamp with the rules
     void app(); // Application function (This may not work bcs is class member, but i'll see how this is usually done)

@@ -10,6 +10,9 @@
 
 static struct net_mgmt_event_callback ap_cb;
 
+
+//TODO: Move thise whole module to a single wifi class
+//TODO: Create HTTP Server for get device wifi credentials
 static void sap_event_handler(struct net_mgmt_event_callback *cb, uint32_t mgmt_event, struct net_if *iface)
 {
     switch (mgmt_event)

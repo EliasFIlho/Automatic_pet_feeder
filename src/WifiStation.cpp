@@ -22,6 +22,8 @@ static struct net_mgmt_event_callback ipv4_cb;
 //TODO: Create a scheduled routine to check the Wireless RSSI and put the value inside a queue - this value can also be mapped in this same
 // routine to display the signal quality 
 
+//TODO: Get a pwm device to display the RSSI as a LED bright
+
 
 // TODO: See how to use this callback inside of the object field (Is that realy necessary/good?)
 static void wifi_event_handler(struct net_mgmt_event_callback *cb, uint32_t mgmt_event, struct net_if *iface)
