@@ -1,20 +1,20 @@
 #pragma once
 
 #include <zephyr/net/sntp.h>
+#include <zephyr/drivers/rtc.h>
+#include <zephyr/kernel.h>
+#include <zephyr/sys/util.h>
+#include <zephyr/device.h>
 
-
-#define SERVER_MAX_LEN 20
-
-class SntpClient
+class RTC
 {
 private:
     struct sntp_time s_time;
     struct tm *ts;
-    char server[SERVER_MAX_LEN];
+    //const struct device * const rtc = DEVICE_DT_GET(DT_ALIAS(rtc));
 public:
-    SntpClient();
-    SntpClient(const char *server);
-    ~SntpClient();
+    RTC();
+    ~RTC();
     int update_current_time();
     
     int get_week_day();

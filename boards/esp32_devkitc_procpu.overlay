@@ -16,4 +16,8 @@
         status = "okay";
     };
 
+    aliases {
+        rtc = &rtc_timer;
+    };
+
 };
