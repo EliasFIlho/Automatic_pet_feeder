@@ -10,19 +10,19 @@ class RTC
 {
 private:
     struct sntp_time s_time;
-    struct tm *ts;
-    //const struct device * const rtc = DEVICE_DT_GET(DT_ALIAS(rtc));
+    struct timespec time_spec;
+    const struct device * const rtc = DEVICE_DT_GET(DT_ALIAS(rtc));
 public:
     RTC();
     ~RTC();
-    int update_current_time();
+    int sync_time(); // Function to sync wall-clock time
     
-    int get_week_day();
-    int get_day();
-    int get_month();
-    int get_year();
-    int get_hour();
-    int get_minute();
+    int get_week_day(); // Function to parse and return the week day
+    int get_day(); // Function to parse and return the month day
+    int get_month(); //Function to parse and return the month
+    int get_year(); //Function to parse and return the year
+    int get_hour(); //Function to parse and return the hour
+    int get_minute();//Function to parse and return the minutes
 };
 
 

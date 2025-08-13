@@ -13,12 +13,12 @@
 
 #else
 
-#define HTTPS_REQUEST_PORT "80"
+#define HTTPS_REQUEST_PORT "8080"
 
 #endif
 
-#define HTTPS_REQUEST_HOST "google.com"
-#define HTTPS_REQUEST_URL "/"
+#define HTTPS_REQUEST_HOST "192.168.100.24"
+#define HTTPS_REQUEST_URL "/get_rules"
 
 #define HTTPS_REQUEST_TIMEOUT 3000
 

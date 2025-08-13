@@ -22,7 +22,6 @@ WifiStation network;
 HttpsClient client;
 RTC rtc;
 
-// TODO: Improve the storage module using ZMS
 
 int main(void)
 {
@@ -88,6 +87,8 @@ int main(void)
     printk("Initing wifi...\r\n");
     network.wifi_init();
     network.connect_to_wifi(ssid, psk);
+    
+    
     ret = client.setup_socket();
     if (ret != 0)
     {
@@ -97,7 +98,12 @@ int main(void)
     }
     client.connect_socket();
     client.get_package();
-
+    
+    
+    rtc.sync_time();
+    int week = rtc.get_week_day();
+    printk("Week day [%d]\n\r",week);
+    
     network.wifi_disconnect();
 
     return 0;
