@@ -10,6 +10,7 @@
 #define UTC_3 10800 // 3h in seconds
 
 #define SNTP_TRY_COUNT 5
+#define SNTP_BASE_YEAR 1900
 
 RTC::RTC()
 {
@@ -54,7 +55,7 @@ int RTC::sync_time()
             if (ret != 0)
             {
                 count++;
-                printk("Error to do SNTP request retry count [%d]\r\n",count);
+                printk("Error to do SNTP request retry count [%d]\r\n", count);
             }
             else
             {
@@ -86,24 +87,84 @@ int RTC::get_week_day()
     }
     else
     {
-        printk("rtc_time struct date\r\nW_D[%d] - Y[%d] - M_D[%d]\n\r", tm.tm_wday, tm.tm_year, tm.tm_mday);
+        printk("rtc_time struct date: W_D[%d]\n\r", tm.tm_wday);
         return tm.tm_wday;
     }
 }
 
 int RTC::get_day()
 {
+    struct rtc_time tm;
+    int ret = rtc_get_time(this->rtc, &tm);
+    if (ret < 0)
+    {
+        printk("Error to get time from RTC\r\n");
+        return ret;
+    }
+    else
+    {
+        printk("rtc_time struct date: M_D[%d]\n\r", tm.tm_mday);
+        return tm.tm_mday;
+    }
 }
 int RTC::get_month()
 {
+    struct rtc_time tm;
+    int ret = rtc_get_time(this->rtc, &tm);
+    if (ret < 0)
+    {
+        printk("Error to get time from RTC\r\n");
+        return ret;
+    }
+    else
+    {
+        printk("rtc_time struct date: M[%d]\n\r", tm.tm_mon);
+        return tm.tm_mon;
+    }
 }
 int RTC::get_year()
 {
+    struct rtc_time tm;
+    int ret = rtc_get_time(this->rtc, &tm);
+    if (ret < 0)
+    {
+        printk("Error to get time from RTC\r\n");
+        return ret;
+    }
+    else
+    {
+        printk("rtc_time struct date: M[%d]\n\r", tm.tm_year);
+        return (SNTP_BASE_YEAR + tm.tm_year);
+    }
 }
 
 int RTC::get_hour()
 {
+    struct rtc_time tm;
+    int ret = rtc_get_time(this->rtc, &tm);
+    if (ret < 0)
+    {
+        printk("Error to get time from RTC\r\n");
+        return ret;
+    }
+    else
+    {
+        printk("rtc_time struct date: M[%d]\n\r", tm.tm_hour);
+        return tm.tm_hour;
+    }
 }
 int RTC::get_minute()
 {
+    struct rtc_time tm;
+    int ret = rtc_get_time(this->rtc, &tm);
+    if (ret < 0)
+    {
+        printk("Error to get time from RTC\r\n");
+        return ret;
+    }
+    else
+    {
+        printk("rtc_time struct date: M[%d]\n\r", tm.tm_min);
+        return tm.tm_min;
+    }
 }

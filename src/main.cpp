@@ -101,8 +101,13 @@ int main(void)
     
     
     rtc.sync_time();
-    int week = rtc.get_week_day();
-    printk("Week day [%d]\n\r",week);
+    int date_ret = rtc.get_year();
+    date_ret = rtc.get_month();
+    date_ret = rtc.get_day();
+    date_ret = rtc.get_week_day();
+    date_ret = rtc.get_hour();
+    date_ret = rtc.get_minute();
+    
     
     network.wifi_disconnect();
 
