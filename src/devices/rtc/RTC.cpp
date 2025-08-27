@@ -14,11 +14,18 @@
 
 RTC::RTC()
 {
+    if (!device_is_ready(this->rtc))
+    {
+        printk("Device is not ready\n\r");
+    }else{
+        printk("RTC Device Ready\n\r");
+    }
 }
 
 RTC::~RTC()
 {
 }
+
 
 static inline void rtc_from_tm(struct rtc_time *rtc_st, const struct tm *tm_st)
 {
@@ -70,8 +77,16 @@ int RTC::sync_time()
     ts = localtime(&epoch);
     // printk("Tm struct date\r\nW_D[%d] - Y[%d] - M_D[%d]\n\r", ts->tm_wday, ts->tm_year, ts->tm_mday);
     rtc_from_tm(&tm, ts);
-    // printk("rtc_time struct date\r\nW_D[%d] - Y[%d] - M_D[%d]\n\r", tm.tm_wday,tm.tm_year,tm.tm_mday);
-    rtc_set_time(this->rtc, &tm);
+    printk("rtc_time struct date -- W_D[%d] - Y[%d] - M_D[%d]\n\r", tm.tm_wday, tm.tm_year, tm.tm_mday);
+    ret = rtc_set_time(this->rtc, &tm);
+    if (ret < 0)
+    {
+        printk("ERROR TO SET TIME IN RTC\r\n");
+    }
+    else
+    {
+        printk("TIME SETED IN RTC\r\n");
+    }
 
     return ret;
 }
@@ -87,7 +102,7 @@ int RTC::get_week_day()
     }
     else
     {
-        printk("rtc_time struct date: W_D[%d]\n\r", tm.tm_wday);
+        printk("rtc_time struct date: WeekDay[%d]\n\r", tm.tm_wday);
         return tm.tm_wday;
     }
 }
@@ -103,7 +118,7 @@ int RTC::get_day()
     }
     else
     {
-        printk("rtc_time struct date: M_D[%d]\n\r", tm.tm_mday);
+        printk("rtc_time struct date: MonDay[%d]\n\r", tm.tm_mday);
         return tm.tm_mday;
     }
 }
@@ -118,7 +133,7 @@ int RTC::get_month()
     }
     else
     {
-        printk("rtc_time struct date: M[%d]\n\r", tm.tm_mon);
+        printk("rtc_time struct date: Mon[%d]\n\r", tm.tm_mon);
         return tm.tm_mon;
     }
 }
@@ -133,7 +148,7 @@ int RTC::get_year()
     }
     else
     {
-        printk("rtc_time struct date: M[%d]\n\r", tm.tm_year);
+        printk("rtc_time struct date: Y[%d]\n\r", tm.tm_year);
         return (SNTP_BASE_YEAR + tm.tm_year);
     }
 }
@@ -149,7 +164,7 @@ int RTC::get_hour()
     }
     else
     {
-        printk("rtc_time struct date: M[%d]\n\r", tm.tm_hour);
+        printk("rtc_time struct date: H[%d]\n\r", tm.tm_hour);
         return tm.tm_hour;
     }
 }
@@ -164,7 +179,7 @@ int RTC::get_minute()
     }
     else
     {
-        printk("rtc_time struct date: M[%d]\n\r", tm.tm_min);
+        printk("rtc_time struct date: Min[%d]\n\r", tm.tm_min);
         return tm.tm_min;
     }
 }

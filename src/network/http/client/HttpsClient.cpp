@@ -19,12 +19,14 @@
 
 #define HTTPS_REQUEST_HOST "192.168.100.24"
 #define HTTPS_REQUEST_URL "/get_rules"
-
 #define HTTPS_REQUEST_TIMEOUT 3000
+
 
 #define HTTPS_THREAD_STACK_SIZE 8000
 #define HTTPS_THREAD_PRIORITY 5
 #define HTTPS_THREAD_OPTIONS (K_FP_REGS | K_ESSENTIAL)
+
+K_THREAD_STACK_DEFINE(HTTPS_STACK_AREA,HTTPS_THREAD_STACK_SIZE);
 
 #define HTTP_RECV_BUF_LEN 512
 
@@ -194,4 +196,16 @@ void HttpsClient::get_package()
 
 void HttpsClient::https_client_task(void *, void *, void *)
 {
+    while (1)
+    {
+        // Do stuff
+        printk("HTTPS Task creation works, nice\r\n");
+        k_msleep(1000);
+    }
+    
+
+}
+
+void HttpsClient::start_http(){
+    k_thread_create(&this->HTTPSTask,HTTPS_STACK_AREA,HTTPS_THREAD_STACK_SIZE,this->https_client_task,NULL,NULL,NULL,HTTPS_THREAD_PRIORITY,HTTPS_THREAD_OPTIONS,K_NO_WAIT);
 }
