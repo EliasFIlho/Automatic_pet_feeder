@@ -1,5 +1,41 @@
-menu "HTTP Client options"
+menu "HTTP options"
+
+config HTTPS_THREAD_STACK_SIZE
+    int "Define https thread stack size"
+    default 8000
+
+config HTTPS_THREAD_PRIORITY
+    int "Define https thread priority"
+    default 5
+
+config HTTPS_THREAD_PERIOD
+    int "Define the period in ms of te https thread"
+    default 5000
+
+config HTTP_VERSION
+    bool "Enable application to use mocked functions"
+    default y
+
+config HTTPS_REQUEST_PORT
+    string "HTTPS port to be used with secure sockets"
+    default "8080"
 
 
+config HTTPS_REQUEST_ADDRESS
+    string "HTTP/HTTPS server address"
+    default "192.168.100.22"
+
+config HTTPS_REQUEST_URL
+    string "HTTP/HTTPS server URL"
+    default "/get_rules"
+
+config HTTPS_REQUEST_TIMEOUT
+    int "HTTP/HTTPS request timeout"
+    default 3000
+
+config HTTP_RECV_BUF_LEN
+    int "HTTP/HTTPS request timeout"
+    default 512
 
 endmenu
+

@@ -16,7 +16,7 @@ public:
     RTC();
     ~RTC();
     int sync_time(); // Function to sync wall-clock time
-    int get_week_day(); // Function to parse and return the week day
+    uint8_t get_week_day(); // Function to parse and return the week day
     int get_day(); // Function to parse and return the month day
     int get_month(); //Function to parse and return the month
     int get_year(); //Function to parse and return the year

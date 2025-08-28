@@ -5,34 +5,23 @@
 #include <string.h>
 #include "HttpsClient.hpp"
 
-#ifndef CONFIG_HTTP_VERSION
+#if !CONFIG_HTTP_VERSION
 
 #include "certificate.hpp"
 #include <zephyr/net/tls_credentials.h>
-#define HTTPS_REQUEST_PORT "443"
-
-#else
-
-#define HTTPS_REQUEST_PORT "8080"
 
 #endif
 
-#define HTTPS_REQUEST_HOST "192.168.100.24"
-#define HTTPS_REQUEST_URL "/get_rules"
-#define HTTPS_REQUEST_TIMEOUT 3000
 
 
-#define HTTPS_THREAD_STACK_SIZE 8000
-#define HTTPS_THREAD_PRIORITY 5
+
 #define HTTPS_THREAD_OPTIONS (K_FP_REGS | K_ESSENTIAL)
+K_THREAD_STACK_DEFINE(HTTPS_STACK_AREA,CONFIG_HTTPS_THREAD_STACK_SIZE);
 
-K_THREAD_STACK_DEFINE(HTTPS_STACK_AREA,HTTPS_THREAD_STACK_SIZE);
-
-#define HTTP_RECV_BUF_LEN 512
 
 static int http_response_callback(struct http_response *resp, enum http_final_call final_data, void *user_data)
 {
-    char temp_buf[HTTP_RECV_BUF_LEN + 1];
+    char temp_buf[CONFIG_HTTP_RECV_BUF_LEN + 1];
 
     if (final_data == HTTP_DATA_MORE)
     {
@@ -40,6 +29,7 @@ static int http_response_callback(struct http_response *resp, enum http_final_ca
     }
     else if (final_data == HTTP_DATA_FINAL)
     {
+        //TODO: Write the data structure received by server in filesystem
         printk("All data received (%d bytes)\r\n", resp->data_len);
     }
     memcpy(temp_buf, resp->recv_buf, resp->data_len);
@@ -80,7 +70,7 @@ HttpsClient::~HttpsClient()
 int HttpsClient::setup_socket()
 {
     int ret;
-#ifndef CONFIG_HTTP
+#if !CONFIG_HTTP_VERSION
     ret = tls_credential_add(CA_CERTIFICATE_TAG, TLS_CREDENTIAL_CA_CERTIFICATE, ca_certificate, sizeof(ca_certificate));
     if (ret != 0)
     {
@@ -97,7 +87,7 @@ int HttpsClient::setup_socket()
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
-    ret = zsock_getaddrinfo(HTTPS_REQUEST_HOST, HTTPS_REQUEST_PORT, &hints, &this->res);
+    ret = zsock_getaddrinfo(CONFIG_HTTPS_REQUEST_ADDRESS, CONFIG_HTTPS_REQUEST_PORT, &hints, &this->res);
     if (ret != 0)
     {
         printk("Unable to get server address\r\n");
@@ -107,7 +97,7 @@ int HttpsClient::setup_socket()
     {
         print_addrinfo(&this->res);
     }
-#ifndef CONFIG_HTTP
+#if !CONFIG_HTTP_VERSION
     this->sock = zsock_socket(this->res->ai_family, this->res->ai_socktype, IPPROTO_TLS_1_2);
     if (this->sock < 0)
     {
@@ -132,7 +122,7 @@ int HttpsClient::setup_socket()
     }
 #endif
 
-#ifndef CONFIG_HTTP
+#if !CONFIG_HTTP_VERSION
     sec_tag_t sec_tag_opt[] = {
         CA_CERTIFICATE_TAG,
     };
@@ -148,7 +138,7 @@ int HttpsClient::setup_socket()
         printk("Seted socket option for TLS - [%d]\r\n", ret);
     }
 
-    ret = zsock_setsockopt(sock, SOL_TLS, TLS_HOSTNAME, HTTPS_REQUEST_HOST, sizeof(HTTPS_REQUEST_HOST));
+    ret = zsock_setsockopt(sock, SOL_TLS, TLS_HOSTNAME, CONFIG_HTTPS_REQUEST_ADDRESS, sizeof(CONFIG_HTTPS_REQUEST_ADDRESS));
 
     if (ret != 0)
     {
@@ -182,16 +172,16 @@ void HttpsClient::get_package()
     struct http_request req;
     memset(&req, 0, sizeof(req));
     req.method = HTTP_GET;
-    req.url = HTTPS_REQUEST_URL;
+    req.url = CONFIG_HTTPS_REQUEST_URL;
     req.protocol = "HTTP/1.1";
-    req.port = HTTPS_REQUEST_PORT;
-    req.host = HTTPS_REQUEST_HOST;
+    req.port = CONFIG_HTTPS_REQUEST_PORT;
+    req.host = CONFIG_HTTPS_REQUEST_ADDRESS;
     req.response = http_response_callback;
     req.recv_buf = this->recv_buf;
     req.recv_buf_len = sizeof(this->recv_buf);
     printk("Request struct populated\r\n");
 
-    ret = http_client_req(this->sock, &req, HTTPS_REQUEST_TIMEOUT, NULL);
+    ret = http_client_req(this->sock, &req, CONFIG_HTTPS_REQUEST_TIMEOUT, NULL);
 }
 
 void HttpsClient::https_client_task(void *, void *, void *)
@@ -207,5 +197,5 @@ void HttpsClient::https_client_task(void *, void *, void *)
 }
 
 void HttpsClient::start_http(){
-    k_thread_create(&this->HTTPSTask,HTTPS_STACK_AREA,HTTPS_THREAD_STACK_SIZE,this->https_client_task,NULL,NULL,NULL,HTTPS_THREAD_PRIORITY,HTTPS_THREAD_OPTIONS,K_NO_WAIT);
+    k_thread_create(&this->HTTPSTask,HTTPS_STACK_AREA,CONFIG_HTTPS_THREAD_STACK_SIZE,this->https_client_task,NULL,NULL,NULL,CONFIG_HTTPS_THREAD_PRIORITY,HTTPS_THREAD_OPTIONS,K_NO_WAIT);
 }

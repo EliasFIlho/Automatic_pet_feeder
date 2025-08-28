@@ -5,7 +5,6 @@
 #include <zephyr/net/tls_credentials.h>
 #include <zephyr/kernel.h>
 
-#define CONFIG_HTTP_VERSION
 
 class HttpsClient
 {

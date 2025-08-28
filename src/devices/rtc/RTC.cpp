@@ -17,7 +17,9 @@ RTC::RTC()
     if (!device_is_ready(this->rtc))
     {
         printk("Device is not ready\n\r");
-    }else{
+    }
+    else
+    {
         printk("RTC Device Ready\n\r");
     }
 }
@@ -25,7 +27,6 @@ RTC::RTC()
 RTC::~RTC()
 {
 }
-
 
 static inline void rtc_from_tm(struct rtc_time *rtc_st, const struct tm *tm_st)
 {
@@ -75,7 +76,6 @@ int RTC::sync_time()
     struct tm *ts;
     time_t epoch = s_time.seconds - UTC_3;
     ts = localtime(&epoch);
-    // printk("Tm struct date\r\nW_D[%d] - Y[%d] - M_D[%d]\n\r", ts->tm_wday, ts->tm_year, ts->tm_mday);
     rtc_from_tm(&tm, ts);
     printk("rtc_time struct date -- W_D[%d] - Y[%d] - M_D[%d]\n\r", tm.tm_wday, tm.tm_year, tm.tm_mday);
     ret = rtc_set_time(this->rtc, &tm);
@@ -90,8 +90,14 @@ int RTC::sync_time()
 
     return ret;
 }
-
-int RTC::get_week_day()
+//TODO: Check why RTC cant get the right time(Probably missing something i'll take a closer look later)
+#if !CONFIG_MOCK_TEST
+/**
+ * @brief Get the current week day from RTC device
+ *
+ * @return uint8_t [0..6] from Sunday == 0 to Saturday == 6
+ */
+uint8_t RTC::get_week_day()
 {
     struct rtc_time tm;
     int ret = rtc_get_time(this->rtc, &tm);
@@ -183,3 +189,44 @@ int RTC::get_minute()
         return tm.tm_min;
     }
 }
+#else
+//TODO: Move these MOCKED functions to a test enviroment
+static constexpr uint8_t MOCK_WDAY = 3;
+static constexpr int MOCK_DAY = 27;
+static constexpr int MOCK_MONTH = 8;   // keep as plain 1..12, matching your get_month()
+static constexpr int MOCK_YEAR = 2025; // final calendar year
+static constexpr int MOCK_HOUR = 22;
+static constexpr int MOCK_MIN = 0;
+
+uint8_t RTC::get_week_day()
+{
+
+    return MOCK_WDAY;
+}
+
+int RTC::get_day()
+{
+    return MOCK_DAY;
+}
+
+int RTC::get_month()
+{
+    return MOCK_MONTH;
+}
+
+int RTC::get_year()
+{
+    return MOCK_YEAR;
+}
+
+int RTC::get_hour()
+{
+    return MOCK_HOUR;
+}
+
+int RTC::get_minute()
+{
+    return MOCK_MIN;
+}
+
+#endif

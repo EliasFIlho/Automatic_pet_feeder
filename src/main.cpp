@@ -33,7 +33,7 @@ int main(void)
     }
 
 #endif
-
+    //TODO:CHANGE ALL THE printk CALLS TO LOG MODULE (That way i can get more detailed logs about execution and probably easer to disable logs later)
     app.start_application();
     while (1)
     {
