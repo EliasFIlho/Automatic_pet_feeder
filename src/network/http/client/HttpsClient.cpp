@@ -4,7 +4,8 @@
 #include <zephyr/net/http/client.h>
 #include <string.h>
 #include "HttpsClient.hpp"
-
+#include <zephyr/data/json.h>
+#include "SchedulerRules.hpp"
 #if !CONFIG_HTTP_VERSION
 
 #include "certificate.hpp"
@@ -19,6 +20,28 @@
 K_THREAD_STACK_DEFINE(HTTPS_STACK_AREA,CONFIG_HTTPS_THREAD_STACK_SIZE);
 
 
+static const struct json_obj_descr rules_specific_date[] = {
+    JSON_OBJ_DESCR_PRIM(SpecifcDateRule_t,year,JSON_TOK_UINT),
+    JSON_OBJ_DESCR_PRIM(SpecifcDateRule_t,month,JSON_TOK_UINT),
+    JSON_OBJ_DESCR_PRIM(SpecifcDateRule_t,day,JSON_TOK_UINT),
+};
+
+static const struct json_obj_descr rules_time[] = {
+    JSON_OBJ_DESCR_PRIM(TimeRule_t,hour,JSON_TOK_UINT),
+    JSON_OBJ_DESCR_PRIM(TimeRule_t,minutes,JSON_TOK_UINT),
+};
+
+
+static const struct json_obj_descr rules[] = {
+
+    JSON_OBJ_DESCR_OBJECT(Rules_t, date, rules_specific_date),
+    JSON_OBJ_DESCR_OBJECT(Rules_t, time, rules_time),
+    JSON_OBJ_DESCR_PRIM(Rules_t, period,JSON_TOK_UINT),
+    JSON_OBJ_DESCR_PRIM(Rules_t, week_days,JSON_TOK_UINT),
+    JSON_OBJ_DESCR_PRIM(Rules_t, amount,JSON_TOK_UINT),
+
+};
+
 static int http_response_callback(struct http_response *resp, enum http_final_call final_data, void *user_data)
 {
     char temp_buf[CONFIG_HTTP_RECV_BUF_LEN + 1];
@@ -31,10 +54,17 @@ static int http_response_callback(struct http_response *resp, enum http_final_ca
     {
         //TODO: Write the data structure received by server in filesystem
         printk("All data received (%d bytes)\r\n", resp->data_len);
+        Rules_t rules_str;
+        memcpy(temp_buf, resp->recv_buf, resp->data_len);
+        temp_buf[resp->data_len] = '\0';
+        //printk("Received data:\r\n%s\r\n", temp_buf);
+        json_obj_parse(temp_buf,strlen(temp_buf),rules,ARRAY_SIZE(rules),&rules_str);
+        printk("-- DATA FROM JSON PARSER -- \r\n");
+        printk("--Time: Hour: %d\nMinutes: %d-- \r\n",rules_str.time.hour,rules_str.time.minutes);
+        printk("--Week days: %d -- \r\n",rules_str.week_days);
+        printk("--Period: %d -- \r\n",rules_str.period);
+
     }
-    memcpy(temp_buf, resp->recv_buf, resp->data_len);
-    temp_buf[resp->data_len] = '\0';
-    printk("Received data:\r\n%s\r\n", temp_buf);
 
     return 0;
 }
@@ -179,23 +209,26 @@ void HttpsClient::get_package()
     req.response = http_response_callback;
     req.recv_buf = this->recv_buf;
     req.recv_buf_len = sizeof(this->recv_buf);
-    printk("Request struct populated\r\n");
-
     ret = http_client_req(this->sock, &req, CONFIG_HTTPS_REQUEST_TIMEOUT, NULL);
 }
 
-void HttpsClient::https_client_task(void *, void *, void *)
+void HttpsClient::https_client_task(void *p1, void *, void *)
 {
+    auto *self = static_cast<HttpsClient *>(p1);
+    
+    
     while (1)
     {
-        // Do stuff
         printk("HTTPS Task creation works, nice\r\n");
-        k_msleep(1000);
+        self->setup_socket();
+        self->connect_socket();
+        self->get_package();
+        k_msleep(5000);
     }
     
 
 }
 
 void HttpsClient::start_http(){
-    k_thread_create(&this->HTTPSTask,HTTPS_STACK_AREA,CONFIG_HTTPS_THREAD_STACK_SIZE,this->https_client_task,NULL,NULL,NULL,CONFIG_HTTPS_THREAD_PRIORITY,HTTPS_THREAD_OPTIONS,K_NO_WAIT);
+    k_thread_create(&this->HTTPSTask,HTTPS_STACK_AREA,CONFIG_HTTPS_THREAD_STACK_SIZE,this->https_client_task,this,NULL,NULL,CONFIG_HTTPS_THREAD_PRIORITY,HTTPS_THREAD_OPTIONS,K_NO_WAIT);
 }

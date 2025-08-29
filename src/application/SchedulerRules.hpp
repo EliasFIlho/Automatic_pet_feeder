@@ -2,33 +2,31 @@
 
 #include <zephyr/kernel.h>
 
-
-typedef struct {
+typedef struct
+{
     uint16_t year;
     uint8_t month;
     uint8_t day;
-}SpecifcDateRule_t;
+} SpecifcDateRule_t;
 
-typedef struct{
+typedef struct
+{
     uint8_t hour;
     uint8_t minutes;
-}TimeRule_t;
+} TimeRule_t;
 
-typedef enum{
+typedef enum
+{
     WEEKLY,
     SPECIF
-}PeriodRule_t;
-
+} PeriodRule_t;
 
 typedef struct SchedulerRules
 {
-    union
-    {
-        SpecifcDateRule_t date;
-        uint8_t week_days;
-    };
+    SpecifcDateRule_t date;
     TimeRule_t time;
     PeriodRule_t period;
+    uint8_t week_days;
     uint8_t amount;
 
 } Rules_t;

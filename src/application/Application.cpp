@@ -200,7 +200,7 @@ void Application::app(void *p1, void *, void *)
     printk("App Task created!!\r\n");
     self->init_wifi();
     self->rtc.sync_time();
-    self->network.wifi_disconnect();
+    self->client.start_http();
     bool is_dispenser_executed = false;
     while (true)
     {
@@ -217,6 +217,7 @@ void Application::app(void *p1, void *, void *)
         }
         k_msleep(CONFIG_APPLICATION_THREAD_PERIOD);
     }
+    self->network.wifi_disconnect();
 }
 
 void Application::start_application()

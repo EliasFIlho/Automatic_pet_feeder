@@ -15,7 +15,7 @@ private:
     struct k_thread HTTPSTask;
 
 private:
-    static void https_client_task(void *, void *, void *);
+    static void https_client_task(void *p1, void *, void *);
     void setup_tls_credentials();
     int setup_socket();
     int connect_socket();
