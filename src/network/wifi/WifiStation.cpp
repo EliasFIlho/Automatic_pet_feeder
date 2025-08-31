@@ -1,6 +1,7 @@
 #include <string.h>
 #include <zephyr/kernel.h>
 #include <zephyr/net/wifi_mgmt.h>
+#include <zephyr/logging/log.h>
 #include <zephyr/net/dhcpv4_server.h>
 #include "WifiStation.hpp"
 
@@ -8,7 +9,7 @@
 #define WIFI_CALLBACK_FLAGS (NET_EVENT_WIFI_CONNECT_RESULT | NET_EVENT_WIFI_DISCONNECT_RESULT | NET_EVENT_WIFI_IFACE_STATUS)
 #define WIFI_DHCP_CALLBACK_FLAGS (NET_EVENT_IPV4_DHCP_START | NET_EVENT_IPV4_ADDR_ADD)
 
-LOG_MODULE_REGISTER(WIFI);
+//LOG_MODULE_REGISTER(WIFI,CONFIG_LOG_DEFAULT_LEVEL);
 
 struct k_sem wifi_connected;
 struct k_sem ipv4_connected;
@@ -86,7 +87,7 @@ int WifiStation::connect_to_wifi(char *ssid, char *psk)
 
     if (!sta_iface)
     {
-        LOG_INF("STA: interface no initialized");
+        printk("STA: interface no initialized");
         return -EIO;
     }
 
@@ -123,7 +124,7 @@ int WifiStation::wifi_wait_for_ip_addr(void)
     struct wifi_iface_status status;
     if (!sta_iface)
     {
-        LOG_INF("STA: interface no initialized");
+        printk("STA: interface no initialized");
         return -EIO;
     }
     char ip_addr[NET_IPV4_ADDR_LEN];
@@ -172,12 +173,12 @@ int WifiStation::wait_wifi_to_connect(void)
     printk("Waiting for wifi connection signal\n\r");
     if (k_sem_take(&wifi_connected, K_MSEC(WIFI_CONNECT_TIMEOUT)) != 0)
     {
-        LOG_ERR("UNABLE TO CONNECT TO WIFI\r\n");
+        printk("UNABLE TO CONNECT TO WIFI\r\n");
         return -1;
     }
     else
     {
-        LOG_INF("CONNECTED TO WIFI NETWOKR\r\n");
+        printk("CONNECTED TO WIFI NETWORK\r\n");
         return 0;
     }
 }

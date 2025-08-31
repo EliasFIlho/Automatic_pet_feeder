@@ -1,7 +1,9 @@
 #include "Application.hpp"
 #include "Storage.hpp"
-
 #include "RTC.hpp"
+#include <zephyr/logging/log.h>
+
+//LOG_MODULE_REGISTER(APPLICATION_LOG, CONFIG_LOG_DEFAULT_LEVEL);
 
 K_THREAD_STACK_DEFINE(APP_STACK_AREA, CONFIG_APP_THREAD_STACK_SIZE);
 
@@ -188,7 +190,11 @@ bool Application::init_wifi()
         printk("PSK Data founded in FS\r\n");
     }
     this->network.wifi_init();
-    this->network.connect_to_wifi(ssid, psk);
+    ret = this->network.connect_to_wifi(ssid, psk);
+    if(ret < 0){
+        printk("Connecto to wifi return < 0\r\n");
+        return false;
+    }
     return true;
 }
 
@@ -198,7 +204,9 @@ void Application::app(void *p1, void *, void *)
 
     // MAIN APP LOOP
     printk("App Task created!!\r\n");
-    self->init_wifi();
+    if(!self->init_wifi()){
+        printk("ERROR TO INIT WIFI\n\r");
+    }
     self->rtc.sync_time();
     self->client.start_http();
     bool is_dispenser_executed = false;

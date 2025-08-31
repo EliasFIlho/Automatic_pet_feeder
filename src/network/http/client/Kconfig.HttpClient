@@ -23,7 +23,7 @@ config HTTPS_REQUEST_PORT
 
 config HTTPS_REQUEST_ADDRESS
     string "HTTP/HTTPS server address"
-    default "192.168.100.22"
+    default "google.com"
 
 config HTTPS_REQUEST_URL
     string "HTTP/HTTPS server URL"
@@ -36,6 +36,7 @@ config HTTPS_REQUEST_TIMEOUT
 config HTTP_RECV_BUF_LEN
     int "HTTP/HTTPS request timeout"
     default 512
+
 
 endmenu
 
