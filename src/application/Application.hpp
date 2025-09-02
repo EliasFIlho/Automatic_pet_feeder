@@ -7,6 +7,7 @@
 #include "HttpsClient.hpp"
 #include "WifiSoftAp.hpp"
 #include <zephyr/kernel.h>
+#include "MQTT.hpp"
 
 class Application
 {
@@ -17,6 +18,7 @@ private:
     WifiStation network;
     HttpsClient client;
     RTC rtc;
+    MQTT mqtt;
 
 
 private:

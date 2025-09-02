@@ -6,6 +6,7 @@
 #include "HttpsClient.hpp"
 #include <zephyr/data/json.h>
 #include "SchedulerRules.hpp"
+#include "Storage.hpp"
 
 #if !CONFIG_HTTP_VERSION
 
@@ -56,6 +57,7 @@ static int http_response_callback(struct http_response *resp, enum http_final_ca
         memcpy(temp_buf, resp->recv_buf, resp->data_len);
         temp_buf[resp->data_len] = '\0';
 
+        // TODO: See if i can move this parser call to application and leave the callback just for read and store strings
         int ret = json_obj_parse(temp_buf, strlen(temp_buf), rules, ARRAY_SIZE(rules), &rules_str);
         if (ret < 0)
         {
@@ -63,10 +65,10 @@ static int http_response_callback(struct http_response *resp, enum http_final_ca
         }
         else
         {
-            printk("-- DATA FROM JSON PARSER -- \r\n");
-            printk("--Time: Hour: %d\nMinutes: %d-- \r\n", rules_str.time.hour, rules_str.time.minutes);
-            printk("--Week days: %d -- \r\n", rules_str.week_days);
-            printk("--Period: %d -- \r\n", rules_str.period);
+            printk("-- DATA FROM JSON PARSED -- \r\n");
+
+            // Storage &fs = Storage::getInstance();
+            // fs.write_data(RULES_ID, rules_str);
         }
         LOG_INF("Received data:\r\n%s\r\n", temp_buf);
     }
@@ -123,6 +125,8 @@ int HttpsClient::setup_socket()
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
     ret = zsock_getaddrinfo(CONFIG_HTTPS_REQUEST_ADDRESS, CONFIG_HTTPS_REQUEST_PORT, &hints, &this->res);
+
+    
     if (ret != 0)
     {
         LOG_ERR("Unable to get server address\r\n");
@@ -217,12 +221,10 @@ bool HttpsClient::get_package()
     ret = http_client_req(this->sock, &req, CONFIG_HTTPS_REQUEST_TIMEOUT, NULL);
     if (ret < 0)
     {
-        // this->close_socket();
         return false;
     }
     else
     {
-        // this->close_socket();
         return true;
     }
 }

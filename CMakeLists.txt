@@ -13,5 +13,7 @@ add_subdirectory(src/devices/rtc)
 add_subdirectory(src/devices/motor)
 add_subdirectory(src/network/http/client)
 add_subdirectory(src/network/wifi)
+add_subdirectory(src/network/mqtt)
 add_subdirectory(src/storage)
 add_subdirectory(src/application)
+

@@ -8,6 +8,7 @@
         "tuple": "cpp",
         "typeinfo": "cpp",
         "compare": "cpp",
-        "cstdint": "cpp"
+        "cstdint": "cpp",
+        "type_traits": "cpp"
     }
 }

@@ -1,0 +1,33 @@
+menu "MQTT options"
+
+config DEVICE_ID
+    string "Device name id"
+    default "DEV-X"
+
+config MQTT_DEVICE_LOGIN
+    string "Device login in MQTT broker"
+    default "pet_feeder"
+
+config MQTT_DEVICE_PASSWORD
+    string "Device password in MQTT broker"
+    default ""
+
+
+config MQTT_PROTOCOL_VERSION
+    int "Protocol version for MQTT"
+    default 4
+
+config MQTT_TRANSPORT_TYPE
+    int "MQTT transport layer"
+    default 0
+
+config MQTT_BROKER_ADDR
+    string "Broker address"
+    default "192.168.100.24"
+
+config MQTT_BROKER_PORT
+    int "Broker port"
+    default 1883
+
+    
+endmenu

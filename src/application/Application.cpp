@@ -2,8 +2,9 @@
 #include "Storage.hpp"
 #include "RTC.hpp"
 #include <zephyr/logging/log.h>
+#include "Storage.hpp"
 
-//LOG_MODULE_REGISTER(APPLICATION_LOG, CONFIG_LOG_DEFAULT_LEVEL);
+// LOG_MODULE_REGISTER(APPLICATION_LOG, CONFIG_LOG_DEFAULT_LEVEL);
 
 K_THREAD_STACK_DEFINE(APP_STACK_AREA, CONFIG_APP_THREAD_STACK_SIZE);
 
@@ -15,37 +16,21 @@ Application::~Application()
 {
 }
 
+// TODO: Move this MOCKED function to a test enviroment
 
-//TODO: Move this MOCKED function to a test enviroment
-#if !CONFIG_MOCK_TEST
 int Application::get_rules()
 {
-    // Goto to filesystem
-    // Populate rules struct
+    //TODO: Check how to store a struct in filesystem (Maybe a better approach would be store the json string and parse in this function)
+    // Storage &fs = Storage::getInstance();
+    // fs.read_data(RULES_ID, this->rules);
+    // printk("--Time: Hour: %d ----- Minutes: %d-- \r\n", this->rules.time.hour, this->rules.time.minutes);
+    // printk("--Date: Year: %d ----- Month: %d -----Day: %d -- \r\n", this->rules.date.year, this->rules.date.month, this->rules.date.day);
+    // printk("--Week days: %d -- \r\n", this->rules.week_days);
+    // printk("--Period: %d -- \r\n", this->rules.period);
+    // printk("--Amount: %d -- \r\n", this->rules.amount);
     // If cant return erro code (TODO)
-}
-#else
-int Application::get_rules()
-{
-    this->rules.period = WEEKLY;
-    if (this->rules.period == WEEKLY)
-    {
-        this->rules.week_days = 127; // All days
-    }
-    else
-    { // Specifc year day
-        this->rules.date.day = 27;
-        this->rules.date.month = 8;
-        this->rules.date.year = 2025;
-    }
-
-    this->rules.time.hour = 22;
-    this->rules.time.minutes = 0;
-    this->rules.amount = 90;
-
     return 0;
 }
-#endif
 
 void Application::dispense_food()
 {
@@ -98,7 +83,6 @@ bool Application::is_date_match()
 
 bool Application::is_week_days_match(uint8_t week_day)
 {
-   
 
     week_day = this->rules.week_days & (1 << week_day);
     if (week_day)
@@ -191,7 +175,8 @@ bool Application::init_wifi()
     }
     this->network.wifi_init();
     ret = this->network.connect_to_wifi(ssid, psk);
-    if(ret < 0){
+    if (ret < 0)
+    {
         printk("Connecto to wifi return < 0\r\n");
         return false;
     }
@@ -204,11 +189,17 @@ void Application::app(void *p1, void *, void *)
 
     // MAIN APP LOOP
     printk("App Task created!!\r\n");
-    if(!self->init_wifi()){
+    if (!self->init_wifi())
+    {
         printk("ERROR TO INIT WIFI\n\r");
     }
     self->rtc.sync_time();
-    self->client.start_http();
+    //self->client.start_http();
+    self->mqtt.setup_broker();
+    self->mqtt.init();
+    self->mqtt.connect();
+
+    
     bool is_dispenser_executed = false;
     while (true)
     {
@@ -220,7 +211,9 @@ void Application::app(void *p1, void *, void *)
                 self->dispense_food();
                 is_dispenser_executed = true;
             }
-        }else{
+        }
+        else
+        {
             is_dispenser_executed = false;
         }
         k_msleep(CONFIG_APPLICATION_THREAD_PERIOD);

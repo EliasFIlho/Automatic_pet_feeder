@@ -7,15 +7,14 @@
 #include <zephyr/drivers/flash.h>
 #include <zephyr/storage/flash_map.h>
 #include <zephyr/fs/zms.h>
+#include <stdlib.h>
 
 #define ZMS_PARTITION storage_partition
 #define ZMS_PARTITION_DEVICE FIXED_PARTITION_DEVICE(ZMS_PARTITION)
 #define ZMS_PARTITION_OFFSET FIXED_PARTITION_OFFSET(ZMS_PARTITION)
 
-
-
-
-enum{
+enum
+{
     STORAGE_ERROR_MOUNT = -3,
     STORAGE_ERROR_PAGE_INFO,
     STORAGE_ERROR_DEVICE
@@ -76,24 +75,55 @@ int Storage::read_data(uint32_t id, char *buf, size_t buf_len)
     }
     return rc;
 }
-int Storage::write_data(uint32_t id, const char *data)
+
+int Storage::read_data(uint32_t id, Rules_t &buf)
 {
 
-    int rc = zms_write(&fs, id, data, strlen(data));
-    if (rc < 0)
+    int rc = zms_read(&fs, id, &buf, (sizeof(Rules_t)));
+    if (rc > 0)
     {
-        printk("Error while writing Entry rc=%d\n", rc);
-    }else{
-        printk("Sucess to write data\r\n");
+        printk("Amount of readed data [%d]\r\n", rc);
     }
-
+    else
+    {
+        printk("No data in FS\r\n");
+    }
     return rc;
 }
 
 
+
+int Storage::write_data(uint32_t id, const char *str)
+{
+    int rc = zms_write(&fs, id, str, strlen(str));
+    if (rc < 0)
+    {
+        printk("Error while writing Entry rc=%d\n", rc);
+    }
+    else
+    {
+        printk("Sucess to write data\r\n");
+    }
+    return rc;
+}
+int Storage::write_data(uint32_t id, const Rules_t &rules)
+{
+    int rc = zms_write(&fs, id, &rules, sizeof(rules));
+    if (rc < 0)
+    {
+        printk("Error while writing Entry rc=%d\n", rc);
+    }
+    else
+    {
+        printk("Sucess to write data\r\n");
+    }
+    return rc;
+}
+
 Storage Storage::instance;
 
-Storage& Storage::getInstance(){
-    
+Storage &Storage::getInstance()
+{
+
     return instance;
 }
