@@ -4,7 +4,6 @@
 #include "RTC.hpp"
 #include "SchedulerRules.hpp"
 #include "WifiStation.hpp"
-#include "HttpsClient.hpp"
 #include <zephyr/kernel.h>
 #include "MQTT.hpp"
 
@@ -15,7 +14,6 @@ private:
     StepperController motor;
     Rules_t rules;
     WifiStation network;
-    HttpsClient client;
     RTC rtc;
     MQTT mqtt;
 

@@ -14,7 +14,22 @@
 
 #define RE_WRITE 0
 
+/*Threads:
+
+1.  Check rules and control actuator - Application task
+2.  Handle incoming rules(commands also?) - MQTT task ------
+                                                            |- Both in the MQTT module? 
+                                                            |-(Maybe configure MQTT to act as a singleton and get a instance in different threads like Storage)
+3.  Handle publish data - MQTT_Publish task ----------------
+4.  Check food dispener level - Lvl Sensor task (This task needs to comunicate with MQTT_Publish task, maybe a queue with a struct publish_payload)
+
+*/
+
 Application app;
+
+
+
+
 //TODO: Implement watchdog module
 int main(void)
 {

@@ -2,11 +2,34 @@
 #include "Storage.hpp"
 #include "RTC.hpp"
 #include <zephyr/logging/log.h>
+#include <zephyr/data/json.h>
 #include "Storage.hpp"
 
 // LOG_MODULE_REGISTER(APPLICATION_LOG, CONFIG_LOG_DEFAULT_LEVEL);
 
 K_THREAD_STACK_DEFINE(APP_STACK_AREA, CONFIG_APP_THREAD_STACK_SIZE);
+
+
+static const struct json_obj_descr rules_specific_date[] = {
+    JSON_OBJ_DESCR_PRIM(SpecifcDateRule_t, year, JSON_TOK_UINT),
+    JSON_OBJ_DESCR_PRIM(SpecifcDateRule_t, month, JSON_TOK_UINT),
+    JSON_OBJ_DESCR_PRIM(SpecifcDateRule_t, day, JSON_TOK_UINT),
+};
+
+static const struct json_obj_descr rules_time[] = {
+    JSON_OBJ_DESCR_PRIM(TimeRule_t, hour, JSON_TOK_UINT),
+    JSON_OBJ_DESCR_PRIM(TimeRule_t, minutes, JSON_TOK_UINT),
+};
+
+static const struct json_obj_descr rules[] = {
+
+    JSON_OBJ_DESCR_OBJECT(Rules_t, date, rules_specific_date),
+    JSON_OBJ_DESCR_OBJECT(Rules_t, time, rules_time),
+    JSON_OBJ_DESCR_PRIM(Rules_t, period, JSON_TOK_UINT),
+    JSON_OBJ_DESCR_PRIM(Rules_t, week_days, JSON_TOK_UINT),
+    JSON_OBJ_DESCR_PRIM(Rules_t, amount, JSON_TOK_UINT),
+
+};
 
 Application::Application()
 {

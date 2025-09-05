@@ -2,6 +2,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/net/socket.h>
 #include <zephyr/net/mqtt.h>
+#include "Storage.hpp"
 
 #define MQTT_THREAD_OPTIONS (K_FP_REGS | K_ESSENTIAL)
 K_THREAD_STACK_DEFINE(MQTT_STACK_AREA, CONFIG_MQTT_THREAD_STACK_SIZE);
@@ -9,7 +10,7 @@ K_THREAD_STACK_DEFINE(MQTT_STACK_AREA, CONFIG_MQTT_THREAD_STACK_SIZE);
 static void on_mqtt_publish(struct mqtt_client *const client, const struct mqtt_evt *evt)
 {
     int rc;
-    uint8_t payload[500];
+    char payload[500];
 
     rc = mqtt_read_publish_payload(client, payload,500);
     if (rc < 0)
@@ -19,10 +20,15 @@ static void on_mqtt_publish(struct mqtt_client *const client, const struct mqtt_
     }
     /* Place null terminator at end of payload buffer */
     payload[rc] = '\0';
-
+    Storage &fs = Storage::getInstance();
+    
+    
     printk("MQTT payload received!");
     printk("topic: '%s', payload: %s",
-           evt->param.publish.message.topic.topic.utf8, payload);
+        evt->param.publish.message.topic.topic.utf8, payload);
+        
+    fs.write_data(RULES_ID,payload);
+    
 }
 
 void MQTT::mqtt_evt_handler(struct mqtt_client *client,
