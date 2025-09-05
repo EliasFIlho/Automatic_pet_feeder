@@ -20,7 +20,7 @@ int main(void)
 {
  
 #if RE_WRITE
-    ret = fs.write_data(SSID_ID, WIFI_SSID);
+    int ret = fs.write_data(SSID_ID, WIFI_SSID);
     if (ret < 0)
     {
         printk("Error to write SSID data\r\n");

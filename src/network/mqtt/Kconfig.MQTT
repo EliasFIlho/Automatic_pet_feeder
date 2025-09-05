@@ -10,7 +10,7 @@ config MQTT_DEVICE_LOGIN
 
 config MQTT_DEVICE_PASSWORD
     string "Device password in MQTT broker"
-    default ""
+    default "@D07gbb2as2"
 
 
 config MQTT_PROTOCOL_VERSION
@@ -28,6 +28,31 @@ config MQTT_BROKER_ADDR
 config MQTT_BROKER_PORT
     int "Broker port"
     default 1883
+
+config MQTT_RX_BUFFER_SIZE
+    int "Rx Buffer size for MQTT"
+    default 1024
+
+config MQTT_TX_BUFFER_SIZE
+    int "Tx Buffer size for MQTT"
+    default 1024
+
+config MQTT_RULES_TOPIC
+    string "MQTT Topic path"
+    default "device/rules"
+
+
+config MQTT_THREAD_STACK_SIZE
+    int "Define MQTT thread stack size"
+    default 8000
+
+config MQTT_THREAD_PRIORITY
+    int "Define MQTT thread priority"
+    default 5
+
+config MQTT_THREAD_PERIOD
+    int "Define the period in ms of te MQTT thread"
+    default 5000
 
     
 endmenu

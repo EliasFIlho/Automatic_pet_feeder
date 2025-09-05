@@ -20,15 +20,15 @@ Application::~Application()
 
 int Application::get_rules()
 {
-    //TODO: Check how to store a struct in filesystem (Maybe a better approach would be store the json string and parse in this function)
-    // Storage &fs = Storage::getInstance();
-    // fs.read_data(RULES_ID, this->rules);
-    // printk("--Time: Hour: %d ----- Minutes: %d-- \r\n", this->rules.time.hour, this->rules.time.minutes);
-    // printk("--Date: Year: %d ----- Month: %d -----Day: %d -- \r\n", this->rules.date.year, this->rules.date.month, this->rules.date.day);
-    // printk("--Week days: %d -- \r\n", this->rules.week_days);
-    // printk("--Period: %d -- \r\n", this->rules.period);
-    // printk("--Amount: %d -- \r\n", this->rules.amount);
-    // If cant return erro code (TODO)
+    // TODO: Check how to store a struct in filesystem (Maybe a better approach would be store the json string and parse in this function)
+    //  Storage &fs = Storage::getInstance();
+    //  fs.read_data(RULES_ID, this->rules);
+    //  printk("--Time: Hour: %d ----- Minutes: %d-- \r\n", this->rules.time.hour, this->rules.time.minutes);
+    //  printk("--Date: Year: %d ----- Month: %d -----Day: %d -- \r\n", this->rules.date.year, this->rules.date.month, this->rules.date.day);
+    //  printk("--Week days: %d -- \r\n", this->rules.week_days);
+    //  printk("--Period: %d -- \r\n", this->rules.period);
+    //  printk("--Amount: %d -- \r\n", this->rules.amount);
+    //  If cant return erro code (TODO)
     return 0;
 }
 
@@ -194,28 +194,25 @@ void Application::app(void *p1, void *, void *)
         printk("ERROR TO INIT WIFI\n\r");
     }
     self->rtc.sync_time();
-    //self->client.start_http();
-    self->mqtt.setup_broker();
-    self->mqtt.init();
-    self->mqtt.connect();
-
-    
+    // self->client.start_http();
+   self->mqtt.start_mqtt();
+   
     bool is_dispenser_executed = false;
     while (true)
     {
-        self->get_rules();
-        if (self->check_rules())
-        {
-            if (!is_dispenser_executed)
-            {
-                self->dispense_food();
-                is_dispenser_executed = true;
-            }
-        }
-        else
-        {
-            is_dispenser_executed = false;
-        }
+        // self->get_rules();
+        // if (self->check_rules())
+        // {
+        //     if (!is_dispenser_executed)
+        //     {
+        //         self->dispense_food();
+        //         is_dispenser_executed = true;
+        //     }
+        // }
+        // else
+        // {
+        //     is_dispenser_executed = false;
+        // }
         k_msleep(CONFIG_APPLICATION_THREAD_PERIOD);
     }
     self->network.wifi_disconnect();

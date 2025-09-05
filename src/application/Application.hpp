@@ -5,7 +5,6 @@
 #include "SchedulerRules.hpp"
 #include "WifiStation.hpp"
 #include "HttpsClient.hpp"
-#include "WifiSoftAp.hpp"
 #include <zephyr/kernel.h>
 #include "MQTT.hpp"
 
