@@ -6,6 +6,7 @@
 #include "WifiStation.hpp"
 
 #define WIFI_CONNECT_TIMEOUT 60000
+
 #define WIFI_CALLBACK_FLAGS (NET_EVENT_WIFI_CONNECT_RESULT | NET_EVENT_WIFI_DISCONNECT_RESULT | NET_EVENT_WIFI_IFACE_STATUS)
 #define WIFI_DHCP_CALLBACK_FLAGS (NET_EVENT_IPV4_DHCP_START | NET_EVENT_IPV4_ADDR_ADD)
 
@@ -39,6 +40,7 @@ static void wifi_event_handler(struct net_mgmt_event_callback *cb, uint32_t mgmt
         break;
     case NET_EVENT_WIFI_DISCONNECT_RESULT:
         // TODO: Implement a reconnect logic
+        // TODO: Check why connection fails if device reboot without disconnect first (e.g. Power Down)
         printk("Disconnected from the wifi network!\r\n");
         break;
     default:
@@ -191,7 +193,3 @@ int WifiStation::wifi_disconnect(void)
     return ret;
 }
 
-// TODO: Create object atributes and assign these parameters into
-void WifiStation::set_wifi_credentials(const char *ssid, const char *psk)
-{
-}

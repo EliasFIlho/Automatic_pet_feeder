@@ -39,7 +39,6 @@ Application::~Application()
 {
 }
 
-// TODO: Move this MOCKED function to a test enviroment
 
 int Application::get_rules()
 {

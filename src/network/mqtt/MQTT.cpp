@@ -12,7 +12,7 @@ static void on_mqtt_publish(struct mqtt_client *const client, const struct mqtt_
     int rc;
     char payload[500];
 
-    rc = mqtt_read_publish_payload(client, payload,500);
+    rc = mqtt_read_publish_payload(client, payload, 500);
     if (rc < 0)
     {
         printk("Failed to read received MQTT payload [%d]", rc);
@@ -21,14 +21,12 @@ static void on_mqtt_publish(struct mqtt_client *const client, const struct mqtt_
     /* Place null terminator at end of payload buffer */
     payload[rc] = '\0';
     Storage &fs = Storage::getInstance();
-    
-    
+
     printk("MQTT payload received!");
     printk("topic: '%s', payload: %s",
-        evt->param.publish.message.topic.topic.utf8, payload);
-        
-    fs.write_data(RULES_ID,payload);
-    
+           evt->param.publish.message.topic.topic.utf8, payload);
+
+    fs.write_data(RULES_ID, payload);
 }
 
 void MQTT::mqtt_evt_handler(struct mqtt_client *client,
@@ -55,7 +53,7 @@ void MQTT::mqtt_evt_handler(struct mqtt_client *client,
 
         break;
     case MQTT_EVT_PUBLISH:
-        
+
         printk("DATA PUBLISHED\n\r");
         on_mqtt_publish(client, evt);
 
@@ -159,7 +157,7 @@ bool MQTT::connect()
     this->is_mqtt_connected = false;
     int ret;
     /* Block until MQTT CONNACK event callback occurs */
-    while (!this->is_mqtt_connected)
+    while (!this->is_connected())
     {
         ret = mqtt_connect(&this->client_ctx);
         if (ret != 0)
@@ -176,7 +174,7 @@ bool MQTT::connect()
             mqtt_input(&this->client_ctx);
         }
 
-        if (!this->is_mqtt_connected)
+        if (!this->is_connected())
         {
             mqtt_abort(&this->client_ctx);
         }
@@ -245,7 +243,7 @@ bool MQTT::init()
     return true;
 }
 
-int MQTT::mqtt_process()
+int MQTT::read_payload()
 {
     int ret = this->poll_mqtt_socket(mqtt_keepalive_time_left(&this->client_ctx));
     if (ret != 0)
@@ -283,50 +281,78 @@ int MQTT::mqtt_process()
     return 0;
 }
 
-void MQTT::mqtt_client_task(void *p1, void *, void *)
+bool MQTT::is_connected()
 {
-    auto *self = static_cast<MQTT *>(p1);
+    return this->is_mqtt_connected;
+}
 
-    if (self->init())
+bool MQTT::setup_client()
+{
+    if (this->init())
     {
         printk("MQTT Initialized\n\r");
     }
     else
     {
         printk("MQTT ERROR TO INIT\n\r");
+        return false;
     }
-    if (self->setup_broker())
+    if (this->setup_broker())
     {
         printk("MQTT Broker ready\n\r");
     }
     else
     {
         printk("MQTT ERROR TO SET BROKER\n\r");
+        return false;
     }
 
-    if (self->connect())
+    if (this->connect())
     {
         // printk("MQTT CONNECTED\n\r");
         k_msleep(3000);
-        self->subscribe();
+        this->subscribe();
     }
     else
     {
         printk("MQTT ERROR TO CONNECT\n\r");
+        return false;
     }
+    return true;
+}
 
+void MQTT::mqtt_publish_payload_task(void *p1, void *, void *)
+{
+    //TODO: Implement publush payload task logic
+    /*
+        Basic logic:
+            - If connected, wait for incomming data through a queue
+            - The incoming data will be a data struct with publish content - e.g. Data field, topics to publish
+            - Publish the data and then return for other.(This task will act as backend for every mqtt publish work in the project)
+    */
+}
+
+void MQTT::mqtt_read_payload_task(void *p1, void *, void *)
+{
+    auto *self = static_cast<MQTT *>(p1);
+
+    self->setup_client();
     while (true)
     {
-        if(self->is_mqtt_connected){
+        if (self->is_connected())
+        {
 
-            self->mqtt_process();
-        }else{
+            self->read_payload();
+        }
+        else
+        {
             k_msleep(5000);
-            //TODO implement reconnect
+            // TODO: implement reconnect
         }
     }
 }
 void MQTT::start_mqtt()
 {
-    k_thread_create(&this->MQTTTask, MQTT_STACK_AREA, CONFIG_MQTT_THREAD_STACK_SIZE, this->mqtt_client_task, this, NULL, NULL, CONFIG_MQTT_THREAD_PRIORITY, MQTT_THREAD_OPTIONS, K_NO_WAIT);
+    k_thread_create(&this->MQTTTask, MQTT_STACK_AREA, CONFIG_MQTT_THREAD_STACK_SIZE, this->mqtt_read_payload_task, this, NULL, NULL, CONFIG_MQTT_THREAD_PRIORITY, MQTT_THREAD_OPTIONS, K_NO_WAIT);
+    //TODO: Initi publish task
 }

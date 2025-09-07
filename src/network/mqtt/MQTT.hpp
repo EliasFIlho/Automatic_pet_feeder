@@ -21,16 +21,19 @@ private:
     struct k_thread MQTTTask;
 
 private:
-    static void mqtt_client_task(void *p1, void *, void *);
+    static void mqtt_read_payload_task(void *p1, void *, void *);
+    static void mqtt_publish_payload_task(void *p1, void *, void *);
     void set_fds();
     int poll_mqtt_socket(int timout);
     bool init();
     bool connect();
     bool subscribe();
     bool setup_broker();
-    int mqtt_process();
+    bool setup_client();
+    int read_payload();
     void on_disconnect();
     static void mqtt_evt_handler(struct mqtt_client *client, const struct mqtt_evt *evt);
+    bool is_connected();
 
 public:
     MQTT();
