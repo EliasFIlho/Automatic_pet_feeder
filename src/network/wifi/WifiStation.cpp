@@ -40,7 +40,7 @@ static void wifi_event_handler(struct net_mgmt_event_callback *cb, uint32_t mgmt
         break;
     case NET_EVENT_WIFI_DISCONNECT_RESULT:
         // TODO: Implement a reconnect logic
-        // TODO: Check why connection fails if device reboot without disconnect first (e.g. Power Down)
+        // TODO: Check why connection fails if device reboot without disconnect firstd
         printk("Disconnected from the wifi network!\r\n");
         break;
     default:
@@ -175,7 +175,7 @@ int WifiStation::wait_wifi_to_connect(void)
     printk("Waiting for wifi connection signal\n\r");
     if (k_sem_take(&wifi_connected, K_MSEC(WIFI_CONNECT_TIMEOUT)) != 0)
     {
-        printk("UNABLE TO CONNECT TO WIFI\r\n");
+        printk("UNABLE TO CONNECT TO WIFI\r\nTIMEOUT\n\r");
         return -1;
     }
     else

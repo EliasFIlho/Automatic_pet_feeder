@@ -27,6 +27,7 @@ static void on_mqtt_publish(struct mqtt_client *const client, const struct mqtt_
            evt->param.publish.message.topic.topic.utf8, payload);
 
     fs.write_data(RULES_ID, payload);
+    k_sem_give(&update_rules);
 }
 
 void MQTT::mqtt_evt_handler(struct mqtt_client *client,
@@ -162,7 +163,7 @@ bool MQTT::connect()
         ret = mqtt_connect(&this->client_ctx);
         if (ret != 0)
         {
-            printk("MQTT Connect failed [%d]", ret);
+            printk("MQTT Connect failed [%d]\n\r", ret);
             k_msleep(500);
             continue;
         }
@@ -310,7 +311,6 @@ bool MQTT::setup_client()
     if (this->connect())
     {
         // printk("MQTT CONNECTED\n\r");
-        k_msleep(3000);
         this->subscribe();
     }
     else
@@ -323,13 +323,23 @@ bool MQTT::setup_client()
 
 void MQTT::mqtt_publish_payload_task(void *p1, void *, void *)
 {
-    //TODO: Implement publush payload task logic
+    // TODO: Implement publish payload task logic
     /*
         Basic logic:
             - If connected, wait for incomming data through a queue
             - The incoming data will be a data struct with publish content - e.g. Data field, topics to publish
             - Publish the data and then return for other.(This task will act as backend for every mqtt publish work in the project)
+
+            maybe a work queue????
     */
+}
+
+void MQTT::reconnect()
+{
+    if (this->connect())
+    {
+        this->subscribe();
+    }
 }
 
 void MQTT::mqtt_read_payload_task(void *p1, void *, void *)
@@ -346,13 +356,13 @@ void MQTT::mqtt_read_payload_task(void *p1, void *, void *)
         }
         else
         {
+            self->reconnect();
             k_msleep(5000);
-            // TODO: implement reconnect
         }
     }
 }
 void MQTT::start_mqtt()
 {
     k_thread_create(&this->MQTTTask, MQTT_STACK_AREA, CONFIG_MQTT_THREAD_STACK_SIZE, this->mqtt_read_payload_task, this, NULL, NULL, CONFIG_MQTT_THREAD_PRIORITY, MQTT_THREAD_OPTIONS, K_NO_WAIT);
-    //TODO: Initi publish task
+    // TODO: Initi publish task
 }

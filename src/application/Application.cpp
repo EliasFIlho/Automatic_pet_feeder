@@ -1,14 +1,17 @@
 #include "Application.hpp"
 #include "Storage.hpp"
 #include "RTC.hpp"
+#include "Storage.hpp"
 #include <zephyr/logging/log.h>
 #include <zephyr/data/json.h>
-#include "Storage.hpp"
+#include <zephyr/task_wdt/task_wdt.h>
+#include <zephyr/kernel.h>
 
-// LOG_MODULE_REGISTER(APPLICATION_LOG, CONFIG_LOG_DEFAULT_LEVEL);
+#define WTD_TIMEOUT_THRESHOLD 500
+
+struct k_sem update_rules;
 
 K_THREAD_STACK_DEFINE(APP_STACK_AREA, CONFIG_APP_THREAD_STACK_SIZE);
-
 
 static const struct json_obj_descr rules_specific_date[] = {
     JSON_OBJ_DESCR_PRIM(SpecifcDateRule_t, year, JSON_TOK_UINT),
@@ -21,7 +24,7 @@ static const struct json_obj_descr rules_time[] = {
     JSON_OBJ_DESCR_PRIM(TimeRule_t, minutes, JSON_TOK_UINT),
 };
 
-static const struct json_obj_descr rules[] = {
+static const struct json_obj_descr rules_json_obj[] = {
 
     JSON_OBJ_DESCR_OBJECT(Rules_t, date, rules_specific_date),
     JSON_OBJ_DESCR_OBJECT(Rules_t, time, rules_time),
@@ -33,24 +36,49 @@ static const struct json_obj_descr rules[] = {
 
 Application::Application()
 {
+    k_sem_init(&update_rules, 0, 1);
 }
 
 Application::~Application()
 {
 }
 
+void print_rules(const Rules_t *r)
+{
+    printk("=== Scheduler Rule ===\n");
+    printk("Date     : %04u-%02u-%02u\n",
+           r->date.year,
+           r->date.month,
+           r->date.day);
 
+    printk("Time     : %02u:%02u\n",
+           r->time.hour,
+           r->time.minutes);
+
+    printk("Period   : %s\n",
+           (r->period == WEEKLY) ? "WEEKLY" : "SPECIF");
+
+    printk("Weekdays : 0x%02X\n", r->week_days); /* bitmask if you use it that way */
+    printk("Amount   : %u\n", r->amount);
+    printk("======================\n");
+}
+
+// TODO: Create error code returns
 int Application::get_rules()
 {
-    // TODO: Check how to store a struct in filesystem (Maybe a better approach would be store the json string and parse in this function)
-    //  Storage &fs = Storage::getInstance();
-    //  fs.read_data(RULES_ID, this->rules);
-    //  printk("--Time: Hour: %d ----- Minutes: %d-- \r\n", this->rules.time.hour, this->rules.time.minutes);
-    //  printk("--Date: Year: %d ----- Month: %d -----Day: %d -- \r\n", this->rules.date.year, this->rules.date.month, this->rules.date.day);
-    //  printk("--Week days: %d -- \r\n", this->rules.week_days);
-    //  printk("--Period: %d -- \r\n", this->rules.period);
-    //  printk("--Amount: %d -- \r\n", this->rules.amount);
-    //  If cant return erro code (TODO)
+    char rules_buff[500];
+    Storage &fs = Storage::getInstance();
+    fs.read_data(RULES_ID, rules_buff, sizeof(rules_buff));
+    int ret = json_obj_parse(rules_buff, sizeof(rules_buff), rules_json_obj, ARRAY_SIZE(rules_json_obj), &this->rules);
+    if (ret < 0)
+    {
+        printk("Error to parse rules: %d\n\r", ret);
+    }
+    else
+    {
+        printk("Parser return value: %d\n\r", ret);
+        print_rules(&this->rules);
+    }
     return 0;
 }
 
@@ -146,9 +174,13 @@ bool Application::check_rules()
             printk("RULES DATE DOES NOT MATCHS\r\n");
             return false;
         }
+        else if (!this->is_time_match())
+        {
+            printk("RULES TIME DOES NOT MATCHS\r\n");
+            return false;
+        }
         else
         {
-            printk("RULES DOES NOT MATCHS\r\n");
             return true;
         }
     }
@@ -199,7 +231,7 @@ bool Application::init_wifi()
     ret = this->network.connect_to_wifi(ssid, psk);
     if (ret < 0)
     {
-        printk("Connecto to wifi return < 0\r\n");
+        printk("Connect to wifi return < 0\r\n");
         return false;
     }
     return true;
@@ -207,34 +239,62 @@ bool Application::init_wifi()
 
 void Application::app(void *p1, void *, void *)
 {
+    int ret;
     auto *self = static_cast<Application *>(p1);
 
-    // MAIN APP LOOP
-    printk("App Task created!!\r\n");
     if (!self->init_wifi())
     {
-        printk("ERROR TO INIT WIFI\n\r");
+        // TODO: Handle with this error and implement Offline mode :p (this may take longer since i'll need a hardware to store the time)
+        printk("ERROR TO INIT WIFI\n\rRuning Offline Mode");
     }
-    self->rtc.sync_time();
-    // self->client.start_http();
-   self->mqtt.start_mqtt();
-   
+    else
+    {
+        // TODO: Check for error
+        self->rtc.sync_time();
+        self->mqtt.start_mqtt();
+    }
+
     bool is_dispenser_executed = false;
+
+      //TODO: Implement a callback to handle watchdog errors - like rescheduler task or something
+    int task_wdt_id = task_wdt_add(CONFIG_APPLICATION_THREAD_PERIOD + WTD_TIMEOUT_THRESHOLD, NULL, NULL);
+
+    /*At first this will called only one time in the start of task to fill the rules struct,
+    and then just will be called again if mqtt says that has received a update.
+    for future work it will be created a circular buffer to store N rules.
+    */
+
+    // TODO: After set errors codes, check this to avoid start the application if rules are not avaliable
+    self->get_rules();
     while (true)
     {
-        // self->get_rules();
-        // if (self->check_rules())
-        // {
-        //     if (!is_dispenser_executed)
-        //     {
-        //         self->dispense_food();
-        //         is_dispenser_executed = true;
-        //     }
-        // }
-        // else
-        // {
-        //     is_dispenser_executed = false;
-        // }
+        if (k_sem_take(&update_rules, K_NO_WAIT) == 0)
+        {
+            self->get_rules();
+        }
+
+        if (self->check_rules())
+        {
+            if (!is_dispenser_executed)
+            {
+                self->dispense_food();
+                is_dispenser_executed = true;
+            }
+        }
+        else
+        {
+            is_dispenser_executed = false;
+        }
+      
+        ret = task_wdt_feed(task_wdt_id);
+        if (ret != 0)
+        {
+            printk("Error to feed watchdog task in APP\n\r");
+        }
+        else
+        {
+            printk("APP: Feed watchdog task\n\r");
+        }
         k_msleep(CONFIG_APPLICATION_THREAD_PERIOD);
     }
     self->network.wifi_disconnect();

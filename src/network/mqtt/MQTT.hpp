@@ -3,6 +3,9 @@
 #include <zephyr/net/mqtt.h>
 
 #define NUM_OF_TOPICS 2
+
+extern k_sem update_rules;
+
 class MQTT
 {
 private:
@@ -34,6 +37,7 @@ private:
     void on_disconnect();
     static void mqtt_evt_handler(struct mqtt_client *client, const struct mqtt_evt *evt);
     bool is_connected();
+    void reconnect();
 
 public:
     MQTT();
