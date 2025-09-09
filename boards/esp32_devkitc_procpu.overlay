@@ -11,17 +11,5 @@
                 <&gpio0 5 GPIO_ACTIVE_HIGH>;
     };
 
-    wifi_ap: wifi_ap {
-        compatible = "espressif,esp32-wifi";
-        status = "okay";
-    };
-
-    aliases {
-        rtc = &rtc_timer;
-    };
-
 };
 
-&rtc_timer {
-    status = "okay";
-};

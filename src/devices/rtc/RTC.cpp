@@ -4,6 +4,7 @@
 #include <arpa/inet.h>
 #include <time.h>
 #include <zephyr/posix/time.h>
+#include <sys/time.h>
 
 #define SNTP_HOST "a.st1.ntp.br"
 #define DATE_FORMAT "%Y-%m-%d %H:%M:%S\r\n"
@@ -12,33 +13,13 @@
 #define SNTP_TRY_COUNT 5
 #define SNTP_BASE_YEAR 1900
 
+
 RTC::RTC()
 {
-    if (!device_is_ready(this->rtc))
-    {
-        printk("Device is not ready\n\r");
-    }
-    else
-    {
-        printk("RTC Device Ready\n\r");
-    }
 }
 
 RTC::~RTC()
 {
-}
-
-static inline void rtc_from_tm(struct rtc_time *rtc_st, const struct tm *tm_st)
-{
-    rtc_st->tm_sec = tm_st->tm_sec;
-    rtc_st->tm_min = tm_st->tm_min;
-    rtc_st->tm_hour = tm_st->tm_hour;
-    rtc_st->tm_mday = tm_st->tm_mday;
-    rtc_st->tm_mon = tm_st->tm_mon;
-    rtc_st->tm_year = tm_st->tm_year;
-    rtc_st->tm_wday = tm_st->tm_wday;
-    rtc_st->tm_yday = tm_st->tm_yday;
-    rtc_st->tm_isdst = tm_st->tm_isdst;
 }
 
 /**
@@ -67,166 +48,67 @@ int RTC::sync_time()
             }
             else
             {
+                this->time_spec.tv_sec = (this->s_time.seconds - UTC_3);
+                this->time_spec.tv_nsec = (this->s_time.seconds * 1000000000ULL) >> 32; //SET NANO SECS
+                clock_settime(CLOCK_REALTIME, &this->time_spec);
                 break;
             }
         }
     }
 
-    struct rtc_time tm;
-    struct tm *ts;
-    time_t epoch = s_time.seconds - UTC_3;
-    ts = localtime(&epoch);
-    rtc_from_tm(&tm, ts);
-    printk("rtc_time struct date -- W_D[%d] - Y[%d] - M_D[%d]\n\r", tm.tm_wday, tm.tm_year, tm.tm_mday);
-    ret = rtc_set_time(this->rtc, &tm);
-    if (ret < 0)
-    {
-        printk("ERROR TO SET TIME IN RTC\r\n");
-    }
-    else
-    {
-        printk("TIME SETED IN RTC\r\n");
-    }
-
     return ret;
 }
-//TODO: Check why RTC cant get the right time(Probably missing something i'll take a closer look later)
-#if !CONFIG_MOCK_TEST
+
+int RTC::get_epoch()
+{
+    return this->s_time.seconds;
+}
+
+void RTC::update_time()
+{
+    int ret = gettimeofday(&this->tv, NULL);
+    if (ret < 0)
+    {
+        printf("Error in gettimeofday(): %d\n", errno);
+    }
+    time_t now = time(NULL);
+    gmtime_r(&now, &this->tm);
+}
+
 /**
  * @brief Get the current week day from RTC device
  *
  * @return uint8_t [0..6] from Sunday == 0 to Saturday == 6
  */
-uint8_t RTC::get_week_day()
+int RTC::get_week_day()
 {
-    struct rtc_time tm;
-    int ret = rtc_get_time(this->rtc, &tm);
-    if (ret < 0)
-    {
-        printk("Error to get time from RTC\r\n");
-        return ret;
-    }
-    else
-    {
-        printk("rtc_time struct date: WeekDay[%d]\n\r", tm.tm_wday);
-        return tm.tm_wday;
-    }
+    this->update_time();
+    return this->tm.tm_wday;
 }
 
 int RTC::get_day()
 {
-    struct rtc_time tm;
-    int ret = rtc_get_time(this->rtc, &tm);
-    if (ret < 0)
-    {
-        printk("Error to get time from RTC\r\n");
-        return ret;
-    }
-    else
-    {
-        printk("rtc_time struct date: MonDay[%d]\n\r", tm.tm_mday);
-        return tm.tm_mday;
-    }
+    this->update_time();
+    return this->tm.tm_mday;
 }
 int RTC::get_month()
 {
-    struct rtc_time tm;
-    int ret = rtc_get_time(this->rtc, &tm);
-    if (ret < 0)
-    {
-        printk("Error to get time from RTC\r\n");
-        return ret;
-    }
-    else
-    {
-        printk("rtc_time struct date: Mon[%d]\n\r", tm.tm_mon);
-        return tm.tm_mon;
-    }
+    this->update_time();
+    return this->tm.tm_mon;
 }
 int RTC::get_year()
 {
-    struct rtc_time tm;
-    int ret = rtc_get_time(this->rtc, &tm);
-    if (ret < 0)
-    {
-        printk("Error to get time from RTC\r\n");
-        return ret;
-    }
-    else
-    {
-        printk("rtc_time struct date: Y[%d]\n\r", tm.tm_year);
-        return (SNTP_BASE_YEAR + tm.tm_year);
-    }
+    this->update_time();
+    return (this->tm.tm_year + SNTP_BASE_YEAR);
 }
 
 int RTC::get_hour()
 {
-    struct rtc_time tm;
-    int ret = rtc_get_time(this->rtc, &tm);
-    if (ret < 0)
-    {
-        printk("Error to get time from RTC\r\n");
-        return ret;
-    }
-    else
-    {
-        printk("rtc_time struct date: H[%d]\n\r", tm.tm_hour);
-        return tm.tm_hour;
-    }
+    this->update_time();
+    return this->tm.tm_hour;
 }
 int RTC::get_minute()
 {
-    struct rtc_time tm;
-    int ret = rtc_get_time(this->rtc, &tm);
-    if (ret < 0)
-    {
-        printk("Error to get time from RTC\r\n");
-        return ret;
-    }
-    else
-    {
-        printk("rtc_time struct date: Min[%d]\n\r", tm.tm_min);
-        return tm.tm_min;
-    }
+    this->update_time();
+    return this->tm.tm_min;
 }
-#else
-//TODO: Move these MOCKED functions to a test enviroment
-static constexpr uint8_t MOCK_WDAY = 3;
-static constexpr int MOCK_DAY = 27;
-static constexpr int MOCK_MONTH = 8;   // keep as plain 1..12, matching your get_month()
-static constexpr int MOCK_YEAR = 2025; // final calendar year
-static constexpr int MOCK_HOUR = 22;
-static constexpr int MOCK_MIN = 0;
-
-uint8_t RTC::get_week_day()
-{
-
-    return MOCK_WDAY;
-}
-
-int RTC::get_day()
-{
-    return MOCK_DAY;
-}
-
-int RTC::get_month()
-{
-    return MOCK_MONTH;
-}
-
-int RTC::get_year()
-{
-    return MOCK_YEAR;
-}
-
-int RTC::get_hour()
-{
-    return MOCK_HOUR;
-}
-
-int RTC::get_minute()
-{
-    return MOCK_MIN;
-}
-
-#endif

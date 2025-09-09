@@ -1,5 +1,12 @@
 menu "RTC options"
 
 
+config SNTP_TRY_COUNT 
+    int "Retry count for SNTP sync"
+    default 5
 
+config SNTP_HOST
+    string "SNTP Server Address"
+    default "a.st1.ntp.br"
+    
 endmenu
