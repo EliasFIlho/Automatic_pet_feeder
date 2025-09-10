@@ -1,11 +1,21 @@
 #include <zephyr/kernel.h>
 #include <zephyr/net/socket.h>
 #include <zephyr/net/mqtt.h>
+#include "MQTT_utils.hpp"
 
-#define NUM_OF_TOPICS 2
 
+
+
+/**
+ * @brief Extern semaphore to indicate that new data was writed in filesystem from MQTT
+ * 
+ */
 extern k_sem update_rules;
 
+/**
+ * @brief MQTT Class
+ * 
+ */
 class MQTT
 {
 private:
@@ -21,11 +31,14 @@ private:
     uint8_t rx_buffer[CONFIG_MQTT_RX_BUFFER_SIZE];
     uint8_t tx_buffer[CONFIG_MQTT_TX_BUFFER_SIZE];
 
-    struct k_thread MQTTTask;
+    struct k_thread MQTTReadSubTask;
+    struct k_thread MQTTPublishTask;
+
+    struct publish_payload pub_payload;
 
 private:
-    static void mqtt_read_payload_task(void *p1, void *, void *);
-    static void mqtt_publish_payload_task(void *p1, void *, void *);
+    static void mqtt_task(void *p1, void *, void *);
+    void mqtt_publish_payload();
     void set_fds();
     int poll_mqtt_socket(int timout);
     bool init();

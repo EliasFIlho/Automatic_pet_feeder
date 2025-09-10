@@ -54,5 +54,17 @@ config MQTT_THREAD_PERIOD
     int "Define the period in ms of te MQTT thread"
     default 5000
 
-    
+config MQTT_THREAD_RECONNECT_PERIOD
+    int "Define the period in ms for MQTT reconnect"
+    default 5000
+
+config NUM_OF_TOPICS
+    int "Number of topics"
+    default 2
+
+config MQTT_WATCHDOG_TIMEOUT_THREAD
+    int "Timout in miliseconds for trigger watchdog for Read Payload thread"
+    default 31000
+
+
 endmenu

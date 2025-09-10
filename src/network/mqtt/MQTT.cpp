@@ -2,11 +2,25 @@
 #include <zephyr/kernel.h>
 #include <zephyr/net/socket.h>
 #include <zephyr/net/mqtt.h>
+#include <zephyr/task_wdt/task_wdt.h>
 #include "Storage.hpp"
 
+// MQTT Thread Stack
 #define MQTT_THREAD_OPTIONS (K_FP_REGS | K_ESSENTIAL)
 K_THREAD_STACK_DEFINE(MQTT_STACK_AREA, CONFIG_MQTT_THREAD_STACK_SIZE);
 
+/**
+ * @brief Define in compile time a message queue, so tasks can send publish data to MQTT perform
+ *
+ */
+K_MSGQ_DEFINE(mqtt_publish_queue, sizeof(struct publish_payload), 10, 1);
+
+/**
+ * @brief Handle publish event in MQTT callback
+ *
+ * @param client
+ * @param evt
+ */
 static void on_mqtt_publish(struct mqtt_client *const client, const struct mqtt_evt *evt)
 {
     int rc;
@@ -30,6 +44,12 @@ static void on_mqtt_publish(struct mqtt_client *const client, const struct mqtt_
     k_sem_give(&update_rules);
 }
 
+/**
+ * @brief Event handle for MQTT events
+ *
+ * @param client
+ * @param evt
+ */
 void MQTT::mqtt_evt_handler(struct mqtt_client *client,
                             const struct mqtt_evt *evt)
 {
@@ -97,20 +117,38 @@ void MQTT::mqtt_evt_handler(struct mqtt_client *client,
     }
 }
 
-MQTT::MQTT(/* args */)
+/**
+ * @brief Construct a new MQTT::MQTT object
+ *
+ */
+MQTT::MQTT()
 {
 }
 
+/**
+ * @brief Destroy the MQTT::MQTT object
+ *
+ */
 MQTT::~MQTT()
 {
 }
 
+/**
+ * @brief Handle disconnect event in MQTT
+ *
+ */
 void MQTT::on_disconnect()
 {
     this->is_mqtt_connected = false;
     this->nfds = 0;
 }
 
+/**
+ * @brief Setup broker address
+ *
+ * @return true
+ * @return false
+ */
 bool MQTT::setup_broker()
 {
 
@@ -129,6 +167,10 @@ bool MQTT::setup_broker()
     }
 }
 
+/**
+ * @brief Set the file descript for event pollin
+ *
+ */
 void MQTT::set_fds()
 {
     if (this->client_ctx.transport.type == MQTT_TRANSPORT_NON_SECURE)
@@ -140,6 +182,12 @@ void MQTT::set_fds()
     this->nfds = 1;
 }
 
+/**
+ * @brief Perform poll operation for mqtt input data, return zsock_poll ret
+ *
+ * @param timout
+ * @return int
+ */
 int MQTT::poll_mqtt_socket(int timout)
 {
     this->set_fds();
@@ -152,6 +200,12 @@ int MQTT::poll_mqtt_socket(int timout)
     return ret;
 }
 
+/**
+ * @brief Perform MQTT connect
+ *
+ * @return true
+ * @return false
+ */
 bool MQTT::connect()
 {
 
@@ -183,6 +237,12 @@ bool MQTT::connect()
     return true;
 }
 
+/**
+ * @brief Subscribe in a specific topic (This is not a generic subscribe method, but specific for the application)
+ *
+ * @return true
+ * @return false
+ */
 bool MQTT::subscribe()
 {
     int ret;
@@ -210,6 +270,12 @@ bool MQTT::subscribe()
     }
 }
 
+/**
+ * @brief Init MQTT client struct
+ *
+ * @return true
+ * @return false
+ */
 bool MQTT::init()
 {
     mqtt_client_init(&this->client_ctx);
@@ -244,6 +310,11 @@ bool MQTT::init()
     return true;
 }
 
+/**
+ * @brief Read incoming payload data, and perform keep alive request for broker after pollin timout
+ *
+ * @return int
+ */
 int MQTT::read_payload()
 {
     int ret = this->poll_mqtt_socket(mqtt_keepalive_time_left(&this->client_ctx));
@@ -282,6 +353,12 @@ int MQTT::read_payload()
     return 0;
 }
 
+/**
+ * @brief Return connect status of MQTT connection
+ *
+ * @return true
+ * @return false
+ */
 bool MQTT::is_connected()
 {
     return this->is_mqtt_connected;
@@ -310,7 +387,6 @@ bool MQTT::setup_client()
 
     if (this->connect())
     {
-        // printk("MQTT CONNECTED\n\r");
         this->subscribe();
     }
     else
@@ -321,19 +397,27 @@ bool MQTT::setup_client()
     return true;
 }
 
-void MQTT::mqtt_publish_payload_task(void *p1, void *, void *)
+/**
+ * @brief Gets data from a queue and publish in the specific topic
+ *
+ * 
+ */
+void MQTT::mqtt_publish_payload()
 {
-    // TODO: Implement publish payload task logic
-    /*
-        Basic logic:
-            - If connected, wait for incomming data through a queue
-            - The incoming data will be a data struct with publish content - e.g. Data field, topics to publish
-            - Publish the data and then return for other.(This task will act as backend for every mqtt publish work in the project)
+    struct publish_payload payload;
 
-            maybe a work queue????
-    */
+    if (k_msgq_get(&mqtt_publish_queue, &payload, K_NO_WAIT) == 0)
+    {
+        printk("DATA RECEIVEID, START PUBLISH...\n\r");
+    }else{
+        printk("NO DATA TO PUBLISH\n\r");
+    }
 }
 
+/**
+ * @brief Perform a reconnect operation, try to connect with server again and resubscribe in topic
+ *
+ */
 void MQTT::reconnect()
 {
     if (this->connect())
@@ -342,27 +426,43 @@ void MQTT::reconnect()
     }
 }
 
-void MQTT::mqtt_read_payload_task(void *p1, void *, void *)
+/**
+ * @brief Task for handle broker publish in subscribed topic. This task keeps performing a read_payload call thats poll over incoming data
+ * if the connection with broker was lost the task also keeps trying to reconnect every 5 seconds
+ *
+ * @param p1 p1 will be a pointer to class "this" pointer and enable acess to private data from class in static method
+ */
+void MQTT::mqtt_task(void *p1, void *, void *)
 {
     auto *self = static_cast<MQTT *>(p1);
-
     self->setup_client();
+    int read_mqtt_task_wdt_id = task_wdt_add(CONFIG_MQTT_WATCHDOG_TIMEOUT_THREAD, NULL, NULL);
     while (true)
     {
         if (self->is_connected())
         {
-
+            // Poll for incoming data
             self->read_payload();
+            // Check for incoming data to publish
+            self->mqtt_publish_payload();
+
+            // Feed task watchdog
+            task_wdt_feed(read_mqtt_task_wdt_id);
         }
         else
         {
             self->reconnect();
-            k_msleep(5000);
+            task_wdt_feed(read_mqtt_task_wdt_id);
+            k_msleep(CONFIG_MQTT_THREAD_RECONNECT_PERIOD);
         }
     }
 }
+
+/**
+ * @brief Create MQTT tasks
+ *
+ */
 void MQTT::start_mqtt()
 {
-    k_thread_create(&this->MQTTTask, MQTT_STACK_AREA, CONFIG_MQTT_THREAD_STACK_SIZE, this->mqtt_read_payload_task, this, NULL, NULL, CONFIG_MQTT_THREAD_PRIORITY, MQTT_THREAD_OPTIONS, K_NO_WAIT);
-    // TODO: Initi publish task
+    k_thread_create(&this->MQTTReadSubTask, MQTT_STACK_AREA, CONFIG_MQTT_THREAD_STACK_SIZE, this->mqtt_task, this, NULL, NULL, CONFIG_MQTT_THREAD_PRIORITY, MQTT_THREAD_OPTIONS, K_NO_WAIT);
 }
