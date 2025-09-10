@@ -11,6 +11,7 @@
 
 struct k_sem update_rules;
 
+
 K_THREAD_STACK_DEFINE(APP_STACK_AREA, CONFIG_APP_THREAD_STACK_SIZE);
 
 static const struct json_obj_descr rules_specific_date[] = {
@@ -92,12 +93,12 @@ bool Application::is_time_match()
 {
     if (this->rtc.get_hour() != this->rules.time.hour)
     {
-        printk("Hours Time Does Not Matchs\r\n");
+        //printk("Hours Time Does Not Matchs\r\n");
         return false;
     }
     else if (this->rtc.get_minute() != this->rules.time.minutes)
     {
-        printk("Minutes Time Does Not Matchs\r\n");
+        //printk("Minutes Time Does Not Matchs\r\n");
         return false;
     }
     else
@@ -111,17 +112,17 @@ bool Application::is_date_match()
 {
     if (this->rtc.get_day() != this->rules.date.day)
     {
-        printk("Day Does Not Matchs\r\n");
+        //printk("Day Does Not Matchs\r\n");
         return false;
     }
     else if (this->rtc.get_month() != this->rules.date.month)
     {
-        printk("Month Does Not Matchs\r\n");
+        //printk("Month Does Not Matchs\r\n");
         return false;
     }
     else if (this->rtc.get_year() != this->rules.date.year)
     {
-        printk("Year Does Not Matchs\r\n");
+        //printk("Year Does Not Matchs\r\n");
         return false;
     }
     else
@@ -142,7 +143,7 @@ bool Application::is_week_days_match(uint8_t week_day)
     }
     else
     {
-        printk("Week Day Does Not Matchs\r\n");
+        //printk("Week Day Does Not Matchs\r\n");
         return false;
     }
 }
@@ -154,12 +155,12 @@ bool Application::check_rules()
         uint8_t week_day = this->rtc.get_week_day();
         if (!this->is_week_days_match(week_day))
         {
-            printk("RULES WEEK DAYS DOES NOT MATCHS\r\n");
+            //printk("RULES WEEK DAYS DOES NOT MATCHS\r\n");
             return false;
         }
         else if (!this->is_time_match())
         {
-            printk("RULES TIME DOES NOT MATCHS\r\n");
+            //printk("RULES TIME DOES NOT MATCHS\r\n");
             return false;
         }
         else
@@ -171,12 +172,12 @@ bool Application::check_rules()
     {
         if (!this->is_date_match())
         {
-            printk("RULES DATE DOES NOT MATCHS\r\n");
+            //printk("RULES DATE DOES NOT MATCHS\r\n");
             return false;
         }
         else if (!this->is_time_match())
         {
-            printk("RULES TIME DOES NOT MATCHS\r\n");
+            //printk("RULES TIME DOES NOT MATCHS\r\n");
             return false;
         }
         else
@@ -186,7 +187,7 @@ bool Application::check_rules()
     }
     else
     {
-        printk("RULES PERIOD DOES NOT MATCHS\r\n");
+        //printk("RULES PERIOD DOES NOT MATCHS\r\n");
         return false;
     }
 }
@@ -291,10 +292,7 @@ void Application::app(void *p1, void *, void *)
         {
             printk("Error to feed watchdog task in APP\n\r");
         }
-        else
-        {
-            printk("APP: Feed watchdog task\n\r");
-        }
+        
         k_msleep(CONFIG_APPLICATION_THREAD_PERIOD);
     }
     self->network.wifi_disconnect();
