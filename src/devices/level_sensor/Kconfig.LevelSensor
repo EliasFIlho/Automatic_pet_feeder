@@ -1,0 +1,20 @@
+menu "Level Sensor Options"
+
+config LEVEL_ALERT_PERCENT
+    int "Percent value to emit a food level alert"
+    default 25
+
+
+config LEVEL_SENSOR_THREAD_STACK_SIZE
+    int "Define Level Sensor thread stack size"
+    default 8000
+
+config LEVEL_SENSOR_THREAD_PRIORITY
+    int "Define Level Sensor thread priority"
+    default 5
+
+config LEVEL_SENSOR_THREAD_PERIOD
+    int "Define the period in ms of the Level Sensor thread"
+    default 60000
+
+endmenu
