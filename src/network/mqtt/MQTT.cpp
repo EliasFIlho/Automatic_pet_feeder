@@ -34,13 +34,13 @@ static void on_mqtt_publish(struct mqtt_client *const client, const struct mqtt_
     }
     /* Place null terminator at end of payload buffer */
     payload[rc] = '\0';
-    Storage &fs = Storage::getInstance();
+    //Storage &fs = Storage::getInstance();
 
     printk("MQTT payload received!");
     printk("topic: '%s', payload: %s",
            evt->param.publish.message.topic.topic.utf8, payload);
 
-    fs.write_data(RULES_ID, payload);
+    //fs.write_data(RULES_ID, payload);
     k_sem_give(&update_rules);
 }
 
@@ -465,4 +465,10 @@ void MQTT::mqtt_task(void *p1, void *, void *)
 void MQTT::start_mqtt()
 {
     k_thread_create(&this->MQTTReadSubTask, MQTT_STACK_AREA, CONFIG_MQTT_THREAD_STACK_SIZE, this->mqtt_task, this, NULL, NULL, CONFIG_MQTT_THREAD_PRIORITY, MQTT_THREAD_OPTIONS, K_NO_WAIT);
+}
+
+
+void MQTT::abort(){
+    //Disconnect from mqtt
+    //Abort thread
 }

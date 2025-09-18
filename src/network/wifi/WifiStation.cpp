@@ -1,33 +1,24 @@
 #include <string.h>
-#include <zephyr/kernel.h>
-#include <zephyr/net/wifi_mgmt.h>
-#include <zephyr/logging/log.h>
-#include <zephyr/net/dhcpv4_server.h>
 #include "WifiStation.hpp"
 
-#define WIFI_CONNECT_TIMEOUT 60000
+#define WIFI_CONNECT_TIMEOUT 30000
 
 #define WIFI_CALLBACK_FLAGS (NET_EVENT_WIFI_CONNECT_RESULT | NET_EVENT_WIFI_DISCONNECT_RESULT | NET_EVENT_WIFI_IFACE_STATUS)
 #define WIFI_DHCP_CALLBACK_FLAGS (NET_EVENT_IPV4_DHCP_START | NET_EVENT_IPV4_ADDR_ADD)
 
-//LOG_MODULE_REGISTER(WIFI,CONFIG_LOG_DEFAULT_LEVEL);
-
-struct k_sem wifi_connected;
-struct k_sem ipv4_connected;
-
 static struct net_mgmt_event_callback wifi_cb;
 static struct net_mgmt_event_callback ipv4_cb;
 
+static struct k_sem wifi_connected;
+static struct k_sem ipv4_connected;
 
-//TODO: Check RSSI
-// From now, the only way that i founded of geting RSSI is by using wifi scan and filter the network ssid.
+// TODO: Check RSSI
+//  From now, the only way that i founded of geting RSSI is by using wifi scan and filter the network ssid.
 
+// TODO: Create a scheduled routine to check the Wireless RSSI and put the value inside a queue - this value can also be mapped in this same
+//  routine to display the signal quality - Maybe use Work Queue to do it
 
-//TODO: Create a scheduled routine to check the Wireless RSSI and put the value inside a queue - this value can also be mapped in this same
-// routine to display the signal quality 
-
-//TODO: Get a pwm device to display the RSSI as a LED bright
-
+// TODO: Get a pwm device to display the RSSI as a LED bright
 
 static void wifi_event_handler(struct net_mgmt_event_callback *cb, uint32_t mgmt_event, struct net_if *iface)
 {
@@ -64,7 +55,6 @@ static void dhcp4_event_handler(struct net_mgmt_event_callback *cb, uint32_t mgm
     }
 }
 
-
 WifiStation::WifiStation()
 {
     k_sem_init(&wifi_connected, 0, 1);
@@ -84,7 +74,7 @@ void WifiStation::wifi_init(void)
     net_mgmt_add_event_callback(&wifi_cb);
 }
 
-int WifiStation::connect_to_wifi(char *ssid, char *psk)
+int WifiStation::connect_to_wifi()
 {
 
     if (!sta_iface)
@@ -96,10 +86,10 @@ int WifiStation::connect_to_wifi(char *ssid, char *psk)
     struct wifi_connect_req_params params;
     int ret;
 
-    params.ssid = (const uint8_t *)ssid;
-    params.ssid_length = strlen(ssid);
-    params.psk = (const uint8_t *)psk;
-    params.psk_length = strlen(psk);
+    params.ssid = (const uint8_t *)this->ssid;
+    params.ssid_length strlen(this->ssid);
+    params.psk = (const uint8_t *)this->psk;
+    params.psk_length = strlen(this->psk);
     params.security = WIFI_SECURITY_TYPE_PSK;
     params.band = WIFI_FREQ_BAND_UNKNOWN;
     params.channel = WIFI_CHANNEL_ANY;
@@ -193,3 +183,13 @@ int WifiStation::wifi_disconnect(void)
     return ret;
 }
 
+void WifiStation::set_wifi_ssid(char *ssid)
+{
+    strcpy(this->ssid, ssid);
+    printk("%s\n\r", this->ssid);
+}
+void WifiStation::set_wifi_psk(char *psk)
+{
+    strcpy(this->psk, psk);
+    printk("%s\n\r", this->psk);
+}

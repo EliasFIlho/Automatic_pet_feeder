@@ -8,64 +8,58 @@
 #include <zephyr/logging/log.h>
 #include <string.h>
 #include "Application.hpp"
+#include "StepperController.hpp"
+#include "RTC.hpp"
+#include "Storage.hpp"
+#include "SchedulerRules.hpp"
+#include "WifiStation.hpp"
+#include "MQTT.hpp"
+#include "NetworkService.hpp"
 #include <zephyr/task_wdt/task_wdt.h>
 
-#define WIFI_SSID ""
-#define WIFI_PSK ""
+// TODO: Refactor the modules to use interfaces
 
-#define RE_WRITE 0
+// TODO: Create a network module to merge wifi and mqtt in a higher level way
 
-/*Threads:
-
-1.  Check rules and control actuator - Application task
-2.  Handle incoming rules(commands also?) - MQTT task ------
-                                                            |- Both in the MQTT module? 
-                                                            |-(Maybe configure MQTT to act as a singleton and get a instance in different threads like Storage)
-3.  Handle publish data - MQTT_Publish task ----------------
-4.  Check food dispener level - Lvl Sensor task (This task needs to comunicate with MQTT_Publish task, maybe a queue with a struct publish_payload)
-
-*/
-
-Application app;
-
-
-
-
-
+// TODO: Use main as a wiring point to start tasks (Avoid nested threads)
 int main(void)
 {
- 
-#if RE_WRITE
-    int ret = fs.write_data(SSID_ID, WIFI_SSID);
-    if (ret < 0)
+    WifiStation wifi;
+    MQTT mqtt;
+    StepperController motor;
+    RTC rtc;
+    Storage store;
+    NetworkService net(mqtt, wifi, store);
+    Application app(rtc, motor, store);
+
+    int ret = store.init_storage();
+    if (ret != 0)
     {
-        printk("Error to write SSID data\r\n");
+        printk("Error to init Fs\r\n");
+        return -1;
     }
 
-    ret = fs.write_data(PASSWORD_ID, WIFI_PSK);
-    if (ret < 0)
+    ret = task_wdt_init(NULL);
+
+    if (ret != 0)
     {
-        printk("Error to write SSID data\r\n");
-    }
-
-#endif
-    //TODO:CHANGE ALL THE printk CALLS TO LOG MODULE (That way i can get more detailed logs about execution and probably easer to disable logs later) 
-    //Note: For some reason i cant do that probably something about log buffer size, not quite sure about this. (I'll try things like increase thread stack size or log buffer in proj.cof)
-    
-    //TODO: Add hardware watchdog as fallback for task watchdog
-    int ret = task_wdt_init(NULL);
-
-    if(ret != 0){
         printk("Error to init task watchdog\n\r");
-    }else{
+    }
+    else
+    {
         printk("Watchdog task inited\n\r");
     }
+    //TODO: CHECK WHY I CANT CONNECT TO THIS FCK WIFI ANYMORE
+    if(net.start()){
+        app.start_application();
 
-    app.start_application();
-    while (1)
+    }else{
+        printk("Error to start network\n\r");
+    }
+    while (true)
     {
         k_sleep(K_FOREVER);
     }
-        
+
     return 0;
 }

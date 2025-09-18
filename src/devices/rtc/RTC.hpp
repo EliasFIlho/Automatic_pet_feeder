@@ -5,8 +5,9 @@
 #include <zephyr/kernel.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/device.h>
+#include "IClock.hpp"
 
-class RTC
+class RTC : public IClock
 {
 private:
     struct sntp_time s_time;

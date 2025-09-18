@@ -7,12 +7,9 @@
 #include <zephyr/fs/zms.h>
 #include <zephyr/storage/flash_map.h>
 #include "SchedulerRules.hpp"
+#include "IStorage.hpp"
 
-#define SSID_ID 0
-#define PASSWORD_ID 1
-#define RULES_ID 2
-
-class Storage
+class Storage : public IStorage
 {
 
 private:
@@ -20,14 +17,11 @@ private:
     static Storage instance;
 
 private:
+public:
+    //static Storage &getInstance();
     Storage();
     ~Storage();
-
-public:
-    static Storage &getInstance();
     int init_storage();
     int read_data(uint32_t id, char *buf, size_t buf_len);
-    int read_data(uint32_t id, Rules_t &buf);
     int write_data(uint32_t id, const char *str);
-    int write_data(uint32_t id, const Rules_t &rules);
 };

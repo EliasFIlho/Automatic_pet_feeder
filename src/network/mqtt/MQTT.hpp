@@ -1,8 +1,9 @@
+#pragma once
 #include <zephyr/kernel.h>
 #include <zephyr/net/socket.h>
 #include <zephyr/net/mqtt.h>
 #include "MQTT_utils.hpp"
-
+#include "IMQTT.hpp"
 
 
 
@@ -16,7 +17,7 @@ extern k_sem update_rules;
  * @brief MQTT Class
  * 
  */
-class MQTT
+class MQTT : public IMQTT
 {
 private:
     struct mqtt_client client_ctx;
@@ -56,4 +57,5 @@ public:
     MQTT();
     ~MQTT();
     void start_mqtt();
+    void abort();
 };

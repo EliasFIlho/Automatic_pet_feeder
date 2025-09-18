@@ -1,10 +1,10 @@
 #pragma once
-
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/device.h>
+#include "IMotor.hpp"
 
-class StepperController
+class StepperController : public IMotor
 {
 private:
     int current_position;

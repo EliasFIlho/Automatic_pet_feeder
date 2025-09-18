@@ -60,14 +60,14 @@ int Storage::init_storage()
     return 0;
 }
 
-int Storage::read_data(uint32_t id, char *buf, size_t buf_len)
+int Storage::read_data(uint32_t id, char *buf, unsigned int buf_len)
 {
 
     int rc = zms_read(&fs, id, buf, buf_len);
     if (rc > 0)
     {
         buf[rc] = '\0';
-        printk("Amount of readed data [%d]\r\n", rc);
+        printk("Amount of readed data [%d]\r\nData: %s\n\r", rc,buf);
     }
     else
     {
@@ -76,20 +76,7 @@ int Storage::read_data(uint32_t id, char *buf, size_t buf_len)
     return rc;
 }
 
-int Storage::read_data(uint32_t id, Rules_t &buf)
-{
 
-    int rc = zms_read(&fs, id, &buf, (sizeof(Rules_t)));
-    if (rc > 0)
-    {
-        printk("Amount of readed data [%d]\r\n", rc);
-    }
-    else
-    {
-        printk("No data in FS\r\n");
-    }
-    return rc;
-}
 
 
 
@@ -106,24 +93,11 @@ int Storage::write_data(uint32_t id, const char *str)
     }
     return rc;
 }
-int Storage::write_data(uint32_t id, const Rules_t &rules)
-{
-    int rc = zms_write(&fs, id, &rules, sizeof(rules));
-    if (rc < 0)
-    {
-        printk("Error while writing Entry rc=%d\n", rc);
-    }
-    else
-    {
-        printk("Sucess to write data\r\n");
-    }
-    return rc;
-}
 
-Storage Storage::instance;
+// Storage Storage::instance;
 
-Storage &Storage::getInstance()
-{
+// Storage &Storage::getInstance()
+// {
 
-    return instance;
-}
+//     return instance;
+// }
