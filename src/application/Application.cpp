@@ -30,7 +30,7 @@ static const struct json_obj_descr rules_json_obj[] = {
 
 };
 
-Application::Application(IClock &clk, IMotor &motor, IStorage &fs) : _clk(clk),_motor(motor),_fs(fs)
+Application::Application(IClock &clk, IMotor &motor, IStorage &fs,IWatchDog& guard) : _clk(clk),_motor(motor),_fs(fs), _guard(guard)
 {
     k_sem_init(&update_rules, 0, 1);
 }
@@ -195,7 +195,7 @@ void Application::app(void *p1, void *, void *)
 
     bool is_dispenser_executed = false;
 
-    int task_wdt_id = task_wdt_add(CONFIG_APPLICATION_THREAD_PERIOD + WTD_TIMEOUT_THRESHOLD, NULL, NULL);
+    int task_wdt_id = self->_guard.create_and_get_wtd_timer_id(CONFIG_APPLICATION_THREAD_PERIOD + WTD_TIMEOUT_THRESHOLD);
     self->get_rules();
     while (true)
     {
@@ -217,11 +217,7 @@ void Application::app(void *p1, void *, void *)
             is_dispenser_executed = false;
         }
 
-        ret = task_wdt_feed(task_wdt_id);
-        if (ret != 0)
-        {
-            printk("Error to feed watchdog task in APP\n\r");
-        }
+        self->_guard.feed(task_wdt_id);
 
         k_msleep(CONFIG_APPLICATION_THREAD_PERIOD);
     }

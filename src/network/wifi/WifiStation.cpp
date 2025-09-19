@@ -20,22 +20,23 @@ static struct k_sem ipv4_connected;
 
 // TODO: Get a pwm device to display the RSSI as a LED bright
 
-static void wifi_event_handler(struct net_mgmt_event_callback *cb, uint32_t mgmt_event, struct net_if *iface)
+static void wifi_event_handler(struct net_mgmt_event_callback *cb,
+                               uint32_t evt, struct net_if *iface)
 {
-
-    switch (mgmt_event)
+    if (evt == NET_EVENT_WIFI_CONNECT_RESULT)
     {
-    case NET_EVENT_WIFI_CONNECT_RESULT:
-        printk("Connected to wifi network!\r\n");
-        k_sem_give(&wifi_connected);
-        break;
-    case NET_EVENT_WIFI_DISCONNECT_RESULT:
-        // TODO: Implement a reconnect logic
-        // TODO: Check why connection fails if device reboot without disconnect firstd
-        printk("Disconnected from the wifi network!\r\n");
-        break;
-    default:
-        break;
+        const struct wifi_status *st = (const struct wifi_status *)cb->info;
+        int status = st ? st->status : -1;
+        printk("WiFi CONNECT result=%d\n", status);
+        if (status == 0)
+        {
+            k_sem_give(&wifi_connected);
+        }
+    }
+    else if (evt == NET_EVENT_WIFI_DISCONNECT_RESULT)
+    {
+        const struct wifi_status *st = (const struct wifi_status *)cb->info;
+        printk("WiFi DISCONNECT status=%d\n", st ? st->status : -1);
     }
 }
 
@@ -72,10 +73,21 @@ void WifiStation::wifi_init(void)
     net_mgmt_add_event_callback(&ipv4_cb);
     net_mgmt_init_event_callback(&wifi_cb, wifi_event_handler, WIFI_CALLBACK_FLAGS);
     net_mgmt_add_event_callback(&wifi_cb);
+    int ret = net_if_up(sta_iface);
+    if (ret && ret != -EALREADY && ret != -ENOTSUP)
+    {
+        printk("net_if_up failed: %d\n", ret);
+    }
+    else
+    {
+        printk("Interface up (or already up / not required)\n");
+    }
 }
 
 int WifiStation::connect_to_wifi()
 {
+    k_sem_reset(&wifi_connected);
+    k_sem_reset(&ipv4_connected);
 
     if (!sta_iface)
     {
@@ -87,7 +99,7 @@ int WifiStation::connect_to_wifi()
     int ret;
 
     params.ssid = (const uint8_t *)this->ssid;
-    params.ssid_length strlen(this->ssid);
+    params.ssid_length = strlen(this->ssid);
     params.psk = (const uint8_t *)this->psk;
     params.psk_length = strlen(this->psk);
     params.security = WIFI_SECURITY_TYPE_PSK;
@@ -95,7 +107,14 @@ int WifiStation::connect_to_wifi()
     params.channel = WIFI_CHANNEL_ANY;
     params.mfp = WIFI_MFP_OPTIONAL;
 
+    printk("Connecting SSID='%s' len=%zu, PSK len=%zu\n", this->ssid, strlen(this->ssid), strlen(this->psk));
+
     ret = net_mgmt(NET_REQUEST_WIFI_CONNECT, sta_iface, &params, sizeof(params));
+    printk("net_mgmt CONNECT ret=%d\n", ret);
+    if (ret != 0)
+    {
+        return ret;
+    }
     ret = wait_wifi_to_connect();
     if (ret < 0)
     {
@@ -186,10 +205,10 @@ int WifiStation::wifi_disconnect(void)
 void WifiStation::set_wifi_ssid(char *ssid)
 {
     strcpy(this->ssid, ssid);
-    printk("%s\n\r", this->ssid);
+    //printk("%s\n\r", this->ssid);
 }
 void WifiStation::set_wifi_psk(char *psk)
 {
     strcpy(this->psk, psk);
-    printk("%s\n\r", this->psk);
+    //printk("%s\n\r", this->psk);
 }

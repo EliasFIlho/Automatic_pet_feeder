@@ -15,11 +15,10 @@
 #include "WifiStation.hpp"
 #include "MQTT.hpp"
 #include "NetworkService.hpp"
+#include "Watchdog.hpp"
 #include <zephyr/task_wdt/task_wdt.h>
 
-// TODO: Refactor the modules to use interfaces
 
-// TODO: Create a network module to merge wifi and mqtt in a higher level way
 
 // TODO: Use main as a wiring point to start tasks (Avoid nested threads)
 int main(void)
@@ -28,30 +27,26 @@ int main(void)
     MQTT mqtt;
     StepperController motor;
     RTC rtc;
-    Storage store;
-    NetworkService net(mqtt, wifi, store);
-    Application app(rtc, motor, store);
+    Storage fs;
+    Watchdog guard;
+    NetworkService net(mqtt, wifi, fs);
+    Application app(rtc, motor, fs, guard);
 
-    int ret = store.init_storage();
+    guard.init();
+
+    int ret = fs.init_storage();
     if (ret != 0)
     {
         printk("Error to init Fs\r\n");
         return -1;
     }
 
-    ret = task_wdt_init(NULL);
+    
 
-    if (ret != 0)
-    {
-        printk("Error to init task watchdog\n\r");
-    }
-    else
-    {
-        printk("Watchdog task inited\n\r");
-    }
-    //TODO: CHECK WHY I CANT CONNECT TO THIS FCK WIFI ANYMORE
-    if(net.start()){
-        app.start_application();
+    
+
+     if(net.start()){
+         app.start_application();
 
     }else{
         printk("Error to start network\n\r");

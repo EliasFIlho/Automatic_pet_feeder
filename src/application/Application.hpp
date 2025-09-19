@@ -3,6 +3,7 @@
 #include "IMotor.hpp"
 #include "IClock.hpp"
 #include "IStorage.hpp"
+#include "IWatchDog.hpp"
 #include "SchedulerRules.hpp"
 #include <zephyr/kernel.h>
 
@@ -14,6 +15,7 @@ private:
     IClock& _clk;
     IMotor& _motor;
     IStorage& _fs;
+    IWatchDog& _guard;
 
 private:
     bool is_date_match();                      // Check if specif date matchs with the rule selected specific date
@@ -26,7 +28,7 @@ private:
     static void app(void *p1, void *, void *); // Application function (This may not work bcs is class member, but i'll see how this is usually done)
 
 public:
-    Application(IClock& clk, IMotor& motor, IStorage& fs);
+    Application(IClock& clk, IMotor& motor, IStorage& fs, IWatchDog& guard);
     ~Application();
     void start_application(); // Start application thread
 };

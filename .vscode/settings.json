@@ -9,6 +9,7 @@
         "typeinfo": "cpp",
         "compare": "cpp",
         "cstdint": "cpp",
-        "type_traits": "cpp"
+        "type_traits": "cpp",
+        "cstdlib": "cpp"
     }
 }

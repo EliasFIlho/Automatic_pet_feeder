@@ -6,8 +6,8 @@
 #include <zephyr/net/dhcpv4_server.h>
 #include "IWifi.hpp"
 
-#define PSK_BUFFER_LEN 20
-#define SSID_BUFFER_LEN 20
+#define PSK_BUFFER_LEN 32
+#define SSID_BUFFER_LEN 32
 
 class WifiStation : public IWifi
 {

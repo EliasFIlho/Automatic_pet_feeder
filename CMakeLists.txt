@@ -15,9 +15,11 @@ add_subdirectory(src/network)
 add_subdirectory(src/network/wifi)
 add_subdirectory(src/network/mqtt)
 add_subdirectory(src/storage)
+add_subdirectory(src/watchdog)
 
 
-# ---- App (only main.cpp here) ----
-target_sources(app PRIVATE src/main.cpp)
 
 
+FILE(GLOB app_sources src/*.cpp)
+
+target_sources(app PRIVATE ${app_sources})

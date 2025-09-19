@@ -67,7 +67,7 @@ int Storage::read_data(uint32_t id, char *buf, unsigned int buf_len)
     if (rc > 0)
     {
         buf[rc] = '\0';
-        printk("Amount of readed data [%d]\r\nData: %s\n\r", rc,buf);
+        //printk("Amount of readed data [%d]\r\nData: %s\n\r", rc,buf);
     }
     else
     {
