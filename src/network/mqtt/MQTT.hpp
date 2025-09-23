@@ -4,18 +4,18 @@
 #include <zephyr/net/mqtt.h>
 #include "MQTT_utils.hpp"
 #include "IMQTT.hpp"
-
-
+#include "IStorage.hpp"
+#include "IWatchDog.hpp"
 
 /**
  * @brief Extern semaphore to indicate that new data was writed in filesystem from MQTT
- * 
+ *
  */
-extern k_sem update_rules;
+// extern k_sem update_rules;
 
 /**
  * @brief MQTT Class
- * 
+ *
  */
 class MQTT : public IMQTT
 {
@@ -36,6 +36,8 @@ private:
     struct k_thread MQTTPublishTask;
 
     struct publish_payload pub_payload;
+    IWatchDog &_guard;
+    IStorage &_fs;
 
 private:
     static void mqtt_task(void *p1, void *, void *);
@@ -54,8 +56,10 @@ private:
     void reconnect();
 
 public:
-    MQTT();
+
+    MQTT(IWatchDog &guard, IStorage &_fs);
     ~MQTT();
     void start_mqtt();
     void abort();
+    bool is_payload_updated();
 };

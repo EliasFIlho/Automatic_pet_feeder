@@ -8,17 +8,14 @@
 
 static struct net_mgmt_event_callback wifi_cb;
 static struct net_mgmt_event_callback ipv4_cb;
+static struct net_mgmt_event_callback if_cb;
 
 static struct k_sem wifi_connected;
 static struct k_sem ipv4_connected;
 
-// TODO: Check RSSI
-//  From now, the only way that i founded of geting RSSI is by using wifi scan and filter the network ssid.
-
+// TODO: Check RSSI with wifi_iface_status.rssi
 // TODO: Create a scheduled routine to check the Wireless RSSI and put the value inside a queue - this value can also be mapped in this same
 //  routine to display the signal quality - Maybe use Work Queue to do it
-
-// TODO: Get a pwm device to display the RSSI as a LED bright
 
 static void wifi_event_handler(struct net_mgmt_event_callback *cb,
                                uint32_t evt, struct net_if *iface)
@@ -38,6 +35,10 @@ static void wifi_event_handler(struct net_mgmt_event_callback *cb,
         const struct wifi_status *st = (const struct wifi_status *)cb->info;
         printk("WiFi DISCONNECT status=%d\n", st ? st->status : -1);
     }
+    else if (evt = NET_EVENT_WIFI_IFACE_STATUS)
+    {
+        printk("WIFI IF STATUS EVT\n\r");
+    }
 }
 
 static void dhcp4_event_handler(struct net_mgmt_event_callback *cb, uint32_t mgmt_event, struct net_if *iface)
@@ -56,6 +57,8 @@ static void dhcp4_event_handler(struct net_mgmt_event_callback *cb, uint32_t mgm
     }
 }
 
+
+
 WifiStation::WifiStation()
 {
     k_sem_init(&wifi_connected, 0, 1);
@@ -66,8 +69,10 @@ WifiStation::~WifiStation()
 {
 }
 
-void WifiStation::wifi_init(void)
+bool WifiStation::wifi_init(void)
 {
+    k_sem_reset(&wifi_connected);
+    k_sem_reset(&ipv4_connected);
     sta_iface = net_if_get_wifi_sta();
     net_mgmt_init_event_callback(&ipv4_cb, dhcp4_event_handler, WIFI_DHCP_CALLBACK_FLAGS);
     net_mgmt_add_event_callback(&ipv4_cb);
@@ -77,17 +82,17 @@ void WifiStation::wifi_init(void)
     if (ret && ret != -EALREADY && ret != -ENOTSUP)
     {
         printk("net_if_up failed: %d\n", ret);
+        return false;
     }
     else
     {
         printk("Interface up (or already up / not required)\n");
+        return true;
     }
 }
 
 int WifiStation::connect_to_wifi()
 {
-    k_sem_reset(&wifi_connected);
-    k_sem_reset(&ipv4_connected);
 
     if (!sta_iface)
     {
@@ -205,10 +210,37 @@ int WifiStation::wifi_disconnect(void)
 void WifiStation::set_wifi_ssid(char *ssid)
 {
     strcpy(this->ssid, ssid);
-    //printk("%s\n\r", this->ssid);
+    // printk("%s\n\r", this->ssid);
 }
 void WifiStation::set_wifi_psk(char *psk)
 {
     strcpy(this->psk, psk);
-    //printk("%s\n\r", this->psk);
+    // printk("%s\n\r", this->psk);
+}
+
+bool WifiStation::is_connected()
+{
+    struct wifi_iface_status status;
+
+    int ret = net_mgmt(NET_REQUEST_WIFI_IFACE_STATUS, sta_iface, &status, sizeof(struct wifi_iface_status));
+    printk("IS CONNECT NET REQUEST RETURN: %d\n\r", ret);
+    if (status.state == WIFI_STATE_DISCONNECTED)
+    {
+        printk("WIFI DISCONNECTD\n\r");
+
+        return false;
+    }
+    else
+    {
+        printk("WIFI CONNECTED\n\rWIFI RSSI: %d\n\r", status.rssi);
+        return true;
+    }
+}
+
+int WifiStation::wifi_get_rssi()
+{
+    struct wifi_iface_status status;
+    int ret = net_mgmt(NET_REQUEST_WIFI_IFACE_STATUS, sta_iface, &status, sizeof(struct wifi_iface_status));
+    printk("WIFI CONNECTED\n\rWIFI RSSI: %d\n\r", status.rssi);
+    return status.rssi;
 }

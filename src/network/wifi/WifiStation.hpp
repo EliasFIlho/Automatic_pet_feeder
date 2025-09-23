@@ -19,15 +19,16 @@ private:
 private:
     int wait_wifi_to_connect(void);
     int wifi_wait_for_ip_addr(void);
+    int wifi_get_rssi(void);
 
 public:
     WifiStation();
-    void wifi_init(void);
+    bool wifi_init(void);
     int connect_to_wifi();
     int wifi_disconnect(void);
     void set_wifi_ssid(char *ssid);
     void set_wifi_psk(char *psk);
-
+    bool is_connected();
 
     ~WifiStation();
 };

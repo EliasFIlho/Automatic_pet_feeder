@@ -3,7 +3,6 @@
 #include <zephyr/net/socket.h>
 #include <zephyr/net/mqtt.h>
 #include <zephyr/task_wdt/task_wdt.h>
-#include "Storage.hpp"
 
 // MQTT Thread Stack
 #define MQTT_THREAD_OPTIONS (K_FP_REGS | K_ESSENTIAL)
@@ -34,14 +33,11 @@ static void on_mqtt_publish(struct mqtt_client *const client, const struct mqtt_
     }
     /* Place null terminator at end of payload buffer */
     payload[rc] = '\0';
-    //Storage &fs = Storage::getInstance();
-
     printk("MQTT payload received!");
     printk("topic: '%s', payload: %s",
            evt->param.publish.message.topic.topic.utf8, payload);
 
-    //fs.write_data(RULES_ID, payload);
-    k_sem_give(&update_rules);
+    // Write in fs.write_data(RULES_ID, payload);
 }
 
 /**
@@ -121,7 +117,7 @@ void MQTT::mqtt_evt_handler(struct mqtt_client *client,
  * @brief Construct a new MQTT::MQTT object
  *
  */
-MQTT::MQTT()
+MQTT::MQTT(IWatchDog &guard, IStorage &fs) : _guard(guard), _fs(fs)
 {
 }
 
@@ -400,7 +396,7 @@ bool MQTT::setup_client()
 /**
  * @brief Gets data from a queue and publish in the specific topic
  *
- * 
+ *
  */
 void MQTT::mqtt_publish_payload()
 {
@@ -409,7 +405,9 @@ void MQTT::mqtt_publish_payload()
     if (k_msgq_get(&mqtt_publish_queue, &payload, K_NO_WAIT) == 0)
     {
         printk("DATA RECEIVEID, START PUBLISH...\n\r");
-    }else{
+    }
+    else
+    {
         printk("NO DATA TO PUBLISH\n\r");
     }
 }
@@ -436,7 +434,7 @@ void MQTT::mqtt_task(void *p1, void *, void *)
 {
     auto *self = static_cast<MQTT *>(p1);
     self->setup_client();
-    int read_mqtt_task_wdt_id = task_wdt_add(CONFIG_MQTT_WATCHDOG_TIMEOUT_THREAD, NULL, NULL);
+    int read_mqtt_task_wdt_id = self->_guard.create_and_get_wtd_timer_id(CONFIG_MQTT_WATCHDOG_TIMEOUT_THREAD);
     while (true)
     {
         if (self->is_connected())
@@ -452,7 +450,7 @@ void MQTT::mqtt_task(void *p1, void *, void *)
         else
         {
             self->reconnect();
-            task_wdt_feed(read_mqtt_task_wdt_id);
+            self->_guard.feed(read_mqtt_task_wdt_id);
             k_msleep(CONFIG_MQTT_THREAD_RECONNECT_PERIOD);
         }
     }
@@ -467,8 +465,13 @@ void MQTT::start_mqtt()
     k_thread_create(&this->MQTTReadSubTask, MQTT_STACK_AREA, CONFIG_MQTT_THREAD_STACK_SIZE, this->mqtt_task, this, NULL, NULL, CONFIG_MQTT_THREAD_PRIORITY, MQTT_THREAD_OPTIONS, K_NO_WAIT);
 }
 
+void MQTT::abort()
+{
+    // Disconnect from mqtt
+    // Abort thread
+}
 
-void MQTT::abort(){
-    //Disconnect from mqtt
-    //Abort thread
+bool MQTT::is_payload_updated()
+{
+    return false;
 }

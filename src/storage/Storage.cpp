@@ -94,10 +94,3 @@ int Storage::write_data(uint32_t id, const char *str)
     return rc;
 }
 
-// Storage Storage::instance;
-
-// Storage &Storage::getInstance()
-// {
-
-//     return instance;
-// }

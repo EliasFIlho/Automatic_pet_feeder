@@ -5,7 +5,6 @@ class IClock
 {
 public:
     virtual ~IClock() noexcept = default;
-
     virtual int sync_time() = 0;    // Function to sync wall-clock time
     virtual int get_week_day() = 0; // Function to parse and return the week day
     virtual int get_epoch() = 0;

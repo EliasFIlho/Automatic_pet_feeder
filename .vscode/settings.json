@@ -10,6 +10,7 @@
         "compare": "cpp",
         "cstdint": "cpp",
         "type_traits": "cpp",
-        "cstdlib": "cpp"
+        "cstdlib": "cpp",
+        "istream": "cpp"
     }
 }

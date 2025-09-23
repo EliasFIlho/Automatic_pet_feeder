@@ -8,6 +8,7 @@
 #include <zephyr/logging/log.h>
 #include <string.h>
 #include "Application.hpp"
+#include "TaskRunner.hpp"
 #include "StepperController.hpp"
 #include "RTC.hpp"
 #include "Storage.hpp"
@@ -16,21 +17,23 @@
 #include "MQTT.hpp"
 #include "NetworkService.hpp"
 #include "Watchdog.hpp"
+#include "JsonModule.hpp"
 #include <zephyr/task_wdt/task_wdt.h>
 
-
+Watchdog guard;
+Storage fs;
+JsonModule json;
+StepperController motor;
+RTC rtc;
+WifiStation wifi;
+MQTT mqtt(guard, fs);
+NetworkService net(mqtt, wifi, fs);
+TaskRunner task_runner;
+Application app(rtc, motor, fs, guard, json, task_runner);
 
 // TODO: Use main as a wiring point to start tasks (Avoid nested threads)
 int main(void)
 {
-    WifiStation wifi;
-    MQTT mqtt;
-    StepperController motor;
-    RTC rtc;
-    Storage fs;
-    Watchdog guard;
-    NetworkService net(mqtt, wifi, fs);
-    Application app(rtc, motor, fs, guard);
 
     guard.init();
 
@@ -40,17 +43,13 @@ int main(void)
         printk("Error to init Fs\r\n");
         return -1;
     }
-
-    
-
-    
-
-     if(net.start()){
-         app.start_application();
-
+    if (net.start())
+    {
+        app.init_application();
     }else{
-        printk("Error to start network\n\r");
+        printk("NET ERROR\n\r");
     }
+
     while (true)
     {
         k_sleep(K_FOREVER);

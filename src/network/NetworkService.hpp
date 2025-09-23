@@ -1,3 +1,4 @@
+#pragma once
 #include "IMQTT.hpp"
 #include "IWifi.hpp"
 #include "IStorage.hpp"
@@ -17,6 +18,7 @@ private:
 
 public:
     NetworkService(IMQTT &mqtt, IWifi &wifi, IStorage& fs);
+    bool is_mqtt_updated_payload();
     bool start();
     void stop();
     ~NetworkService();

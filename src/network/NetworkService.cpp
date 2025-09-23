@@ -7,6 +7,10 @@ NetworkService::~NetworkService()
 {
 }
 
+bool NetworkService::is_mqtt_updated_payload(){
+    
+}
+
 bool NetworkService::start()
 {
     char ssid[16];
@@ -26,7 +30,6 @@ bool NetworkService::start()
     ret = this->_fs.read_data(PASSWORD_ID, psk, sizeof(psk));
     if (ret < 0)
     {
-
         return false;
     }
     else
@@ -34,17 +37,27 @@ bool NetworkService::start()
         this->_wifi.set_wifi_psk(psk);
     }
 
-    this->_wifi.wifi_init();
-    ret = this->_wifi.connect_to_wifi();
-    if (ret < 0)
+    if (this->_wifi.wifi_init())
     {
-        return false;
+        if (this->_wifi.is_connected())
+        {
+            this->_wifi.wifi_disconnect();
+        }
+        ret = this->_wifi.connect_to_wifi();
+        if (ret < 0)
+        {
+            this->stop();
+            return false;
+        }
+        else
+        {
+            this->_mqtt.start_mqtt();
+            return true;
+        }
     }
     else
     {
-
-        this->_mqtt.start_mqtt();
-        return true;
+        return false;
     }
 }
 

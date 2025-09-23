@@ -4,18 +4,24 @@
 #include "IClock.hpp"
 #include "IStorage.hpp"
 #include "IWatchDog.hpp"
+#include "IJson.hpp"
+#include "NetworkService.hpp"
 #include "SchedulerRules.hpp"
-#include <zephyr/kernel.h>
+#include "ITaskRunner.hpp"
 
 class Application
 {
 private:
-    struct k_thread AppTask;
     Rules_t rules;
-    IClock& _clk;
-    IMotor& _motor;
-    IStorage& _fs;
-    IWatchDog& _guard;
+    IClock &_clk;
+    IMotor &_motor;
+    IStorage &_fs;
+    IWatchDog &_guard;
+    IJson &_json;
+    ITaskRunner &_runner;
+    int task_wdt_id;
+    bool is_dispenser_executed;
+    bool is_rules_updated = false;
 
 private:
     bool is_date_match();                      // Check if specif date matchs with the rule selected specific date
@@ -25,10 +31,12 @@ private:
     void dispense_food();                      // Dispense a X amount of food (the amount calc will be defined after the mechanics)
     bool check_rules();                        // Compare current time stamp with the rules
 
-    static void app(void *p1, void *, void *); // Application function (This may not work bcs is class member, but i'll see how this is usually done)
+    static void app(void *p1, void *, void *); // Application function
 
 public:
-    Application(IClock& clk, IMotor& motor, IStorage& fs, IWatchDog& guard);
+    Application(IClock &clk, IMotor &motor, IStorage &fs, IWatchDog &guard, IJson &json, ITaskRunner &runner);
     ~Application();
-    void start_application(); // Start application thread
+    void step();
+    void init_application(); // Start application thread
+    void on_rules_update();
 };

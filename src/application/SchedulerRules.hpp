@@ -1,6 +1,6 @@
 #pragma once
 
-#include <zephyr/kernel.h>
+#include <stdint.h>
 
 typedef struct
 {
