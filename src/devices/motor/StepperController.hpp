@@ -17,4 +17,5 @@ public:
     ~StepperController();
     void move_to(int step);
     void move_for(int amout);
+    uint32_t init();
 };

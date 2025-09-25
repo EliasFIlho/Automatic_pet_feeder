@@ -10,4 +10,5 @@ public:
     virtual void set_wifi_ssid(char *ssid) = 0;
     virtual void set_wifi_psk(char *psk) = 0;
     virtual bool is_connected() = 0;
+    virtual void init_rssi_monitor() = 0;
 };

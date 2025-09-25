@@ -13,9 +13,12 @@ static struct net_mgmt_event_callback if_cb;
 static struct k_sem wifi_connected;
 static struct k_sem ipv4_connected;
 
-// TODO: Check RSSI with wifi_iface_status.rssi
-// TODO: Create a scheduled routine to check the Wireless RSSI and put the value inside a queue - this value can also be mapped in this same
-//  routine to display the signal quality - Maybe use Work Queue to do it
+
+
+/*TODO: Add RSSI return to a queue in RSSI MONITOR and Create a public get_rssi that will read value from a queue and return
+(Still need to see if i'll use this info outside WifiStation module - maybe NetworkService should have access to it) */
+
+//TODO: Get a PWM device to display RSSI 
 
 static void wifi_event_handler(struct net_mgmt_event_callback *cb,
                                uint32_t evt, struct net_if *iface)
@@ -57,8 +60,6 @@ static void dhcp4_event_handler(struct net_mgmt_event_callback *cb, uint32_t mgm
     }
 }
 
-
-
 WifiStation::WifiStation()
 {
     k_sem_init(&wifi_connected, 0, 1);
@@ -73,7 +74,12 @@ bool WifiStation::wifi_init(void)
 {
     k_sem_reset(&wifi_connected);
     k_sem_reset(&ipv4_connected);
-    sta_iface = net_if_get_wifi_sta();
+    this->sta_iface = net_if_get_wifi_sta();
+    if (sta_iface == NULL)
+    {
+        printk("Unable to get wifi interface pointer\n\r");
+        return false;
+    }
     net_mgmt_init_event_callback(&ipv4_cb, dhcp4_event_handler, WIFI_DHCP_CALLBACK_FLAGS);
     net_mgmt_add_event_callback(&ipv4_cb);
     net_mgmt_init_event_callback(&wifi_cb, wifi_event_handler, WIFI_CALLBACK_FLAGS);
@@ -222,7 +228,7 @@ bool WifiStation::is_connected()
 {
     struct wifi_iface_status status;
 
-    int ret = net_mgmt(NET_REQUEST_WIFI_IFACE_STATUS, sta_iface, &status, sizeof(struct wifi_iface_status));
+    int ret = net_mgmt(NET_REQUEST_WIFI_IFACE_STATUS, this->sta_iface, &status, sizeof(struct wifi_iface_status));
     printk("IS CONNECT NET REQUEST RETURN: %d\n\r", ret);
     if (status.state == WIFI_STATE_DISCONNECTED)
     {
@@ -237,10 +243,26 @@ bool WifiStation::is_connected()
     }
 }
 
-int WifiStation::wifi_get_rssi()
+
+void WifiStation::rssi_monitor(struct k_work *work)
 {
-    struct wifi_iface_status status;
-    int ret = net_mgmt(NET_REQUEST_WIFI_IFACE_STATUS, sta_iface, &status, sizeof(struct wifi_iface_status));
-    printk("WIFI CONNECTED\n\rWIFI RSSI: %d\n\r", status.rssi);
-    return status.rssi;
+    struct net_if *iface = net_if_get_wifi_sta();
+    if (iface != NULL)
+    {
+        struct wifi_iface_status status;
+        net_mgmt(NET_REQUEST_WIFI_IFACE_STATUS, iface, &status, sizeof(struct wifi_iface_status));
+        printk("WIFI RSSI: %d\n\r", status.rssi);
+        
+        k_work_reschedule(k_work_delayable_from_work(work), K_MSEC(CONFIG_WIFI_RSSI_MONITOR_PERIOD));
+    }
+    else
+    {
+        printk("Unable to get wifi interface pointer\n\r");
+    }
+}
+
+void WifiStation::init_rssi_monitor()
+{
+    k_work_init_delayable(&this->rssi_monitor_work, this->rssi_monitor);
+    k_work_reschedule(&this->rssi_monitor_work, K_NO_WAIT);
 }

@@ -51,6 +51,7 @@ bool NetworkService::start()
         }
         else
         {
+            this->_wifi.init_rssi_monitor();
             this->_mqtt.start_mqtt();
             return true;
         }

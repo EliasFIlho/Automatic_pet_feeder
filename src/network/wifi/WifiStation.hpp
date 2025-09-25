@@ -15,13 +15,14 @@ private:
     char ssid[SSID_BUFFER_LEN];
     char psk[PSK_BUFFER_LEN];
     struct net_if *sta_iface;
+    struct k_work_delayable rssi_monitor_work;
 
 private:
     int wait_wifi_to_connect(void);
     int wifi_wait_for_ip_addr(void);
-    int wifi_get_rssi(void);
-
-public:
+    static void rssi_monitor(struct k_work *work);
+    
+    public:
     WifiStation();
     bool wifi_init(void);
     int connect_to_wifi();
@@ -29,6 +30,7 @@ public:
     void set_wifi_ssid(char *ssid);
     void set_wifi_psk(char *psk);
     bool is_connected();
-
+    void init_rssi_monitor();
+    
     ~WifiStation();
 };

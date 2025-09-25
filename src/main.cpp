@@ -31,11 +31,13 @@ NetworkService net(mqtt, wifi, fs);
 TaskRunner task_runner;
 Application app(rtc, motor, fs, guard, json, task_runner);
 
-// TODO: Use main as a wiring point to start tasks (Avoid nested threads)
+//TODO: Convert periods/configs constants to Kconfig flags
 int main(void)
 {
 
-    guard.init();
+    if(guard.init() != 0){
+        printk("Error to init watchdog\n\r");
+    }
 
     int ret = fs.init_storage();
     if (ret != 0)

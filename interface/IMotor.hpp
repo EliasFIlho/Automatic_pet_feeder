@@ -8,5 +8,6 @@ public:
     virtual ~IMotor() noexcept = default;
     virtual void move_to(int step) = 0;
     virtual void move_for(int amout) = 0;
+    virtual uint32_t init() = 0;
 };
 

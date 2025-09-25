@@ -1,6 +1,7 @@
 #include "Watchdog.hpp"
 #include <zephyr/task_wdt/task_wdt.h>
 #include <zephyr/kernel.h>
+#include <errno.h>
 
 Watchdog::Watchdog()
 {
@@ -10,7 +11,7 @@ Watchdog::~Watchdog()
 {
 }
 
-void Watchdog::init()
+uint32_t Watchdog::init()
 {
     int ret;
     ret = task_wdt_init(NULL);
@@ -22,6 +23,7 @@ void Watchdog::init()
     {
         printk("Watchdog task inited\n\r");
     }
+    return ret;
 }
 void Watchdog::feed(int task_wtd_id)
 {

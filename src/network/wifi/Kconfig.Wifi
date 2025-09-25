@@ -1,5 +1,8 @@
 menu "WIFI options"
 
+config WIFI_RSSI_MONITOR_PERIOD
+    int "Work period for monitor wifi RSSI"
+    default 1000
 
 
 endmenu
