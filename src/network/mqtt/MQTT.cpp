@@ -4,6 +4,9 @@
 #include <zephyr/net/mqtt.h>
 #include <zephyr/task_wdt/task_wdt.h>
 
+// TODO: Move JSON parser to MQTT to perform device commands, like remove routines from FS;
+// TODO: Check if is valid to add a scheduler ID in JSON, so filesystem can iterate over to check/clear data;
+
 // MQTT Thread Stack
 #define MQTT_THREAD_OPTIONS (K_FP_REGS | K_ESSENTIAL)
 K_THREAD_STACK_DEFINE(MQTT_STACK_AREA, CONFIG_MQTT_THREAD_STACK_SIZE);
@@ -20,8 +23,9 @@ K_MSGQ_DEFINE(mqtt_publish_queue, sizeof(struct publish_payload), 10, 1);
  * @param client
  * @param evt
  */
-static void on_mqtt_publish(struct mqtt_client *const client, const struct mqtt_evt *evt)
+void MQTT::on_mqtt_publish(struct mqtt_client *const client, const struct mqtt_evt *evt)
 {
+    auto *self = static_cast<MQTT *>(client->user_data);
     int rc;
     char payload[500];
 
@@ -34,10 +38,8 @@ static void on_mqtt_publish(struct mqtt_client *const client, const struct mqtt_
     /* Place null terminator at end of payload buffer */
     payload[rc] = '\0';
     printk("MQTT payload received!");
-    printk("topic: '%s', payload: %s",
-           evt->param.publish.message.topic.topic.utf8, payload);
-
-    // Write in fs.write_data(RULES_ID, payload);
+    printk("topic: '%s', payload: %s", evt->param.publish.message.topic.topic.utf8, payload);
+    self->_fs.write_data(RULES_ID,payload);
 }
 
 /**
@@ -72,7 +74,7 @@ void MQTT::mqtt_evt_handler(struct mqtt_client *client,
     case MQTT_EVT_PUBLISH:
 
         printk("DATA PUBLISHED\n\r");
-        on_mqtt_publish(client, evt);
+        self->on_mqtt_publish(client, evt);
 
         break;
     case MQTT_EVT_PUBACK:
@@ -272,7 +274,7 @@ bool MQTT::subscribe()
  * @return true
  * @return false
  */
-bool MQTT::init()
+void MQTT::init()
 {
     mqtt_client_init(&this->client_ctx);
     this->client_ctx.broker = &this->broker;
@@ -303,7 +305,6 @@ bool MQTT::init()
     this->client_ctx.tx_buf = this->tx_buffer;
     this->client_ctx.tx_buf_size = sizeof(this->tx_buffer);
 
-    return true;
 }
 
 /**
@@ -362,15 +363,8 @@ bool MQTT::is_connected()
 
 bool MQTT::setup_client()
 {
-    if (this->init())
-    {
-        printk("MQTT Initialized\n\r");
-    }
-    else
-    {
-        printk("MQTT ERROR TO INIT\n\r");
-        return false;
-    }
+    this->init();
+
     if (this->setup_broker())
     {
         printk("MQTT Broker ready\n\r");
@@ -404,6 +398,7 @@ void MQTT::mqtt_publish_payload()
 
     if (k_msgq_get(&mqtt_publish_queue, &payload, K_NO_WAIT) == 0)
     {
+        // TODO: Create publish method
         printk("DATA RECEIVEID, START PUBLISH...\n\r");
     }
     else
@@ -445,7 +440,7 @@ void MQTT::mqtt_task(void *p1, void *, void *)
             self->mqtt_publish_payload();
 
             // Feed task watchdog
-            task_wdt_feed(read_mqtt_task_wdt_id);
+            self->_guard.feed(read_mqtt_task_wdt_id);
         }
         else
         {
@@ -467,8 +462,9 @@ void MQTT::start_mqtt()
 
 void MQTT::abort()
 {
-    // Disconnect from mqtt
-    // Abort thread
+    // TODO: Creat abort method
+    //  Disconnect from mqtt
+    //  Abort thread
 }
 
 bool MQTT::is_payload_updated()

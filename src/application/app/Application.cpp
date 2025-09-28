@@ -115,18 +115,10 @@ bool Application::check_rules()
     }
 }
 
-void Application::on_rules_update()
-{
-    this->is_rules_updated = false;
-}
+
 
 void Application::step()
 {
-    // if (this->is_rules_updated)
-    // {
-    //     this->get_rules();
-    //     this->is_rules_updated = false;
-    // }
     if (this->check_rules())
     {
         if (!this->is_dispenser_executed)

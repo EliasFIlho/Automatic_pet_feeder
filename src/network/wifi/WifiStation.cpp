@@ -8,17 +8,10 @@
 
 static struct net_mgmt_event_callback wifi_cb;
 static struct net_mgmt_event_callback ipv4_cb;
-static struct net_mgmt_event_callback if_cb;
 
 static struct k_sem wifi_connected;
 static struct k_sem ipv4_connected;
 
-
-
-/*TODO: Add RSSI return to a queue in RSSI MONITOR and Create a public get_rssi that will read value from a queue and return
-(Still need to see if i'll use this info outside WifiStation module - maybe NetworkService should have access to it) */
-
-//TODO: Get a PWM device to display RSSI 
 
 static void wifi_event_handler(struct net_mgmt_event_callback *cb,
                                uint32_t evt, struct net_if *iface)
@@ -38,7 +31,7 @@ static void wifi_event_handler(struct net_mgmt_event_callback *cb,
         const struct wifi_status *st = (const struct wifi_status *)cb->info;
         printk("WiFi DISCONNECT status=%d\n", st ? st->status : -1);
     }
-    else if (evt = NET_EVENT_WIFI_IFACE_STATUS)
+    else if (evt == NET_EVENT_WIFI_IFACE_STATUS)
     {
         printk("WIFI IF STATUS EVT\n\r");
     }
@@ -244,25 +237,15 @@ bool WifiStation::is_connected()
 }
 
 
-void WifiStation::rssi_monitor(struct k_work *work)
+int32_t WifiStation::get_rssi()
 {
-    struct net_if *iface = net_if_get_wifi_sta();
-    if (iface != NULL)
+    if (this->sta_iface != NULL)
     {
         struct wifi_iface_status status;
-        net_mgmt(NET_REQUEST_WIFI_IFACE_STATUS, iface, &status, sizeof(struct wifi_iface_status));
-        printk("WIFI RSSI: %d\n\r", status.rssi);
-        
-        k_work_reschedule(k_work_delayable_from_work(work), K_MSEC(CONFIG_WIFI_RSSI_MONITOR_PERIOD));
+        net_mgmt(NET_REQUEST_WIFI_IFACE_STATUS, this->sta_iface, &status, sizeof(struct wifi_iface_status));
+        return status.rssi;
+    }else{
+        //TODO: Create erro return code
+        return -100;
     }
-    else
-    {
-        printk("Unable to get wifi interface pointer\n\r");
-    }
-}
-
-void WifiStation::init_rssi_monitor()
-{
-    k_work_init_delayable(&this->rssi_monitor_work, this->rssi_monitor);
-    k_work_reschedule(&this->rssi_monitor_work, K_NO_WAIT);
 }

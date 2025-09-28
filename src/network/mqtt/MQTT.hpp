@@ -33,7 +33,6 @@ private:
     uint8_t tx_buffer[CONFIG_MQTT_TX_BUFFER_SIZE];
 
     struct k_thread MQTTReadSubTask;
-    struct k_thread MQTTPublishTask;
 
     struct publish_payload pub_payload;
     IWatchDog &_guard;
@@ -44,7 +43,7 @@ private:
     void mqtt_publish_payload();
     void set_fds();
     int poll_mqtt_socket(int timout);
-    bool init();
+    void init();
     bool connect();
     bool subscribe();
     bool setup_broker();
@@ -54,6 +53,7 @@ private:
     static void mqtt_evt_handler(struct mqtt_client *client, const struct mqtt_evt *evt);
     bool is_connected();
     void reconnect();
+    static void on_mqtt_publish(struct mqtt_client *const client, const struct mqtt_evt *evt);
 
 public:
 

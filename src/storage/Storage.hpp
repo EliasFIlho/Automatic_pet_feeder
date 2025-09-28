@@ -9,6 +9,15 @@
 #include "SchedulerRules.hpp"
 #include "IStorage.hpp"
 
+
+enum 
+{
+    STORAGE_ERROR_MOUNT = -3,
+    STORAGE_ERROR_PAGE_INFO,
+    STORAGE_ERROR_DEVICE
+
+};
+
 class Storage : public IStorage
 {
 

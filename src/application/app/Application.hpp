@@ -21,7 +21,6 @@ private:
     ITaskRunner &_runner;
     int task_wdt_id;
     bool is_dispenser_executed;
-    bool is_rules_updated = false;
 
 private:
     bool is_date_match();                      // Check if specif date matchs with the rule selected specific date
@@ -38,5 +37,4 @@ public:
     ~Application();
     void step();
     void init_application(); // Start application thread
-    void on_rules_update();
 };

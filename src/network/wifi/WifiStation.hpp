@@ -1,6 +1,8 @@
 #pragma once
 
 #include <zephyr/kernel.h>
+#include <zephyr/drivers/pwm.h>
+#include <zephyr/device.h>  
 #include <zephyr/net/wifi_mgmt.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/net/dhcpv4_server.h>
@@ -21,8 +23,10 @@ private:
     int wait_wifi_to_connect(void);
     int wifi_wait_for_ip_addr(void);
     static void rssi_monitor(struct k_work *work);
-    
-    public:
+
+public:
+
+public:
     WifiStation();
     bool wifi_init(void);
     int connect_to_wifi();
@@ -31,6 +35,8 @@ private:
     void set_wifi_psk(char *psk);
     bool is_connected();
     void init_rssi_monitor();
-    
+    int32_t get_rssi();
+
+
     ~WifiStation();
 };

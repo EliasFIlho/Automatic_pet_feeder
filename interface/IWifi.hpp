@@ -1,4 +1,5 @@
 #pragma once
+#include <stdint.h>
 
 class IWifi
 {
@@ -10,5 +11,5 @@ public:
     virtual void set_wifi_ssid(char *ssid) = 0;
     virtual void set_wifi_psk(char *psk) = 0;
     virtual bool is_connected() = 0;
-    virtual void init_rssi_monitor() = 0;
+    virtual int32_t get_rssi() = 0;
 };

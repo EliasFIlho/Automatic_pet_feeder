@@ -1,5 +1,6 @@
 #include "NetworkService.hpp"
-NetworkService::NetworkService(IMQTT &mqtt, IWifi &wifi, IStorage &fs) : _mqtt(mqtt), _wifi(wifi), _fs(fs)
+
+NetworkService::NetworkService(IMQTT &mqtt, IWifi &wifi, IStorage &fs, ILed &led) : _mqtt(mqtt), _wifi(wifi), _fs(fs), _led(led)
 {
 }
 
@@ -7,8 +8,9 @@ NetworkService::~NetworkService()
 {
 }
 
-bool NetworkService::is_mqtt_updated_payload(){
-    
+bool NetworkService::is_mqtt_updated_payload()
+{
+    return false;
 }
 
 bool NetworkService::start()
@@ -51,7 +53,7 @@ bool NetworkService::start()
         }
         else
         {
-            this->_wifi.init_rssi_monitor();
+            this->init_rssi_monitor();
             this->_mqtt.start_mqtt();
             return true;
         }
@@ -66,4 +68,30 @@ void NetworkService::stop()
 {
     this->_mqtt.abort();
     this->_wifi.wifi_disconnect();
+}
+
+int32_t NetworkService::init_rssi_monitor()
+{
+    int ret = this->_led.init();
+    if (ret != 0)
+    {
+        return -EIO;
+    }
+    else
+    {
+        k_work_init_delayable(&this->rssi_monitor_work, this->rssi_monitor);
+        k_work_reschedule(&this->rssi_monitor_work, K_NO_WAIT);
+        return 0;
+    }
+}
+
+void NetworkService::rssi_monitor(struct k_work *work)
+{
+    k_work_delayable *dwork = k_work_delayable_from_work(work);
+    auto *self = CONTAINER_OF(dwork, NetworkService, rssi_monitor_work);
+
+    int32_t rssi = self->_wifi.get_rssi();
+    self->_led.set_mapped_output(rssi,-90,-30);
+    printk("RSSI FROM NETWORK SERVICE: [%d]\n\r", rssi);
+    k_work_reschedule(dwork, K_MSEC(CONFIG_WIFI_RSSI_MONITOR_PERIOD));
 }

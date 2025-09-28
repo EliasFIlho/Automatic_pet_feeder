@@ -15,6 +15,7 @@
 #include "SchedulerRules.hpp"
 #include "WifiStation.hpp"
 #include "MQTT.hpp"
+#include "Led.hpp"
 #include "NetworkService.hpp"
 #include "Watchdog.hpp"
 #include "JsonModule.hpp"
@@ -27,11 +28,14 @@ StepperController motor;
 RTC rtc;
 WifiStation wifi;
 MQTT mqtt(guard, fs);
-NetworkService net(mqtt, wifi, fs);
+Led led;
+NetworkService net(mqtt, wifi, fs, led);
 TaskRunner task_runner;
 Application app(rtc, motor, fs, guard, json, task_runner);
 
-//TODO: Convert periods/configs constants to Kconfig flags
+
+//TODO: Convert periods and configs constants to Kconfig flags
+
 int main(void)
 {
 

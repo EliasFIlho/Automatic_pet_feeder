@@ -13,13 +13,7 @@
 #define ZMS_PARTITION_DEVICE FIXED_PARTITION_DEVICE(ZMS_PARTITION)
 #define ZMS_PARTITION_OFFSET FIXED_PARTITION_OFFSET(ZMS_PARTITION)
 
-enum
-{
-    STORAGE_ERROR_MOUNT = -3,
-    STORAGE_ERROR_PAGE_INFO,
-    STORAGE_ERROR_DEVICE
 
-};
 
 #define BUFFER_LEN 256
 
@@ -67,7 +61,6 @@ int Storage::read_data(uint32_t id, char *buf, unsigned int buf_len)
     if (rc > 0)
     {
         buf[rc] = '\0';
-        //printk("Amount of readed data [%d]\r\nData: %s\n\r", rc,buf);
     }
     else
     {
@@ -79,7 +72,7 @@ int Storage::read_data(uint32_t id, char *buf, unsigned int buf_len)
 
 
 
-
+//TODO: Create a template for data parameter to make write more modular
 int Storage::write_data(uint32_t id, const char *str)
 {
     int rc = zms_write(&fs, id, str, strlen(str));
