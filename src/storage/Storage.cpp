@@ -12,10 +12,11 @@
 #define ZMS_PARTITION storage_partition
 #define ZMS_PARTITION_DEVICE FIXED_PARTITION_DEVICE(ZMS_PARTITION)
 #define ZMS_PARTITION_OFFSET FIXED_PARTITION_OFFSET(ZMS_PARTITION)
+#define BUFFER_LEN 256 //TODO: MOVE THIS TO Kconfig flag
 
 
+//TODO: Create partition left size check to avoid when partition is full
 
-#define BUFFER_LEN 256
 
 Storage::Storage()
 {

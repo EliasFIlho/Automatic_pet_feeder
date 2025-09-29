@@ -18,6 +18,7 @@
 #include "Led.hpp"
 #include "NetworkService.hpp"
 #include "Watchdog.hpp"
+#include "LvlSensor.hpp"
 #include "JsonModule.hpp"
 #include <zephyr/task_wdt/task_wdt.h>
 
@@ -32,7 +33,7 @@ Led led;
 NetworkService net(mqtt, wifi, fs, led);
 TaskRunner task_runner;
 Application app(rtc, motor, fs, guard, json, task_runner);
-
+LvlSensor sensor;
 
 //TODO: Convert periods and configs constants to Kconfig flags
 
@@ -52,6 +53,7 @@ int main(void)
     if (net.start())
     {
         app.init_application();
+        sensor.init();
     }else{
         printk("NET ERROR\n\r");
     }

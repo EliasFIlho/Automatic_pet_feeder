@@ -24,8 +24,6 @@ typedef enum
 typedef struct SchedulerRules
 {
     SpecifcDateRule_t date;
-    /*TODO: Maybe is a good idea to turn TimeRule_t struct into a fixed size vector, so the client can set more the then just one time data 
-    e.g. All weeks day at 09AM, 3PM, 9PM */
     TimeRule_t time;
     PeriodRule_t period;
     uint8_t week_days;

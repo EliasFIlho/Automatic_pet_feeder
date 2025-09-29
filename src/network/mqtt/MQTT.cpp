@@ -457,7 +457,7 @@ void MQTT::mqtt_task(void *p1, void *, void *)
  */
 void MQTT::start_mqtt()
 {
-    k_thread_create(&this->MQTTReadSubTask, MQTT_STACK_AREA, CONFIG_MQTT_THREAD_STACK_SIZE, this->mqtt_task, this, NULL, NULL, CONFIG_MQTT_THREAD_PRIORITY, MQTT_THREAD_OPTIONS, K_NO_WAIT);
+    k_thread_create(&this->MQTTReadSubTask, MQTT_STACK_AREA, CONFIG_MQTT_THREAD_STACK_SIZE, MQTT::mqtt_task, this, NULL, NULL, CONFIG_MQTT_THREAD_PRIORITY, MQTT_THREAD_OPTIONS, K_NO_WAIT);
 }
 
 void MQTT::abort()

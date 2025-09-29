@@ -8,10 +8,12 @@
 #include "NetworkService.hpp"
 #include "SchedulerRules.hpp"
 #include "ITaskRunner.hpp"
+#include <array>
 
 class Application
 {
 private:
+    //std::array<Rules_t, 5> rules;
     Rules_t rules;
     IClock &_clk;
     IMotor &_motor;

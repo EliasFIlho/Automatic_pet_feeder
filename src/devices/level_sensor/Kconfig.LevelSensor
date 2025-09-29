@@ -7,7 +7,7 @@ config LEVEL_ALERT_PERCENT
 
 config LEVEL_SENSOR_THREAD_STACK_SIZE
     int "Define Level Sensor thread stack size"
-    default 8000
+    default 4096
 
 config LEVEL_SENSOR_THREAD_PRIORITY
     int "Define Level Sensor thread priority"
