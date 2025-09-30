@@ -105,6 +105,7 @@ void StepperController::move_to(int step)
  */
 void StepperController::move_for(int amout)
 {
+    printk("Function called to dispense this amount - [%d]\n\r",amout);
     gpio_pin_set_dt(&direction, 0);
     gpio_pin_set_dt(&enable, 0);
     for (int i = 0; i < amout; i++)

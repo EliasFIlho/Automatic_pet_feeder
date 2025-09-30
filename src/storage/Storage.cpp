@@ -62,6 +62,7 @@ int Storage::read_data(uint32_t id, char *buf, unsigned int buf_len)
     if (rc > 0)
     {
         buf[rc] = '\0';
+        printk("Data readed: %s\n\r",buf);
     }
     else
     {
@@ -84,6 +85,7 @@ int Storage::write_data(uint32_t id, const char *str)
     else
     {
         printk("Sucess to write data\r\n");
+        printk("Data writed: %s\n\r",str);
     }
     return rc;
 }

@@ -3,6 +3,27 @@
 #include <zephyr/kernel.h>
 #include <zephyr/data/json.h>
 
+//For debug
+// static void print_rules(const Rules_t *r)
+// {
+//     printk("=== Scheduler Rule ===\n");
+//     printk("Date     : %04u-%02u-%02u\n",
+//            r->date.year,
+//            r->date.month,
+//            r->date.day);
+
+//     printk("Time     : %02u:%02u\n",
+//            r->time.hour,
+//            r->time.minutes);
+
+//     printk("Period   : %s\n",
+//            (r->period == WEEKLY) ? "WEEKLY" : "SPECIF");
+
+//     printk("Weekdays : 0x%02X\n", r->week_days);
+//     printk("Amount   : %u\n", r->amount);
+//     printk("======================\n");
+// }
+
 static const struct json_obj_descr rules_specific_date[] = {
     JSON_OBJ_DESCR_PRIM(SpecifcDateRule_t, year, JSON_TOK_UINT),
     JSON_OBJ_DESCR_PRIM(SpecifcDateRule_t, month, JSON_TOK_UINT),
@@ -34,7 +55,7 @@ JsonModule::~JsonModule()
 
 void JsonModule::parse(char *buffer_in, void *struct_out)
 {
-    int ret = json_obj_parse(buffer_in, sizeof(buffer_in), rules_json_obj, ARRAY_SIZE(rules_json_obj), struct_out);
+    int ret = json_obj_parse(buffer_in, strlen(buffer_in), rules_json_obj, ARRAY_SIZE(rules_json_obj), struct_out);
     if (ret < 0)
     {
         printk("Error to parse rules: %d\n\r", ret);
@@ -43,7 +64,9 @@ void JsonModule::parse(char *buffer_in, void *struct_out)
     {
         printk("Parser return value: %d\n\r", ret);
     }
+    //print_rules(static_cast<Rules_t *>(struct_out));
 }
 void JsonModule::encode(void *struct_in, char *buffer_out)
 {
 }
+

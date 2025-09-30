@@ -57,7 +57,7 @@ int main(void)
     }else{
         printk("NET ERROR\n\r");
     }
-
+    
     while (true)
     {
         k_sleep(K_FOREVER);

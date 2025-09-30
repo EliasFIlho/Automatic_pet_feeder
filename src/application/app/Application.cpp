@@ -13,17 +13,22 @@ Application::~Application()
 
 
 // TODO: Create error code returns
-int Application::get_rules()
+int32_t Application::get_rules()
 {
     char rules_buff[500];
-    this->_fs.read_data(RULES_ID, rules_buff, sizeof(rules_buff));
-    this->_json.parse(rules_buff, &this->rules);
-    return 0;
+    int32_t ret;
+    ret = this->_fs.read_data(RULES_ID, rules_buff, sizeof(rules_buff));
+    if(ret < 0){
+        return ret;
+    }else{
+        this->_json.parse(rules_buff, &this->rules);
+        return 0;
+    }
 }
 
 void Application::dispense_food()
 {
-    // this->_motor.move_for(this->rules.amount);
+    this->_motor.move_for(this->rules.amount);
 }
 
 bool Application::is_time_match()
@@ -141,8 +146,9 @@ void Application::app(void *p1, void *, void *)
     auto *self = static_cast<Application *>(p1);
 
     self->_clk.sync_time();
+    self->_motor.init();
     self->task_wdt_id = self->_guard.create_and_get_wtd_timer_id(CONFIG_APPLICATION_THREAD_PERIOD + WTD_TIMEOUT_THRESHOLD);
-
+    
     self->get_rules();
     while (true)
     {
