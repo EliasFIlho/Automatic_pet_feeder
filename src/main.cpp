@@ -22,13 +22,21 @@
 #include "JsonModule.hpp"
 #include <zephyr/task_wdt/task_wdt.h>
 
+
+/**
+ * @brief Define in compile time a message queue, so tasks can send publish data to MQTT perform
+ *
+ */
+K_MSGQ_DEFINE(mqtt_publish_queue, sizeof(struct level_sensor), 10, 1);
+
+
 Watchdog guard;
 Storage fs;
 JsonModule json;
 StepperController motor;
 RTC rtc;
 WifiStation wifi;
-MQTT mqtt(guard, fs);
+MQTT mqtt(guard, fs, json);
 Led led;
 NetworkService net(mqtt, wifi, fs, led);
 TaskRunner task_runner;

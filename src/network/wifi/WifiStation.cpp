@@ -236,7 +236,6 @@ bool WifiStation::is_connected()
     }
 }
 
-
 int32_t WifiStation::get_rssi()
 {
     if (this->sta_iface != NULL)

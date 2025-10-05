@@ -1,7 +1,6 @@
 #pragma once
 
-struct publish_payload{
-    const char *paylaod;
-    const char *topic;
-    int qos;
+struct level_sensor{
+    uint8_t unit;
+    uint8_t value;
 };

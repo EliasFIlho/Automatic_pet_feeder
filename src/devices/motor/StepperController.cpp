@@ -5,6 +5,10 @@
 #include "StepperController.hpp"
 
 
+
+//TODO: Considere to make motor spin as k_work to decrease spin speed and do not affect other threads
+
+
 /**
  * @brief Construct a new StepperController::StepperController object
  *
@@ -58,7 +62,9 @@ uint32_t StepperController::init()
 }
 
 /**
- * @brief
+ * @brief Move motor to a specific position, the initial motor position will be the current shaft position at motor object constructor
+ * the current position will be updated based on the steps and the direction will defined by the distance between the desired position and
+ * the current position.
  *
  * @param step
  */
@@ -99,7 +105,7 @@ void StepperController::move_to(int step)
 }
 
 /**
- * @brief
+ * @brief Turn motor to a fixed direction by a number of steps
  *
  * @param amout
  */

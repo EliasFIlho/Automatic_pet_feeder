@@ -2,15 +2,16 @@
 #include "SchedulerRules.hpp"
 #include <zephyr/kernel.h>
 #include <zephyr/data/json.h>
+#include "MQTT_utils.hpp"
 
-//For debug
-// static void print_rules(const Rules_t *r)
-// {
-//     printk("=== Scheduler Rule ===\n");
-//     printk("Date     : %04u-%02u-%02u\n",
-//            r->date.year,
-//            r->date.month,
-//            r->date.day);
+// For debug
+//  static void print_rules(const Rules_t *r)
+//  {
+//      printk("=== Scheduler Rule ===\n");
+//      printk("Date     : %04u-%02u-%02u\n",
+//             r->date.year,
+//             r->date.month,
+//             r->date.day);
 
 //     printk("Time     : %02u:%02u\n",
 //            r->time.hour,
@@ -45,6 +46,11 @@ static const struct json_obj_descr rules_json_obj[] = {
 
 };
 
+static const struct json_obj_descr publish_payload[] = {
+    JSON_OBJ_DESCR_PRIM(struct level_sensor, unit, JSON_TOK_UINT),
+    JSON_OBJ_DESCR_PRIM(struct level_sensor, value, JSON_TOK_UINT),
+};
+
 JsonModule::JsonModule(/* args */)
 {
 }
@@ -53,6 +59,7 @@ JsonModule::~JsonModule()
 {
 }
 
+//TODO: Create return error code
 void JsonModule::parse(char *buffer_in, void *struct_out)
 {
     int ret = json_obj_parse(buffer_in, strlen(buffer_in), rules_json_obj, ARRAY_SIZE(rules_json_obj), struct_out);
@@ -64,9 +71,13 @@ void JsonModule::parse(char *buffer_in, void *struct_out)
     {
         printk("Parser return value: %d\n\r", ret);
     }
-    //print_rules(static_cast<Rules_t *>(struct_out));
-}
-void JsonModule::encode(void *struct_in, char *buffer_out)
-{
 }
 
+int32_t JsonModule::encode(void *struct_in, char *buffer_out, size_t buf_len)
+{
+    int ret = json_obj_encode_buf(publish_payload,ARRAY_SIZE(publish_payload),struct_in, buffer_out,buf_len - 1);
+    if(ret != 0){
+        printk("Error to encode\n\r");
+    }
+    return ret;
+}

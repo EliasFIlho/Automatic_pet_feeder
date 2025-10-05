@@ -41,6 +41,10 @@ config MQTT_RULES_TOPIC
     string "MQTT Topic path"
     default "device/rules"
 
+config MQTT_SENSOR_TOPIC
+    string "MQTT Sensor Topic path"
+    default "device/sensor/level"
+
 
 config MQTT_THREAD_STACK_SIZE
     int "Define MQTT thread stack size"
@@ -65,6 +69,10 @@ config NUM_OF_TOPICS
 config MQTT_WATCHDOG_TIMEOUT_THREAD
     int "Timout in miliseconds for trigger watchdog for Read Payload thread"
     default 31000
+
+config MQTT_PUBLISH_BUFFER_SIZE
+    int "Publish buffer size"
+    default 100
 
 
 endmenu

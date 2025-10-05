@@ -70,6 +70,12 @@ void NetworkService::stop()
     this->_wifi.wifi_disconnect();
 }
 
+
+/*TODO: Turn this into a thread to use the this pointer instead of CONTAINER_OF 
+(No reason to do that, i just think that will be more easy to understand and also keep a standard pattern to periodic works)
+
+*/
+
 int32_t NetworkService::init_rssi_monitor()
 {
     int ret = this->_led.init();

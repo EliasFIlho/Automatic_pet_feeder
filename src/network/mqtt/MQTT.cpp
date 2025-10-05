@@ -3,6 +3,7 @@
 #include <zephyr/net/socket.h>
 #include <zephyr/net/mqtt.h>
 #include <zephyr/task_wdt/task_wdt.h>
+#include <array>
 
 // TODO: Move JSON parser to MQTT to perform device commands, like remove routines from FS;
 // TODO: Check if is valid to add a scheduler ID in JSON, so filesystem can iterate over to check/clear data;
@@ -10,12 +11,6 @@
 // MQTT Thread Stack
 #define MQTT_THREAD_OPTIONS (K_FP_REGS | K_ESSENTIAL)
 K_THREAD_STACK_DEFINE(MQTT_STACK_AREA, CONFIG_MQTT_THREAD_STACK_SIZE);
-
-/**
- * @brief Define in compile time a message queue, so tasks can send publish data to MQTT perform
- *
- */
-K_MSGQ_DEFINE(mqtt_publish_queue, sizeof(struct publish_payload), 10, 1);
 
 /**
  * @brief Handle publish event in MQTT callback
@@ -39,7 +34,7 @@ void MQTT::on_mqtt_publish(struct mqtt_client *const client, const struct mqtt_e
     payload[rc] = '\0';
     printk("MQTT payload received!");
     printk("topic: '%s', payload: %s", evt->param.publish.message.topic.topic.utf8, payload);
-    self->_fs.write_data(RULES_ID,payload);
+    self->_fs.write_data(RULES_ID, payload);
 }
 
 /**
@@ -119,7 +114,7 @@ void MQTT::mqtt_evt_handler(struct mqtt_client *client,
  * @brief Construct a new MQTT::MQTT object
  *
  */
-MQTT::MQTT(IWatchDog &guard, IStorage &fs) : _guard(guard), _fs(fs)
+MQTT::MQTT(IWatchDog &guard, IStorage &fs, IJson &json) : _guard(guard), _fs(fs), _json(json)
 {
 }
 
@@ -304,7 +299,6 @@ void MQTT::init()
 
     this->client_ctx.tx_buf = this->tx_buffer;
     this->client_ctx.tx_buf_size = sizeof(this->tx_buffer);
-
 }
 
 /**
@@ -319,7 +313,6 @@ int MQTT::read_payload()
     {
         if (this->fds[0].revents & ZSOCK_POLLIN)
         {
-            printk("MQTT SOCKET TRIGGED POLL IN EVENT\n\r");
             ret = mqtt_input(&this->client_ctx);
             if (ret != 0)
             {
@@ -339,7 +332,6 @@ int MQTT::read_payload()
     }
     else
     {
-        printk("TIMOUT SENDING MQTT PING\n\r");
         ret = mqtt_live(&this->client_ctx);
         if (ret != 0)
         {
@@ -387,6 +379,13 @@ bool MQTT::setup_client()
     return true;
 }
 
+void MQTT::populate_payload_struct(struct mqtt_binstr *payload, struct level_sensor *data)
+{
+    this->_json.encode(data, this->publish_buf, sizeof(this->publish_buf));
+    payload->data = (uint8_t *)this->publish_buf;
+    payload->len = strlen(this->publish_buf);
+}
+
 /**
  * @brief Gets data from a queue and publish in the specific topic
  *
@@ -394,12 +393,28 @@ bool MQTT::setup_client()
  */
 void MQTT::mqtt_publish_payload()
 {
-    struct publish_payload payload;
+    struct level_sensor data;
+    static uint16_t msg_id = 1;
 
-    if (k_msgq_get(&mqtt_publish_queue, &payload, K_NO_WAIT) == 0)
+    if (k_msgq_get(&mqtt_publish_queue, &data, K_NO_WAIT) == 0)
     {
-        // TODO: Create publish method
-        printk("DATA RECEIVEID, START PUBLISH...\n\r");
+        struct mqtt_binstr payload;
+        this->populate_payload_struct(&payload, &data);
+
+        struct mqtt_topic topic = {
+            .topic = {
+                .utf8 = (uint8_t *)CONFIG_MQTT_SENSOR_TOPIC,
+                .size = strlen(CONFIG_MQTT_SENSOR_TOPIC)},
+            .qos = 0};
+
+        struct mqtt_publish_param publish;
+        publish.message.payload = payload;
+        publish.message.topic = topic;
+        publish.message_id = msg_id++;
+        publish.dup_flag = 0;
+        publish.retain_flag = 0;
+
+        mqtt_publish(&this->client_ctx, &publish);
     }
     else
     {

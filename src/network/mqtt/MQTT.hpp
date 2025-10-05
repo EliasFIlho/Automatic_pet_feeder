@@ -6,12 +6,11 @@
 #include "IMQTT.hpp"
 #include "IStorage.hpp"
 #include "IWatchDog.hpp"
+#include "IJson.hpp"
 
-/**
- * @brief Extern semaphore to indicate that new data was writed in filesystem from MQTT
- *
- */
-// extern k_sem update_rules;
+
+extern k_msgq mqtt_publish_queue;
+
 
 /**
  * @brief MQTT Class
@@ -26,17 +25,14 @@ private:
     struct sockaddr_in broker;
     struct mqtt_utf8 user_utf8;
     struct mqtt_utf8 pass_utf8;
-
     bool is_mqtt_connected;
-
+    char publish_buf[CONFIG_MQTT_PUBLISH_BUFFER_SIZE];
     uint8_t rx_buffer[CONFIG_MQTT_RX_BUFFER_SIZE];
     uint8_t tx_buffer[CONFIG_MQTT_TX_BUFFER_SIZE];
-
     struct k_thread MQTTReadSubTask;
-
-    struct publish_payload pub_payload;
     IWatchDog &_guard;
     IStorage &_fs;
+    IJson &_json;
 
 private:
     static void mqtt_task(void *p1, void *, void *);
@@ -53,11 +49,11 @@ private:
     static void mqtt_evt_handler(struct mqtt_client *client, const struct mqtt_evt *evt);
     bool is_connected();
     void reconnect();
+    void populate_payload_struct(struct mqtt_binstr *payload, struct level_sensor *data);
     static void on_mqtt_publish(struct mqtt_client *const client, const struct mqtt_evt *evt);
 
 public:
-
-    MQTT(IWatchDog &guard, IStorage &_fs);
+    MQTT(IWatchDog &guard, IStorage &_fs, IJson &json);
     ~MQTT();
     void start_mqtt();
     void abort();
