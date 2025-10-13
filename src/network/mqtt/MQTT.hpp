@@ -30,6 +30,7 @@ private:
     uint8_t rx_buffer[CONFIG_MQTT_RX_BUFFER_SIZE];
     uint8_t tx_buffer[CONFIG_MQTT_TX_BUFFER_SIZE];
     struct k_thread MQTTReadSubTask;
+    k_tid_t MQTT_Thread_id;
     IWatchDog &_guard;
     IStorage &_fs;
     IJson &_json;

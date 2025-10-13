@@ -13,7 +13,7 @@ bool NetworkService::is_mqtt_updated_payload()
     return false;
 }
 
-bool NetworkService::start()
+NET_ERROR NetworkService::start()
 {
     char ssid[16];
     char psk[16];
@@ -22,7 +22,7 @@ bool NetworkService::start()
     ret = this->_fs.read_data(SSID_ID, ssid, sizeof(ssid));
     if (ret < 0)
     {
-        return false;
+        return NET_ERROR::MISSING_WIFI_CREDENTIALS;
     }
     else
     {
@@ -32,7 +32,7 @@ bool NetworkService::start()
     ret = this->_fs.read_data(PASSWORD_ID, psk, sizeof(psk));
     if (ret < 0)
     {
-        return false;
+        return NET_ERROR::MISSING_WIFI_CREDENTIALS;
     }
     else
     {
@@ -49,18 +49,20 @@ bool NetworkService::start()
         if (ret < 0)
         {
             this->stop();
-            return false;
+            return NET_ERROR::WIFI_CONNECT_TIMEOUT;
+           
         }
         else
         {
             this->init_rssi_monitor();
             this->_mqtt.start_mqtt();
-            return true;
+            return NET_ERROR::NET_OK;
+            ;
         }
     }
     else
     {
-        return false;
+        return NET_ERROR::WIFI_INIT_ERROR;
     }
 }
 
@@ -69,12 +71,6 @@ void NetworkService::stop()
     this->_mqtt.abort();
     this->_wifi.wifi_disconnect();
 }
-
-
-/*TODO: Turn this into a thread to use the this pointer instead of CONTAINER_OF 
-(No reason to do that, i just think that will be more easy to understand and also keep a standard pattern to periodic works)
-
-*/
 
 int32_t NetworkService::init_rssi_monitor()
 {
@@ -97,7 +93,8 @@ void NetworkService::rssi_monitor(struct k_work *work)
     auto *self = CONTAINER_OF(dwork, NetworkService, rssi_monitor_work);
 
     int32_t rssi = self->_wifi.get_rssi();
-    self->_led.set_mapped_output(rssi,-90,-30);
+    self->_led.set_mapped_output(rssi, -90, -30);
     printk("RSSI FROM NETWORK SERVICE: [%d]\n\r", rssi);
-    k_work_reschedule(dwork, K_MSEC(CONFIG_WIFI_RSSI_MONITOR_PERIOD));
+    //TODO: Create a KCONFIG for networkservice and move period to it
+    k_work_reschedule(dwork, K_SECONDS(30));
 }

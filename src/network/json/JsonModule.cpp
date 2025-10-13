@@ -59,8 +59,7 @@ JsonModule::~JsonModule()
 {
 }
 
-//TODO: Create return error code
-void JsonModule::parse(char *buffer_in, void *struct_out)
+int32_t JsonModule::parse(char *buffer_in, void *struct_out)
 {
     int ret = json_obj_parse(buffer_in, strlen(buffer_in), rules_json_obj, ARRAY_SIZE(rules_json_obj), struct_out);
     if (ret < 0)
@@ -71,6 +70,7 @@ void JsonModule::parse(char *buffer_in, void *struct_out)
     {
         printk("Parser return value: %d\n\r", ret);
     }
+    return ret;
 }
 
 int32_t JsonModule::encode(void *struct_in, char *buffer_out, size_t buf_len)

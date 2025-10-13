@@ -22,13 +22,11 @@
 #include "JsonModule.hpp"
 #include <zephyr/task_wdt/task_wdt.h>
 
-
 /**
- * @brief Define in compile time a message queue, so tasks can send publish data to MQTT perform
+ * @brief Define in compile time a message queue, so tasks can send publish data to MQTT
  *
  */
 K_MSGQ_DEFINE(mqtt_publish_queue, sizeof(struct level_sensor), 10, 1);
-
 
 Watchdog guard;
 Storage fs;
@@ -43,12 +41,13 @@ TaskRunner task_runner;
 Application app(rtc, motor, fs, guard, json, task_runner);
 LvlSensor sensor;
 
-//TODO: Convert periods and configs constants to Kconfig flags
+// TODO: Document modules with doxygen style
 
 int main(void)
 {
 
-    if(guard.init() != 0){
+    if (guard.init() != 0)
+    {
         printk("Error to init watchdog\n\r");
     }
 
@@ -58,14 +57,16 @@ int main(void)
         printk("Error to init Fs\r\n");
         return -1;
     }
-    if (net.start())
+    if (net.start() == NET_ERROR::NET_OK)
     {
         app.init_application();
         sensor.init();
-    }else{
+    }
+    else
+    {
         printk("NET ERROR\n\r");
     }
-    
+
     while (true)
     {
         k_sleep(K_FOREVER);

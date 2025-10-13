@@ -1,16 +1,12 @@
 menu "WIFI options"
 
-config WIFI_RSSI_MONITOR_PERIOD
-    int "Work period for monitor wifi RSSI"
-    default 10000
+config WIFI_CONNECT_TIMEOUT
+    int "Set timeout for connection request in seconds"
+    default 30
 
-config WIFI_RSSI_MONITOR_THREAD_STACK_SIZE
-    int "Define Level Sensor thread stack size"
-    default 4096
-
-config WIFI_RSSI_MONITOR_THREAD_PRIORITY
-    int "Define Level Sensor thread priority"
-    default 5
+config WIFI_GET_IP_TIMEOUT
+    int "Set timeout for DHCP request in seconds"
+    default 30
 
 
 endmenu

@@ -12,7 +12,6 @@ Application::~Application()
 }
 
 
-// TODO: Create error code returns
 int32_t Application::get_rules()
 {
     char rules_buff[500];

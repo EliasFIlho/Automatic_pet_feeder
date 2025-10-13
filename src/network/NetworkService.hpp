@@ -7,6 +7,15 @@
 
 
 
+enum class NET_ERROR {
+    NET_OK,
+    MISSING_WIFI_CREDENTIALS,
+    WIFI_INIT_ERROR,
+    WIFI_CONNECT_TIMEOUT,
+    WIFI_GET_IP_TIMEOUT
+};
+
+
 class NetworkService
 {
 private:
@@ -23,7 +32,7 @@ public:
     NetworkService(IMQTT &mqtt, IWifi &wifi, IStorage &fs,ILed &led);
     bool is_mqtt_updated_payload();
     int32_t init_rssi_monitor();
-    bool start();
+    NET_ERROR start();
     void stop();
     ~NetworkService();
 };

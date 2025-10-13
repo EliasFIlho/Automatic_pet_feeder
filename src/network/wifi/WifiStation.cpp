@@ -1,8 +1,6 @@
 #include <string.h>
 #include "WifiStation.hpp"
 
-#define WIFI_CONNECT_TIMEOUT 30000
-
 #define WIFI_CALLBACK_FLAGS (NET_EVENT_WIFI_CONNECT_RESULT | NET_EVENT_WIFI_DISCONNECT_RESULT | NET_EVENT_WIFI_IFACE_STATUS)
 #define WIFI_DHCP_CALLBACK_FLAGS (NET_EVENT_IPV4_DHCP_START | NET_EVENT_IPV4_ADDR_ADD)
 
@@ -147,7 +145,7 @@ int WifiStation::wifi_wait_for_ip_addr(void)
     int ret;
 
     printk("Waiting for IP address");
-    k_sem_take(&ipv4_connected, K_FOREVER);
+    k_sem_take(&ipv4_connected, K_SECONDS(CONFIG_WIFI_GET_IP_TIMEOUT));
 
     ret = net_mgmt(NET_REQUEST_WIFI_IFACE_STATUS, sta_iface, &status, sizeof(struct wifi_iface_status));
     if (ret)
@@ -186,7 +184,7 @@ int WifiStation::wifi_wait_for_ip_addr(void)
 int WifiStation::wait_wifi_to_connect(void)
 {
     printk("Waiting for wifi connection signal\n\r");
-    if (k_sem_take(&wifi_connected, K_MSEC(WIFI_CONNECT_TIMEOUT)) != 0)
+    if (k_sem_take(&wifi_connected, K_SECONDS(CONFIG_WIFI_CONNECT_TIMEOUT)) != 0)
     {
         printk("UNABLE TO CONNECT TO WIFI\r\nTIMEOUT\n\r");
         return -1;
@@ -244,7 +242,6 @@ int32_t WifiStation::get_rssi()
         net_mgmt(NET_REQUEST_WIFI_IFACE_STATUS, this->sta_iface, &status, sizeof(struct wifi_iface_status));
         return status.rssi;
     }else{
-        //TODO: Create erro return code
-        return -100;
+        return 0;
     }
 }

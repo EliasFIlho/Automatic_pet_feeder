@@ -23,7 +23,7 @@ config MQTT_TRANSPORT_TYPE
 
 config MQTT_BROKER_ADDR
     string "Broker address"
-    default "192.168.100.24"
+    default "192.168.100.31"
 
 config MQTT_BROKER_PORT
     int "Broker port"

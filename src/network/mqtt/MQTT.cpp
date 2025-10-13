@@ -3,10 +3,8 @@
 #include <zephyr/net/socket.h>
 #include <zephyr/net/mqtt.h>
 #include <zephyr/task_wdt/task_wdt.h>
-#include <array>
 
 // TODO: Move JSON parser to MQTT to perform device commands, like remove routines from FS;
-// TODO: Check if is valid to add a scheduler ID in JSON, so filesystem can iterate over to check/clear data;
 
 // MQTT Thread Stack
 #define MQTT_THREAD_OPTIONS (K_FP_REGS | K_ESSENTIAL)
@@ -472,14 +470,19 @@ void MQTT::mqtt_task(void *p1, void *, void *)
  */
 void MQTT::start_mqtt()
 {
-    k_thread_create(&this->MQTTReadSubTask, MQTT_STACK_AREA, CONFIG_MQTT_THREAD_STACK_SIZE, MQTT::mqtt_task, this, NULL, NULL, CONFIG_MQTT_THREAD_PRIORITY, MQTT_THREAD_OPTIONS, K_NO_WAIT);
+    this->MQTT_Thread_id = k_thread_create(&this->MQTTReadSubTask, MQTT_STACK_AREA, CONFIG_MQTT_THREAD_STACK_SIZE, MQTT::mqtt_task, this, NULL, NULL, CONFIG_MQTT_THREAD_PRIORITY, MQTT_THREAD_OPTIONS, K_NO_WAIT);
 }
 
 void MQTT::abort()
 {
-    // TODO: Creat abort method
-    //  Disconnect from mqtt
-    //  Abort thread
+    if(this->is_connected()){
+        mqtt_disconnect(&this->client_ctx,NULL);
+        mqtt_abort(&this->client_ctx);
+    }else{
+        mqtt_abort(&this->client_ctx);
+    }
+    k_thread_abort(this->MQTT_Thread_id);
+
 }
 
 bool MQTT::is_payload_updated()
