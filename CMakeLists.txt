@@ -19,6 +19,7 @@ add_subdirectory(src/network)
 add_subdirectory(src/network/wifi)
 add_subdirectory(src/network/mqtt)
 add_subdirectory(src/network/json)
+add_subdirectory(src/network/bluetooth)
 add_subdirectory(src/storage)
 
 
