@@ -4,18 +4,16 @@
 #include <zephyr/drivers/pwm.h>
 #include <zephyr/device.h>  
 #include <zephyr/net/wifi_mgmt.h>
-#include <zephyr/logging/log.h>
 #include <zephyr/net/dhcpv4_server.h>
 #include "IWifi.hpp"
 
-#define PSK_BUFFER_LEN 32
-#define SSID_BUFFER_LEN 32
+
 
 class WifiStation : public IWifi
 {
 private:
-    char ssid[SSID_BUFFER_LEN];
-    char psk[PSK_BUFFER_LEN];
+    char ssid[CONFIG_WIFI_SSID_BUF_LEN];
+    char psk[CONFIG_WIFI_PSK_BUF_LEN];
     struct net_if *sta_iface;
     struct k_work_delayable rssi_monitor_work;
 

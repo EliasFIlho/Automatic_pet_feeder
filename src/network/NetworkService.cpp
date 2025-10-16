@@ -49,15 +49,22 @@ NET_ERROR NetworkService::start()
         if (ret < 0)
         {
             this->stop();
-            return NET_ERROR::WIFI_CONNECT_TIMEOUT;
-           
+            if (ret == -EIO)
+            {
+                return NET_ERROR::IFACE_MISSING;
+            }
+            else if (ret == -1)
+            {
+                return NET_ERROR::WIFI_TIMEOUT;
+            }else{
+                return NET_ERROR::WIFI_INIT_ERROR;
+            }
         }
         else
         {
             this->init_rssi_monitor();
             this->_mqtt.start_mqtt();
             return NET_ERROR::NET_OK;
-            ;
         }
     }
     else
@@ -95,6 +102,6 @@ void NetworkService::rssi_monitor(struct k_work *work)
     int32_t rssi = self->_wifi.get_rssi();
     self->_led.set_mapped_output(rssi, -90, -30);
     printk("RSSI FROM NETWORK SERVICE: [%d]\n\r", rssi);
-    //TODO: Create a KCONFIG for networkservice and move period to it
+    // TODO: Create a KCONFIG for networkservice and move period to it
     k_work_reschedule(dwork, K_SECONDS(30));
 }

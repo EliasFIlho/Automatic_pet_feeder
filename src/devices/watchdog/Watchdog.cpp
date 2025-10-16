@@ -14,6 +14,7 @@ Watchdog::~Watchdog()
 uint32_t Watchdog::init()
 {
     int ret;
+    //Use alias watchdog0 for esp32
     ret = task_wdt_init(NULL);
     if (ret != 0)
     {

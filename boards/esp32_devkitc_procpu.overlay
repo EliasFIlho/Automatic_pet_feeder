@@ -18,6 +18,12 @@
         };
     };
 
+    hc_sr04: hc_sr04 {
+        compatible = "hc-sr04";
+        trigger-gpios = <&gpio0 27 GPIO_ACTIVE_HIGH>;
+        echo-gpios = <&gpio0 26 GPIO_ACTIVE_HIGH>;
+    };
+
 };
 
 &pinctrl {
@@ -29,13 +35,13 @@
     };
 };
 
-&ledc0{
+&ledc0 {
     pinctrl-0 = <&ledc0_default>;
     pinctrl-names = "default";
     status = "okay";
     #address-cells = <1>;
     #size-cells = <0>;
-    channel0@0{
+    channel0@0 {
         reg = <0x0>;
         timer = <0>;
     };

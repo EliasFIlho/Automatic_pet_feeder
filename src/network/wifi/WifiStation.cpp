@@ -10,7 +10,6 @@ static struct net_mgmt_event_callback ipv4_cb;
 static struct k_sem wifi_connected;
 static struct k_sem ipv4_connected;
 
-
 static void wifi_event_handler(struct net_mgmt_event_callback *cb,
                                uint32_t evt, struct net_if *iface)
 {
@@ -145,7 +144,11 @@ int WifiStation::wifi_wait_for_ip_addr(void)
     int ret;
 
     printk("Waiting for IP address");
-    k_sem_take(&ipv4_connected, K_SECONDS(CONFIG_WIFI_GET_IP_TIMEOUT));
+    if (k_sem_take(&ipv4_connected, K_SECONDS(CONFIG_WIFI_GET_IP_TIMEOUT)) != 0)
+    {
+        printk("UNABLE TO GET IP ADDRESS\r\nTIMEOUT\n\r");
+        return -1;
+    }
 
     ret = net_mgmt(NET_REQUEST_WIFI_IFACE_STATUS, sta_iface, &status, sizeof(struct wifi_iface_status));
     if (ret)
@@ -207,12 +210,10 @@ int WifiStation::wifi_disconnect(void)
 void WifiStation::set_wifi_ssid(char *ssid)
 {
     strcpy(this->ssid, ssid);
-    // printk("%s\n\r", this->ssid);
 }
 void WifiStation::set_wifi_psk(char *psk)
 {
     strcpy(this->psk, psk);
-    // printk("%s\n\r", this->psk);
 }
 
 bool WifiStation::is_connected()
@@ -241,7 +242,9 @@ int32_t WifiStation::get_rssi()
         struct wifi_iface_status status;
         net_mgmt(NET_REQUEST_WIFI_IFACE_STATUS, this->sta_iface, &status, sizeof(struct wifi_iface_status));
         return status.rssi;
-    }else{
+    }
+    else
+    {
         return 0;
     }
 }

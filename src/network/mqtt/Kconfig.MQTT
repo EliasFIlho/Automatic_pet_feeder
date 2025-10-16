@@ -48,7 +48,7 @@ config MQTT_SENSOR_TOPIC
 
 config MQTT_THREAD_STACK_SIZE
     int "Define MQTT thread stack size"
-    default 8000
+    default 4096
 
 config MQTT_THREAD_PRIORITY
     int "Define MQTT thread priority"

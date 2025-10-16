@@ -2,7 +2,7 @@ menu "Application options"
 
 config APP_THREAD_STACK_SIZE
     int "Define application thread stack size"
-    default 4096
+    default 1024
 
 config APP_THREAD_PRIORITY
     int "Define application thread priority"

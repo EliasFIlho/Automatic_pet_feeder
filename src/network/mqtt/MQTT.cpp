@@ -4,7 +4,6 @@
 #include <zephyr/net/mqtt.h>
 #include <zephyr/task_wdt/task_wdt.h>
 
-// TODO: Move JSON parser to MQTT to perform device commands, like remove routines from FS;
 
 // MQTT Thread Stack
 #define MQTT_THREAD_OPTIONS (K_FP_REGS | K_ESSENTIAL)

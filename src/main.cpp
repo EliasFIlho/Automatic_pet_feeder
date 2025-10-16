@@ -5,7 +5,6 @@
  */
 
 #include <zephyr/kernel.h>
-#include <zephyr/logging/log.h>
 #include <string.h>
 #include "Application.hpp"
 #include "TaskRunner.hpp"
@@ -28,6 +27,12 @@
  */
 K_MSGQ_DEFINE(mqtt_publish_queue, sizeof(struct level_sensor), 10, 1);
 
+/**
+ * @brief Device tree devices
+ *
+ */
+const struct device *const sensor_dev = DEVICE_DT_GET(DT_NODELABEL(hc_sr04));
+
 Watchdog guard;
 Storage fs;
 JsonModule json;
@@ -39,7 +44,7 @@ Led led;
 NetworkService net(mqtt, wifi, fs, led);
 TaskRunner task_runner;
 Application app(rtc, motor, fs, guard, json, task_runner);
-LvlSensor sensor;
+LvlSensor sensor(sensor_dev);
 
 // TODO: Document modules with doxygen style
 
@@ -66,6 +71,9 @@ int main(void)
     {
         printk("NET ERROR\n\r");
     }
+    
+    /*Isolate module sensor for tests*/
+    //sensor.init();
 
     while (true)
     {

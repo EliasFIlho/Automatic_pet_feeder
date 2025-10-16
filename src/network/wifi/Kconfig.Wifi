@@ -8,5 +8,13 @@ config WIFI_GET_IP_TIMEOUT
     int "Set timeout for DHCP request in seconds"
     default 30
 
+config WIFI_PSK_BUF_LEN
+    int "Wifi psk buffer len"
+    default 32
+
+config WIFI_SSID_BUF_LEN
+    int "Wifi SSID buffer len"
+    default 32
+
 
 endmenu
