@@ -6,8 +6,10 @@
 #include <zephyr/posix/time.h>
 #include <sys/time.h>
 
-#define SNTP_HOST "a.st1.ntp.br"
 #define DATE_FORMAT "%Y-%m-%d %H:%M:%S\r\n"
+
+//TODO: Move those to a Kconfig file
+#define SNTP_HOST "a.st1.ntp.br"
 #define UTC_3 10800 // 3h in seconds
 
 #define SNTP_TRY_COUNT 5
@@ -39,12 +41,13 @@ int RTC::sync_time()
         }
         else
         {
+            //TODO: Set timeout in a kconfig file
             ret = sntp_simple(SNTP_HOST, 4000, &this->s_time);
 
             if (ret != 0)
             {
                 count++;
-                printk("Error to do SNTP request retry count [%d]\r\n", count);
+                //printk("Error to do SNTP request retry count [%d]\r\n", count);
             }
             else
             {
@@ -69,7 +72,7 @@ void RTC::update_time()
     int ret = gettimeofday(&this->tv, NULL);
     if (ret < 0)
     {
-        printf("Error in gettimeofday(): %d\n", errno);
+        //printf("Error in gettimeofday(): %d\n", errno);
     }
     time_t now = time(NULL);
     gmtime_r(&now, &this->tm);

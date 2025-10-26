@@ -24,13 +24,13 @@ void MQTT::on_mqtt_publish(struct mqtt_client *const client, const struct mqtt_e
     rc = mqtt_read_publish_payload(client, payload, 500);
     if (rc < 0)
     {
-        printk("Failed to read received MQTT payload [%d]", rc);
+        //printk("Failed to read received MQTT payload [%d]", rc);
         return;
     }
     /* Place null terminator at end of payload buffer */
     payload[rc] = '\0';
-    printk("MQTT payload received!");
-    printk("topic: '%s', payload: %s", evt->param.publish.message.topic.topic.utf8, payload);
+    //printk("MQTT payload received!");
+    //printk("topic: '%s', payload: %s", evt->param.publish.message.topic.topic.utf8, payload);
     self->_fs.write_data(RULES_ID, payload);
 }
 
@@ -48,10 +48,10 @@ void MQTT::mqtt_evt_handler(struct mqtt_client *client,
     {
     case MQTT_EVT_CONNACK:
 
-        printk("CONACK EVENT RECEIVED...\n\r");
+        //printk("CONACK EVENT RECEIVED...\n\r");
         if (evt->result != 0)
         {
-            printk("MQTT Event Connect failed [%d]", evt->result);
+            //printk("MQTT Event Connect failed [%d]", evt->result);
             break;
         }
         self->is_mqtt_connected = true;
@@ -59,50 +59,50 @@ void MQTT::mqtt_evt_handler(struct mqtt_client *client,
         break;
     case MQTT_EVT_DISCONNECT:
 
-        printk("MQTT_EVT_DISCONNECT Event\n\r");
+        //printk("MQTT_EVT_DISCONNECT Event\n\r");
         self->on_disconnect();
 
         break;
     case MQTT_EVT_PUBLISH:
 
-        printk("DATA PUBLISHED\n\r");
+        //printk("DATA PUBLISHED\n\r");
         self->on_mqtt_publish(client, evt);
 
         break;
     case MQTT_EVT_PUBACK:
         if (evt->result == MQTT_SUBACK_FAILURE)
         {
-            printk("MQTT SUBACK error [%d]", evt->result);
+            //printk("MQTT SUBACK error [%d]", evt->result);
             break;
         }
 
-        printk("SUBACK packet ID: %d", evt->param.suback.message_id);
+        //printk("SUBACK packet ID: %d", evt->param.suback.message_id);
         break;
     case MQTT_EVT_PUBREC:
-        printk("MQTT_EVT_PUBREC Event\n\r");
+        //printk("MQTT_EVT_PUBREC Event\n\r");
         break;
     case MQTT_EVT_PUBREL:
-        printk("MQTT_EVT_PUBREL Event\n\r");
+        //printk("MQTT_EVT_PUBREL Event\n\r");
 
         break;
     case MQTT_EVT_PUBCOMP:
-        printk("MQTT_EVT_PUBCOMP Event\n\r");
+        //printk("MQTT_EVT_PUBCOMP Event\n\r");
 
         break;
     case MQTT_EVT_SUBACK:
-        printk("MQTT_EVT_SUBACK Event\n\r");
+        //printk("MQTT_EVT_SUBACK Event\n\r");
 
         break;
     case MQTT_EVT_UNSUBACK:
-        printk("MQTT_EVT_UNSUBACK Event\n\r");
+        //printk("MQTT_EVT_UNSUBACK Event\n\r");
 
         break;
     case MQTT_EVT_PINGRESP:
-        printk("MQTT_EVT_PINGRESP Event\n\r");
+        //printk("MQTT_EVT_PINGRESP Event\n\r");
 
         break;
     default:
-        printk("Something trigged\n\r");
+        //printk("Something trigged\n\r");
         break;
     }
 }
@@ -147,12 +147,12 @@ bool MQTT::setup_broker()
     int ret = zsock_inet_pton(AF_INET, CONFIG_MQTT_BROKER_ADDR, &this->broker.sin_addr);
     if (ret != 1)
     {
-        printk("SOCKET ERROR: CAN NOT CONVERT SERVER ADDRESS: %d\n\r", ret);
+        //printk("SOCKET ERROR: CAN NOT CONVERT SERVER ADDRESS: %d\n\r", ret);
         return false;
     }
     else
     {
-        printk("SOCKET EVENT: MQTT ADDRESS CONVERTED\n\r");
+        //printk("SOCKET EVENT: MQTT ADDRESS CONVERTED\n\r");
         return true;
     }
 }
@@ -184,7 +184,7 @@ int MQTT::poll_mqtt_socket(int timout)
     int ret = zsock_poll(this->fds, this->nfds, timout);
     if (ret < 0)
     {
-        printk("ERROR POLL [%d]", ret);
+        //printk("ERROR POLL [%d]", ret);
     }
 
     return ret;
@@ -207,7 +207,7 @@ bool MQTT::connect()
         ret = mqtt_connect(&this->client_ctx);
         if (ret != 0)
         {
-            printk("MQTT Connect failed [%d]\n\r", ret);
+            //printk("MQTT Connect failed [%d]\n\r", ret);
             k_msleep(500);
             continue;
         }
@@ -250,12 +250,12 @@ bool MQTT::subscribe()
     ret = mqtt_subscribe(&this->client_ctx, &sub_list);
     if (ret < 0)
     {
-        printk("MQTT ERROR: ERROR TO SUBSCRIBE IN TOPIC: %s -- RET: %d\n\r", CONFIG_MQTT_RULES_TOPIC, ret);
+        //printk("MQTT ERROR: ERROR TO SUBSCRIBE IN TOPIC: %s -- RET: %d\n\r", CONFIG_MQTT_RULES_TOPIC, ret);
         return false;
     }
     else
     {
-        printk("MQTT: SUBSCRIBED IN TOPIC: %s\n\r", CONFIG_MQTT_RULES_TOPIC);
+        //printk("MQTT: SUBSCRIBED IN TOPIC: %s\n\r", CONFIG_MQTT_RULES_TOPIC);
         return true;
     }
 }
@@ -313,7 +313,7 @@ int MQTT::read_payload()
             ret = mqtt_input(&this->client_ctx);
             if (ret != 0)
             {
-                printk("MQTT Input failed [%d]", ret);
+                //printk("MQTT Input failed [%d]", ret);
                 return ret;
             }
             else
@@ -322,7 +322,7 @@ int MQTT::read_payload()
             /* Socket error */
             if (fds[0].revents & (ZSOCK_POLLHUP | ZSOCK_POLLERR))
             {
-                printk("MQTT socket closed / error");
+                //printk("MQTT socket closed / error");
                 return -ENOTCONN;
             }
         }
@@ -332,7 +332,7 @@ int MQTT::read_payload()
         ret = mqtt_live(&this->client_ctx);
         if (ret != 0)
         {
-            printk("MQTT Live failed [%d]", ret);
+            //printk("MQTT Live failed [%d]", ret);
             return ret;
         }
     }
@@ -356,11 +356,11 @@ bool MQTT::setup_client()
 
     if (this->setup_broker())
     {
-        printk("MQTT Broker ready\n\r");
+        //printk("MQTT Broker ready\n\r");
     }
     else
     {
-        printk("MQTT ERROR TO SET BROKER\n\r");
+        //printk("MQTT ERROR TO SET BROKER\n\r");
         return false;
     }
 
@@ -370,7 +370,7 @@ bool MQTT::setup_client()
     }
     else
     {
-        printk("MQTT ERROR TO CONNECT\n\r");
+        //printk("MQTT ERROR TO CONNECT\n\r");
         return false;
     }
     return true;
@@ -415,7 +415,7 @@ void MQTT::mqtt_publish_payload()
     }
     else
     {
-        printk("NO DATA TO PUBLISH\n\r");
+        //printk("NO DATA TO PUBLISH\n\r");
     }
 }
 

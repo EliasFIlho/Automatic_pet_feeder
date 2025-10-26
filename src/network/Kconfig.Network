@@ -1,0 +1,15 @@
+menu "Network service options"
+
+config RSSI_WORK_PERIOD
+    int "Period for RSSI work in seconds"
+    default 30
+
+config RSSI_LOWER_VALUE
+    int "Lower value to RSSI for map function"
+    default -90
+
+config RSSI_HIGHER_VALUE
+    int "Higher value to RSSI for map function"
+    default -30
+
+endmenu

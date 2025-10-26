@@ -13,7 +13,7 @@ int32_t Led::init()
     this->led = PWM_DT_SPEC_GET(DT_NODELABEL(fade_led));
     if (!device_is_ready(this->led.dev))
     {
-        printk("Error: PWM device %s is not ready\n", this->led.dev->name);
+        //printk("Error: PWM device %s is not ready\n", this->led.dev->name);
         return -EIO;
     }else{
         return 0;

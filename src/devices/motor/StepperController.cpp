@@ -1,5 +1,5 @@
 #include <zephyr/kernel.h>
-#include <zephyr/sys/printk.h>
+//#include <zephyr/sys/printk.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/device.h>
 #include "StepperController.hpp"
@@ -27,6 +27,7 @@ StepperController::~StepperController()
 
 uint32_t StepperController::init()
 {
+    //TODO: Move these macro calls to main and pointer assign to constructor
     this->direction = GPIO_DT_SPEC_GET_BY_IDX(DT_NODELABEL(stepper), gpios, 0);
     this->steps = GPIO_DT_SPEC_GET_BY_IDX(DT_NODELABEL(stepper), gpios, 1);
     this->enable = GPIO_DT_SPEC_GET_BY_IDX(DT_NODELABEL(stepper), gpios, 2);
@@ -36,25 +37,25 @@ uint32_t StepperController::init()
     // Check if devices are ready
     if (!device_is_ready(direction.port) || !device_is_ready(steps.port) || !device_is_ready(enable.port))
     {
-        printk("Device not ready!!\r\n");
+        //printk("Device not ready!!\r\n");
         success = false;
     }
 
     // Check each step in sequence
     if (gpio_pin_configure_dt(&this->direction, GPIO_OUTPUT) != 0) {
-        printk("Error configuring direction pin\r\n");
+        //printk("Error configuring direction pin\r\n");
         success = false;
     }
     if (gpio_pin_configure_dt(&this->steps, GPIO_OUTPUT) != 0) {
-        printk("Error configuring steps pin\r\n");
+        //printk("Error configuring steps pin\r\n");
         success = false;
     }
     if (gpio_pin_configure_dt(&this->enable, GPIO_OUTPUT) != 0) {
-        printk("Error configuring enable pin\r\n");
+        //printk("Error configuring enable pin\r\n");
         success = false;
     }
     if (gpio_pin_set_dt(&this->enable, 1) != 0) {
-        printk("Error setting enable pin\r\n");
+        //printk("Error setting enable pin\r\n");
         success = false;
     }
 
@@ -111,7 +112,7 @@ void StepperController::move_to(int step)
  */
 void StepperController::move_for(int amout)
 {
-    printk("Function called to dispense this amount - [%d]\n\r",amout);
+    //printk("Function called to dispense this amount - [%d]\n\r",amout);
     gpio_pin_set_dt(&direction, 0);
     gpio_pin_set_dt(&enable, 0);
     for (int i = 0; i < amout; i++)

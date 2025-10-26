@@ -7,7 +7,7 @@
 
 
 
-enum class NET_ERROR {
+enum class NET_ERROR : uint8_t {
     NET_OK,
     MISSING_WIFI_CREDENTIALS,
     WIFI_INIT_ERROR,

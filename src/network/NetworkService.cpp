@@ -1,4 +1,7 @@
 #include "NetworkService.hpp"
+#include <zephyr/logging/log.h>
+
+LOG_MODULE_REGISTER(NETWORK_LOGS);
 
 NetworkService::NetworkService(IMQTT &mqtt, IWifi &wifi, IStorage &fs, ILed &led) : _mqtt(mqtt), _wifi(wifi), _fs(fs), _led(led)
 {
@@ -13,15 +16,21 @@ bool NetworkService::is_mqtt_updated_payload()
     return false;
 }
 
+void dummy()
+{
+    return;
+}
+
 NET_ERROR NetworkService::start()
 {
     char ssid[16];
     char psk[16];
     int ret;
-
+    LOG_INF("Start Network LOGS");
     ret = this->_fs.read_data(SSID_ID, ssid, sizeof(ssid));
     if (ret < 0)
     {
+        LOG_ERR("MISSING_WIFI_CREDENTIALS");
         return NET_ERROR::MISSING_WIFI_CREDENTIALS;
     }
     else
@@ -32,6 +41,7 @@ NET_ERROR NetworkService::start()
     ret = this->_fs.read_data(PASSWORD_ID, psk, sizeof(psk));
     if (ret < 0)
     {
+        LOG_ERR("MISSING_WIFI_CREDENTIALS");
         return NET_ERROR::MISSING_WIFI_CREDENTIALS;
     }
     else
@@ -41,34 +51,38 @@ NET_ERROR NetworkService::start()
 
     if (this->_wifi.wifi_init())
     {
-        if (this->_wifi.is_connected())
-        {
-            this->_wifi.wifi_disconnect();
-        }
+        LOG_INF("WIFI INIT OK");
         ret = this->_wifi.connect_to_wifi();
         if (ret < 0)
         {
-            this->stop();
             if (ret == -EIO)
             {
+                LOG_ERR("IFACE_MISSING");
                 return NET_ERROR::IFACE_MISSING;
             }
             else if (ret == -1)
             {
+                LOG_ERR("WIFI_TIMEOUT");
                 return NET_ERROR::WIFI_TIMEOUT;
-            }else{
+            }
+            else
+            {
+                LOG_ERR("WIFI_INIT_ERROR");
                 return NET_ERROR::WIFI_INIT_ERROR;
             }
         }
         else
         {
+            LOG_INF("START RSSI MONITOR");
             this->init_rssi_monitor();
+            LOG_INF("START MQTT");
             this->_mqtt.start_mqtt();
             return NET_ERROR::NET_OK;
         }
     }
     else
     {
+        LOG_ERR("WIFI_INIT_ERROR");
         return NET_ERROR::WIFI_INIT_ERROR;
     }
 }
@@ -100,8 +114,6 @@ void NetworkService::rssi_monitor(struct k_work *work)
     auto *self = CONTAINER_OF(dwork, NetworkService, rssi_monitor_work);
 
     int32_t rssi = self->_wifi.get_rssi();
-    self->_led.set_mapped_output(rssi, -90, -30);
-    printk("RSSI FROM NETWORK SERVICE: [%d]\n\r", rssi);
-    // TODO: Create a KCONFIG for networkservice and move period to it
-    k_work_reschedule(dwork, K_SECONDS(30));
+    self->_led.set_mapped_output(rssi, CONFIG_RSSI_LOWER_VALUE, CONFIG_RSSI_HIGHER_VALUE);
+    k_work_reschedule(dwork, K_SECONDS(CONFIG_RSSI_WORK_PERIOD));
 }

@@ -20,6 +20,9 @@
 #include "LvlSensor.hpp"
 #include "JsonModule.hpp"
 #include <zephyr/task_wdt/task_wdt.h>
+#include <zephyr/logging/log.h>
+
+LOG_MODULE_REGISTER(LOGS);
 
 /**
  * @brief Define in compile time a message queue, so tasks can send publish data to MQTT
@@ -32,8 +35,17 @@ K_MSGQ_DEFINE(mqtt_publish_queue, sizeof(struct level_sensor), 10, 1);
  *
  */
 const struct device *const sensor_dev = DEVICE_DT_GET(DT_NODELABEL(hc_sr04));
+const struct device *const hw_wdt_dev = DEVICE_DT_GET(DT_ALIAS(watchdog0));
 
-Watchdog guard;
+
+
+
+/**
+ * @brief Objects declaration
+ * 
+ *  
+ */
+Watchdog guard(hw_wdt_dev);
 Storage fs;
 JsonModule json;
 StepperController motor;
@@ -51,15 +63,14 @@ LvlSensor sensor(sensor_dev);
 int main(void)
 {
 
+    LOG_INF("Start Log at main");
     if (guard.init() != 0)
     {
-        printk("Error to init watchdog\n\r");
+        LOG_ERR("Error to init watchdog\n\r");
     }
-
-    int ret = fs.init_storage();
-    if (ret != 0)
+    if (fs.init_storage() != FILE_SYSTEM_ERROR::STORAGE_OK)
     {
-        printk("Error to init Fs\r\n");
+        LOG_ERR("Error to init Fs\r\n");
         return -1;
     }
     if (net.start() == NET_ERROR::NET_OK)
@@ -69,11 +80,10 @@ int main(void)
     }
     else
     {
-        printk("NET ERROR\n\r");
+        LOG_ERR("NET ERROR\n\r");
     }
-    
-    /*Isolate module sensor for tests*/
-    //sensor.init();
+
+
 
     while (true)
     {

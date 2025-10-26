@@ -18,11 +18,24 @@
         };
     };
 
+    //I'll probably change for another sensor, like st,vl53l1x since hc_sr04 seems a bit unstable due to the esp32 voltage
+    // In order to reduce the complexity and size of the final circuit and also increase accuracy/confiability.
     hc_sr04: hc_sr04 {
         compatible = "hc-sr04";
         trigger-gpios = <&gpio0 27 GPIO_ACTIVE_HIGH>;
         echo-gpios = <&gpio0 26 GPIO_ACTIVE_HIGH>;
     };
+
+    /*
+    just need to put this inside of a i2c controller node and should work well
+    vl53l1x: vl53l1x@29 {
+		compatible = "st,vl53l1x";
+		reg = <0x29>;
+		status = "okay";
+		xshut-gpios = <&gpio0 26 GPIO_ACTIVE_HIGH>;
+		int-gpios = <&gpio0 27 GPIO_ACTIVE_HIGH>;
+	}; 
+    */
 
 };
 

@@ -9,28 +9,18 @@
 #include "SchedulerRules.hpp"
 #include "IStorage.hpp"
 
-
-enum 
-{
-    STORAGE_ERROR_MOUNT = -3,
-    STORAGE_ERROR_PAGE_INFO,
-    STORAGE_ERROR_DEVICE
-
-};
-
 class Storage : public IStorage
 {
 
 private:
     struct zms_fs fs;
-    static Storage instance;
 
 private:
+    int32_t get_free_space();
 public:
-    //static Storage &getInstance();
     Storage();
     ~Storage();
-    int init_storage();
+    FILE_SYSTEM_ERROR init_storage();
     int read_data(uint32_t id, char *buf, size_t buf_len);
-    int write_data(uint32_t id, const char *str);
+    int32_t write_data(uint32_t id, const char *str);
 };

@@ -64,11 +64,11 @@ int32_t JsonModule::parse(char *buffer_in, void *struct_out)
     int ret = json_obj_parse(buffer_in, strlen(buffer_in), rules_json_obj, ARRAY_SIZE(rules_json_obj), struct_out);
     if (ret < 0)
     {
-        printk("Error to parse rules: %d\n\r", ret);
+        //printk("Error to parse rules: %d\n\r", ret);
     }
     else
     {
-        printk("Parser return value: %d\n\r", ret);
+        //printk("Parser return value: %d\n\r", ret);
     }
     return ret;
 }
@@ -77,7 +77,7 @@ int32_t JsonModule::encode(void *struct_in, char *buffer_out, size_t buf_len)
 {
     int ret = json_obj_encode_buf(publish_payload,ARRAY_SIZE(publish_payload),struct_in, buffer_out,buf_len - 1);
     if(ret != 0){
-        printk("Error to encode\n\r");
+        //printk("Error to encode\n\r");
     }
     return ret;
 }
