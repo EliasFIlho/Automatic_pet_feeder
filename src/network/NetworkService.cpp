@@ -3,6 +3,8 @@
 
 LOG_MODULE_REGISTER(NETWORK_LOGS);
 
+
+
 NetworkService::NetworkService(IMQTT &mqtt, IWifi &wifi, IStorage &fs, ILed &led) : _mqtt(mqtt), _wifi(wifi), _fs(fs), _led(led)
 {
 }
@@ -31,6 +33,7 @@ NET_ERROR NetworkService::start()
     if (ret < 0)
     {
         LOG_ERR("MISSING_WIFI_CREDENTIALS");
+        this->indicate_error(NET_ERROR::MISSING_WIFI_CREDENTIALS);
         return NET_ERROR::MISSING_WIFI_CREDENTIALS;
     }
     else
@@ -42,6 +45,7 @@ NET_ERROR NetworkService::start()
     if (ret < 0)
     {
         LOG_ERR("MISSING_WIFI_CREDENTIALS");
+        this->indicate_error(NET_ERROR::MISSING_WIFI_CREDENTIALS);
         return NET_ERROR::MISSING_WIFI_CREDENTIALS;
     }
     else
@@ -58,16 +62,19 @@ NET_ERROR NetworkService::start()
             if (ret == -EIO)
             {
                 LOG_ERR("IFACE_MISSING");
+                this->indicate_error(NET_ERROR::IFACE_MISSING);
                 return NET_ERROR::IFACE_MISSING;
             }
             else if (ret == -1)
             {
                 LOG_ERR("WIFI_TIMEOUT");
+                this->indicate_error(NET_ERROR::WIFI_TIMEOUT);
                 return NET_ERROR::WIFI_TIMEOUT;
             }
             else
             {
                 LOG_ERR("WIFI_INIT_ERROR");
+                this->indicate_error(NET_ERROR::WIFI_INIT_ERROR);
                 return NET_ERROR::WIFI_INIT_ERROR;
             }
         }
@@ -83,6 +90,7 @@ NET_ERROR NetworkService::start()
     else
     {
         LOG_ERR("WIFI_INIT_ERROR");
+        this->indicate_error(NET_ERROR::WIFI_INIT_ERROR);
         return NET_ERROR::WIFI_INIT_ERROR;
     }
 }
@@ -105,6 +113,20 @@ int32_t NetworkService::init_rssi_monitor()
         k_work_init_delayable(&this->rssi_monitor_work, this->rssi_monitor);
         k_work_reschedule(&this->rssi_monitor_work, K_NO_WAIT);
         return 0;
+    }
+}
+
+void NetworkService::indicate_error(NET_ERROR err)
+{
+    const auto &pattern = error_blink_table[static_cast<uint8_t>(err)];
+    this->_led.set_output(LOW);
+
+    for (int i = 0; i != pattern.repeat; i++)
+    {
+        this->_led.set_output(HIGH);
+        k_msleep(pattern.on_time_ms);
+        this->_led.set_output(LOW);
+        k_msleep(pattern.off_time_ms);
     }
 }
 

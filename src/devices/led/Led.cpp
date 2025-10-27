@@ -1,6 +1,6 @@
 #include "Led.hpp"
 
-Led::Led()
+Led::Led(struct pwm_dt_spec *led) : _led(led)
 {
 }
 
@@ -10,8 +10,7 @@ Led::~Led()
 
 int32_t Led::init()
 {
-    this->led = PWM_DT_SPEC_GET(DT_NODELABEL(fade_led));
-    if (!device_is_ready(this->led.dev))
+    if (!device_is_ready(this->_led->dev))
     {
         //printk("Error: PWM device %s is not ready\n", this->led.dev->name);
         return -EIO;
@@ -25,7 +24,7 @@ int32_t Led::set_output(uint8_t output)
     {
 
         this->status = output;
-        return pwm_set_pulse_dt(&this->led, output * 1000);
+        return pwm_set_pulse_dt(this->_led, output * 1000);
     }
     else
     {
@@ -45,5 +44,5 @@ int32_t Led::set_mapped_output(int32_t value, int32_t fromLow = -90, int32_t fro
     }
     const int32_t range = (fromMax - fromLow);
     const uint64_t out = (((value*100)/range)*10000)/100;
-    return pwm_set_pulse_dt(&this->led, out);
+    return pwm_set_pulse_dt(this->_led, out);
 }

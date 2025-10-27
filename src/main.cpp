@@ -36,8 +36,7 @@ K_MSGQ_DEFINE(mqtt_publish_queue, sizeof(struct level_sensor), 10, 1);
  */
 const struct device *const sensor_dev = DEVICE_DT_GET(DT_NODELABEL(hc_sr04));
 const struct device *const hw_wdt_dev = DEVICE_DT_GET(DT_ALIAS(watchdog0));
-
-
+struct pwm_dt_spec net_led = PWM_DT_SPEC_GET(DT_NODELABEL(fade_led));
 
 
 /**
@@ -52,7 +51,7 @@ StepperController motor;
 RTC rtc;
 WifiStation wifi;
 MQTT mqtt(guard, fs, json);
-Led led;
+Led led(&net_led);
 NetworkService net(mqtt, wifi, fs, led);
 TaskRunner task_runner;
 Application app(rtc, motor, fs, guard, json, task_runner);
