@@ -14,7 +14,7 @@ Application::~Application()
 
 int32_t Application::get_rules()
 {
-    char rules_buff[500];
+    char rules_buff[250];
     int32_t ret;
     ret = this->_fs.read_data(RULES_ID, rules_buff, sizeof(rules_buff));
     if(ret < 0){
@@ -66,9 +66,9 @@ bool Application::is_date_match()
     }
 }
 
-bool Application::is_week_days_match(uint8_t week_day)
+bool Application::is_week_days_match()
 {
-
+    uint8_t week_day = this->_clk.get_week_day();
     week_day = this->rules.week_days & (1 << week_day);
     if (week_day)
     {
@@ -84,8 +84,8 @@ bool Application::check_rules()
 {
     if (this->rules.period == WEEKLY)
     {
-        uint8_t week_day = this->_clk.get_week_day();
-        if (!this->is_week_days_match(week_day))
+        
+        if (!this->is_week_days_match())
         {
             return false;
         }

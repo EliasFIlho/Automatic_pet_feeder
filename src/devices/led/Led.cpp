@@ -1,4 +1,8 @@
 #include "Led.hpp"
+#include "zephyr/logging/log.h"
+
+
+LOG_MODULE_REGISTER(LED_LOG);
 
 Led::Led(struct pwm_dt_spec *led) : _led(led)
 {
@@ -12,7 +16,7 @@ int32_t Led::init()
 {
     if (!device_is_ready(this->_led->dev))
     {
-        //printk("Error: PWM device %s is not ready\n", this->led.dev->name);
+        LOG_ERR("Error: PWM device %s is not ready\n", this->_led->dev->name);
         return -EIO;
     }else{
         return 0;

@@ -3,9 +3,6 @@
 #include <zephyr/drivers/pwm.h>
 #include <zephyr/device.h>
 
-
-
-
 class Led : public ILed
 {
 private:

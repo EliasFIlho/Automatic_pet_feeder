@@ -1,9 +1,12 @@
 #include "LvlSensor.hpp"
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/device.h>
+#include <zephyr/logging/log.h>
 
 K_THREAD_STACK_DEFINE(SENSOR_STACK_AREA, CONFIG_LEVEL_SENSOR_THREAD_STACK_SIZE);
 #define SENSOR_THREAD_OPTIONS (K_FP_REGS | K_ESSENTIAL)
+
+LOG_MODULE_REGISTER(SENSOR_LOG);
 
 LvlSensor::LvlSensor(const struct device *dev) : sensor_dev{dev}
 {
@@ -23,7 +26,6 @@ int32_t LvlSensor::init()
     {
         this->sample.unit = 0;
         k_thread_create(&this->sensor_thread, SENSOR_STACK_AREA, CONFIG_LEVEL_SENSOR_THREAD_STACK_SIZE, LvlSensor::sample_sensor, this, NULL, NULL, CONFIG_LEVEL_SENSOR_THREAD_PRIORITY, SENSOR_THREAD_OPTIONS, K_NO_WAIT);
-        //printk("Check init if is called\n\r");
         return 0;
     }
 }
@@ -35,13 +37,13 @@ void LvlSensor::get_level()
 
     if (ret < 0)
     {
-        //printk("ERROR: Fetch failed: %d\n", ret);
+        LOG_ERR("ERROR: Fetch failed: %d", ret);
         this->sample.value = 0;
         return;
     }
     ret = sensor_channel_get(this->sensor_dev, SENSOR_CHAN_DISTANCE, &distance);
     if(ret != 0){
-        //printk("ERROR: Get channel failed: %d\n", ret);
+        LOG_ERR("ERROR: Get channel failed: %d", ret);
     }else{
 
         //printk("%s: %d.%03dm\n", sensor_dev->name, distance.val1, distance.val2);
@@ -61,7 +63,6 @@ void LvlSensor::sample_sensor(void *p1, void *, void *)
     auto *self = static_cast<LvlSensor *>(p1);
     while (true)
     {
-        //printk("Test sensor timer sampler\n");
         self->get_level();
         self->send_data();
         k_msleep(CONFIG_LEVEL_SENSOR_THREAD_PERIOD);

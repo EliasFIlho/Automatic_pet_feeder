@@ -3,7 +3,10 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/device.h>
 #include "StepperController.hpp"
+#include "zephyr/logging/log.h"
 
+
+LOG_MODULE_REGISTER(MOTOR_LOG);
 
 
 //TODO: Considere to make motor spin as k_work to decrease spin speed and do not affect other threads
@@ -37,25 +40,25 @@ uint32_t StepperController::init()
     // Check if devices are ready
     if (!device_is_ready(direction.port) || !device_is_ready(steps.port) || !device_is_ready(enable.port))
     {
-        //printk("Device not ready!!\r\n");
+        LOG_ERR("Device not ready!!");
         success = false;
     }
 
     // Check each step in sequence
     if (gpio_pin_configure_dt(&this->direction, GPIO_OUTPUT) != 0) {
-        //printk("Error configuring direction pin\r\n");
+        LOG_ERR("Error configuring direction pin");
         success = false;
     }
     if (gpio_pin_configure_dt(&this->steps, GPIO_OUTPUT) != 0) {
-        //printk("Error configuring steps pin\r\n");
+        LOG_ERR("Error configuring steps pin");
         success = false;
     }
     if (gpio_pin_configure_dt(&this->enable, GPIO_OUTPUT) != 0) {
-        //printk("Error configuring enable pin\r\n");
+        LOG_ERR("Error configuring enable pin");
         success = false;
     }
     if (gpio_pin_set_dt(&this->enable, 1) != 0) {
-        //printk("Error setting enable pin\r\n");
+        LOG_ERR("Error setting enable pin");
         success = false;
     }
 
@@ -112,7 +115,6 @@ void StepperController::move_to(int step)
  */
 void StepperController::move_for(int amout)
 {
-    //printk("Function called to dispense this amount - [%d]\n\r",amout);
     gpio_pin_set_dt(&direction, 0);
     gpio_pin_set_dt(&enable, 0);
     for (int i = 0; i < amout; i++)

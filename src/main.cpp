@@ -13,6 +13,7 @@
 #include "Storage.hpp"
 #include "SchedulerRules.hpp"
 #include "WifiStation.hpp"
+#include "IWifi.hpp"
 #include "MQTT.hpp"
 #include "Led.hpp"
 #include "NetworkService.hpp"
@@ -42,6 +43,7 @@ struct pwm_dt_spec net_led = PWM_DT_SPEC_GET(DT_NODELABEL(fade_led));
 /**
  * @brief Objects declaration
  * 
+ * NOTE: I think this all should be their interface versions to make more sense
  *  
  */
 Watchdog guard(hw_wdt_dev);
@@ -49,16 +51,16 @@ Storage fs;
 JsonModule json;
 StepperController motor;
 RTC rtc;
-WifiStation wifi;
 MQTT mqtt(guard, fs, json);
 Led led(&net_led);
+IWifi &wifi = WifiStation::Get_Instance();
 NetworkService net(mqtt, wifi, fs, led);
 TaskRunner task_runner;
 Application app(rtc, motor, fs, guard, json, task_runner);
 LvlSensor sensor(sensor_dev);
 
-// TODO: Document modules with doxygen style
 
+// TODO: Document modules with doxygen style
 int main(void)
 {
 
@@ -72,6 +74,7 @@ int main(void)
         LOG_ERR("Error to init Fs\r\n");
         return -1;
     }
+
     if (net.start() == NET_ERROR::NET_OK)
     {
         app.init_application();
@@ -81,8 +84,6 @@ int main(void)
     {
         LOG_ERR("NET ERROR\n\r");
     }
-
-
 
     while (true)
     {

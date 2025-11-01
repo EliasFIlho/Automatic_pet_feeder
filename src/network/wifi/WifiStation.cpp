@@ -4,44 +4,61 @@
 
 LOG_MODULE_DECLARE(NETWORK_LOGS);
 
-#define WIFI_CALLBACK_FLAGS (NET_EVENT_WIFI_CONNECT_RESULT | NET_EVENT_WIFI_DISCONNECT_RESULT | NET_EVENT_WIFI_IFACE_STATUS)
+#define WIFI_CALLBACK_FLAGS (NET_EVENT_WIFI_CONNECT_RESULT | NET_EVENT_WIFI_DISCONNECT_RESULT | NET_EVENT_WIFI_IFACE_STATUS | NET_EVENT_WIFI_SCAN_DONE)
 #define WIFI_DHCP_CALLBACK_FLAGS (NET_EVENT_IPV4_DHCP_START | NET_EVENT_IPV4_ADDR_ADD)
 
+// TODO: Move all this to class header
 static struct net_mgmt_event_callback wifi_cb;
 static struct net_mgmt_event_callback ipv4_cb;
 
 static struct k_sem wifi_connected;
 static struct k_sem ipv4_connected;
 
-static void wifi_event_handler(struct net_mgmt_event_callback *cb,
-                               uint32_t evt, struct net_if *iface)
+void WifiStation::wifi_event_handler(struct net_mgmt_event_callback *cb, uint32_t evt, struct net_if *iface)
 {
-    if (evt == NET_EVENT_WIFI_CONNECT_RESULT)
+    WifiStation &instance = WifiStation::Get_Instance();
+
+    switch (evt)
+    {
+    case NET_EVENT_WIFI_CONNECT_RESULT:
     {
         const struct wifi_status *st = (const struct wifi_status *)cb->info;
         int status = st ? st->status : -1;
         if (status == 0)
         {
+            LOG_INF("WIFI Connected");
             k_sem_give(&wifi_connected);
+            instance.con_state = CON_STATE::CONNECTED;
         }
+
+        break;
     }
-    else if (evt == NET_EVENT_WIFI_DISCONNECT_RESULT)
-    {
-        //TODO: If reconnect from wifi credentials does not work well, lets add a k_work to try to reconnect
+    case NET_EVENT_WIFI_DISCONNECT_RESULT:
+
         LOG_WRN("DEVICE DISCONNECTD FROM NETWORK");
-    }
-    else if (evt == NET_EVENT_WIFI_IFACE_STATUS)
-    {
+        instance.on_disconnect();
+        break;
+
+    case NET_EVENT_WIFI_IFACE_STATUS:
+        break;
+    case NET_EVENT_WIFI_SCAN_DONE:
+        LOG_WRN("SCAN DONE");
+    default:
+        LOG_WRN("UNEXPECTED EVENT - %d",evt);
+        break;
     }
 }
 
+// TODO: Move this to class
 static void dhcp4_event_handler(struct net_mgmt_event_callback *cb, uint32_t mgmt_event, struct net_if *iface)
 {
     switch (mgmt_event)
     {
     case NET_EVENT_IPV4_DHCP_START:
+        LOG_INF("DHCP4 Started");
         break;
     case NET_EVENT_IPV4_ADDR_ADD:
+        LOG_INF("Device got IP");
         k_sem_give(&ipv4_connected);
         break;
     default:
@@ -70,8 +87,9 @@ bool WifiStation::wifi_init(void)
     }
     net_mgmt_init_event_callback(&ipv4_cb, dhcp4_event_handler, WIFI_DHCP_CALLBACK_FLAGS);
     net_mgmt_add_event_callback(&ipv4_cb);
-    net_mgmt_init_event_callback(&wifi_cb, wifi_event_handler, WIFI_CALLBACK_FLAGS);
+    net_mgmt_init_event_callback(&wifi_cb, this->wifi_event_handler, WIFI_CALLBACK_FLAGS);
     net_mgmt_add_event_callback(&wifi_cb);
+    k_work_init_delayable(&this->reconnect_k_work, this->reconnect_work);
     int ret = net_if_up(sta_iface);
     if (ret && ret != -EALREADY && ret != -ENOTSUP)
     {
@@ -82,8 +100,6 @@ bool WifiStation::wifi_init(void)
         return true;
     }
 }
-
-//TODO: Check for wifi credentials lib #include <zephyr/net/wifi_credentials.h>
 
 int WifiStation::connect_to_wifi()
 {
@@ -187,6 +203,7 @@ int WifiStation::wait_wifi_to_connect(void)
     else
     {
         LOG_ERR("CONNECTED TO WIFI NETWORK");
+        this->con_state = CON_STATE::CONNECTED;
         return 0;
     }
 }
@@ -196,6 +213,7 @@ int WifiStation::wifi_disconnect(void)
     int ret;
 
     ret = net_mgmt(NET_REQUEST_WIFI_DISCONNECT, sta_iface, NULL, 0);
+    this->con_state = CON_STATE::DISCONNECTED;
     return ret;
 }
 
@@ -212,7 +230,7 @@ bool WifiStation::is_connected()
 {
     struct wifi_iface_status status;
 
-    int ret = net_mgmt(NET_REQUEST_WIFI_IFACE_STATUS, this->sta_iface, &status, sizeof(struct wifi_iface_status));
+    net_mgmt(NET_REQUEST_WIFI_IFACE_STATUS, this->sta_iface, &status, sizeof(struct wifi_iface_status));
     if (status.state == WIFI_STATE_DISCONNECTED)
     {
         LOG_WRN("WIFI DISCONNECTD");
@@ -238,4 +256,29 @@ int32_t WifiStation::get_rssi()
     {
         return 0;
     }
+}
+void WifiStation::on_disconnect()
+{
+
+#if !CONFIG_ESP32_WIFI_STA_RECONNECT
+        k_work_reschedule(&this->reconnect_k_work, K_SECONDS(30));
+#endif
+
+}
+
+void WifiStation::reconnect_work(struct k_work *work)
+{
+    WifiStation &instance = WifiStation::Get_Instance();
+    int ret = instance.connect_to_wifi();
+    if (ret < 0)
+    {
+        k_work_delayable *dwork = k_work_delayable_from_work(work);
+        k_work_reschedule(dwork, K_SECONDS(30));
+    }
+}
+
+WifiStation &WifiStation::Get_Instance()
+{
+    static WifiStation inst;
+    return inst;
 }
