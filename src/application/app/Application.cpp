@@ -11,16 +11,20 @@ Application::~Application()
 {
 }
 
-
 int32_t Application::get_rules()
 {
     char rules_buff[250];
     int32_t ret;
     ret = this->_fs.read_data(RULES_ID, rules_buff, sizeof(rules_buff));
-    if(ret < 0){
+    if (ret < 0)
+    {
+        this->rules_avaliable = false;
         return ret;
-    }else{
+    }
+    else
+    {
         this->_json.parse(rules_buff, &this->rules);
+        this->rules_avaliable = true;
         return 0;
     }
 }
@@ -84,7 +88,7 @@ bool Application::check_rules()
 {
     if (this->rules.period == WEEKLY)
     {
-        
+
         if (!this->is_week_days_match())
         {
             return false;
@@ -119,8 +123,6 @@ bool Application::check_rules()
     }
 }
 
-
-
 void Application::step()
 {
     if (this->check_rules())
@@ -139,7 +141,6 @@ void Application::step()
     this->_guard.feed(this->task_wdt_id);
 }
 
-
 void Application::app(void *p1, void *, void *)
 {
     auto *self = static_cast<Application *>(p1);
@@ -147,12 +148,20 @@ void Application::app(void *p1, void *, void *)
     self->_clk.sync_time();
     self->_motor.init();
     self->task_wdt_id = self->_guard.create_and_get_wtd_timer_id(CONFIG_APPLICATION_THREAD_PERIOD + WTD_TIMEOUT_THRESHOLD);
-    
-    self->get_rules();
+    self->rules_avaliable = false;
+
     while (true)
     {
-        self->step();
-        self->_runner.sleep(CONFIG_APPLICATION_THREAD_PERIOD);
+        if (!self->rules_avaliable)
+        {
+            self->get_rules();
+            self->_runner.sleep(CONFIG_APPLICATION_THREAD_PERIOD);
+        }
+        else
+        {
+            self->step();
+            self->_runner.sleep(CONFIG_APPLICATION_THREAD_PERIOD);
+        }
     }
 }
 

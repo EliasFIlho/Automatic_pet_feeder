@@ -15,7 +15,6 @@ enum class CON_STATE
     DISCONNECTED
 };
 
-// TODO: Lets turn this into a singleton, so i can get a instance every time i need in a callback
 class WifiStation : public IWifi
 {
 private:
@@ -24,14 +23,20 @@ private:
     CON_STATE con_state;
     struct net_if *sta_iface;
     struct k_work_delayable reconnect_k_work;
+    struct net_mgmt_event_callback wifi_cb;
+    struct net_mgmt_event_callback ipv4_cb;
 
+    struct k_sem wifi_connected;
+    struct k_sem ipv4_connected;
 
 private:
     static void wifi_event_handler(struct net_mgmt_event_callback *cb, uint32_t evt, struct net_if *iface);
+    static void dhcp4_event_handler(struct net_mgmt_event_callback *cb, uint32_t mgmt_event, struct net_if *iface);
     int wait_wifi_to_connect(void);
     int wifi_wait_for_ip_addr(void);
     void on_disconnect();
     static void reconnect_work(struct k_work *work);
+
 public:
     WifiStation();
     bool wifi_init();

@@ -13,6 +13,7 @@
 class Application
 {
 private:
+    //TODO: Need to make rules int a fixed size array and populate
     Rules_t rules;
     IClock &_clk;
     IMotor &_motor;
@@ -22,6 +23,7 @@ private:
     ITaskRunner &_runner;
     int task_wdt_id;
     bool is_dispenser_executed;
+    bool rules_avaliable;
 
 private:
     bool is_date_match();                      // Check if specif date matchs with the rule selected specific date

@@ -82,6 +82,7 @@ int main(void)
     }
     else
     {
+        //TODO: Create a offline logic (It will be basically the same but without the NTP request and MQTT, so just the basic)
         LOG_ERR("NET ERROR\n\r");
     }
 

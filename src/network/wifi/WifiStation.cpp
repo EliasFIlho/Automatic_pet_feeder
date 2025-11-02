@@ -7,13 +7,6 @@ LOG_MODULE_DECLARE(NETWORK_LOGS);
 #define WIFI_CALLBACK_FLAGS (NET_EVENT_WIFI_CONNECT_RESULT | NET_EVENT_WIFI_DISCONNECT_RESULT | NET_EVENT_WIFI_IFACE_STATUS | NET_EVENT_WIFI_SCAN_DONE)
 #define WIFI_DHCP_CALLBACK_FLAGS (NET_EVENT_IPV4_DHCP_START | NET_EVENT_IPV4_ADDR_ADD)
 
-// TODO: Move all this to class header
-static struct net_mgmt_event_callback wifi_cb;
-static struct net_mgmt_event_callback ipv4_cb;
-
-static struct k_sem wifi_connected;
-static struct k_sem ipv4_connected;
-
 void WifiStation::wifi_event_handler(struct net_mgmt_event_callback *cb, uint32_t evt, struct net_if *iface)
 {
     WifiStation &instance = WifiStation::Get_Instance();
@@ -27,7 +20,7 @@ void WifiStation::wifi_event_handler(struct net_mgmt_event_callback *cb, uint32_
         if (status == 0)
         {
             LOG_INF("WIFI Connected");
-            k_sem_give(&wifi_connected);
+            k_sem_give(&instance.wifi_connected);
             instance.con_state = CON_STATE::CONNECTED;
         }
 
@@ -44,23 +37,28 @@ void WifiStation::wifi_event_handler(struct net_mgmt_event_callback *cb, uint32_
     case NET_EVENT_WIFI_SCAN_DONE:
         LOG_WRN("SCAN DONE");
     default:
-        LOG_WRN("UNEXPECTED EVENT - %d",evt);
+        LOG_WRN("UNEXPECTED EVENT - %d", evt);
         break;
     }
 }
 
-// TODO: Move this to class
-static void dhcp4_event_handler(struct net_mgmt_event_callback *cb, uint32_t mgmt_event, struct net_if *iface)
+void WifiStation::dhcp4_event_handler(struct net_mgmt_event_callback *cb, uint32_t mgmt_event, struct net_if *iface)
 {
+
     switch (mgmt_event)
     {
     case NET_EVENT_IPV4_DHCP_START:
         LOG_INF("DHCP4 Started");
         break;
     case NET_EVENT_IPV4_ADDR_ADD:
+    {
+
         LOG_INF("Device got IP");
-        k_sem_give(&ipv4_connected);
+        WifiStation &instance = WifiStation::Get_Instance();
+        
+        k_sem_give(&instance.ipv4_connected);
         break;
+    }
     default:
         break;
     }
@@ -68,8 +66,8 @@ static void dhcp4_event_handler(struct net_mgmt_event_callback *cb, uint32_t mgm
 
 WifiStation::WifiStation()
 {
-    k_sem_init(&wifi_connected, 0, 1);
-    k_sem_init(&ipv4_connected, 0, 1);
+    k_sem_init(&this->wifi_connected, 0, 1);
+    k_sem_init(&this->ipv4_connected, 0, 1);
 }
 
 WifiStation::~WifiStation()
@@ -78,17 +76,17 @@ WifiStation::~WifiStation()
 
 bool WifiStation::wifi_init(void)
 {
-    k_sem_reset(&wifi_connected);
-    k_sem_reset(&ipv4_connected);
+    k_sem_reset(&this->wifi_connected);
+    k_sem_reset(&this->ipv4_connected);
     this->sta_iface = net_if_get_wifi_sta();
     if (sta_iface == NULL)
     {
         return false;
     }
-    net_mgmt_init_event_callback(&ipv4_cb, dhcp4_event_handler, WIFI_DHCP_CALLBACK_FLAGS);
-    net_mgmt_add_event_callback(&ipv4_cb);
-    net_mgmt_init_event_callback(&wifi_cb, this->wifi_event_handler, WIFI_CALLBACK_FLAGS);
-    net_mgmt_add_event_callback(&wifi_cb);
+    net_mgmt_init_event_callback(&this->ipv4_cb, dhcp4_event_handler, WIFI_DHCP_CALLBACK_FLAGS);
+    net_mgmt_add_event_callback(&this->ipv4_cb);
+    net_mgmt_init_event_callback(&this->wifi_cb, this->wifi_event_handler, WIFI_CALLBACK_FLAGS);
+    net_mgmt_add_event_callback(&this->wifi_cb);
     k_work_init_delayable(&this->reconnect_k_work, this->reconnect_work);
     int ret = net_if_up(sta_iface);
     if (ret && ret != -EALREADY && ret != -ENOTSUP)
@@ -202,7 +200,7 @@ int WifiStation::wait_wifi_to_connect(void)
     }
     else
     {
-        LOG_ERR("CONNECTED TO WIFI NETWORK");
+        LOG_INF("CONNECTED TO WIFI NETWORK");
         this->con_state = CON_STATE::CONNECTED;
         return 0;
     }
@@ -261,9 +259,8 @@ void WifiStation::on_disconnect()
 {
 
 #if !CONFIG_ESP32_WIFI_STA_RECONNECT
-        k_work_reschedule(&this->reconnect_k_work, K_SECONDS(30));
+    k_work_reschedule(&this->reconnect_k_work, K_SECONDS(30));
 #endif
-
 }
 
 void WifiStation::reconnect_work(struct k_work *work)
