@@ -138,7 +138,6 @@ void Application::step()
         this->is_dispenser_executed = false;
     }
 
-    this->_guard.feed(this->task_wdt_id);
 }
 
 void Application::app(void *p1, void *, void *)
@@ -162,6 +161,7 @@ void Application::app(void *p1, void *, void *)
             self->step();
             self->_runner.sleep(CONFIG_APPLICATION_THREAD_PERIOD);
         }
+        self->_guard.feed(self->task_wdt_id);
     }
 }
 

@@ -61,6 +61,8 @@ LvlSensor sensor(sensor_dev);
 
 
 // TODO: Document modules with doxygen style
+
+//TODO: See how to use Kconfig without modify Zephyr base Kconfig
 int main(void)
 {
 

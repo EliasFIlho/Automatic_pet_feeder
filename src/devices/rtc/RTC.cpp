@@ -3,7 +3,6 @@
 #include <zephyr/net/sntp.h>
 #include <arpa/inet.h>
 #include <time.h>
-#include <zephyr/posix/time.h>
 #include <sys/time.h>
 
 #define DATE_FORMAT "%Y-%m-%d %H:%M:%S\r\n"

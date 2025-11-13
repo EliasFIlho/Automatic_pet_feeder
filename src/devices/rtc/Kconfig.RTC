@@ -1,6 +1,5 @@
 menu "RTC options"
 
-
 config SNTP_TRY_COUNT 
     int "Retry count for SNTP sync"
     default 5

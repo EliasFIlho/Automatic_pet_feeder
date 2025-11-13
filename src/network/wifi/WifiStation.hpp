@@ -7,6 +7,8 @@
 #include <zephyr/net/dhcpv4_server.h>
 #include "IWifi.hpp"
 
+
+//TODO: Create state flow for connection process: Keep things simple ;p
 enum class CON_STATE
 {
     CONNECTED,
@@ -30,8 +32,8 @@ private:
     struct k_sem ipv4_connected;
 
 private:
-    static void wifi_event_handler(struct net_mgmt_event_callback *cb, uint32_t evt, struct net_if *iface);
-    static void dhcp4_event_handler(struct net_mgmt_event_callback *cb, uint32_t mgmt_event, struct net_if *iface);
+    static void wifi_event_handler(struct net_mgmt_event_callback *cb, uint64_t mgmt_event, struct net_if *iface);
+    static void dhcp4_event_handler(struct net_mgmt_event_callback *cb, uint64_t mgmt_event, struct net_if *iface);
     int wait_wifi_to_connect(void);
     int wifi_wait_for_ip_addr(void);
     void on_disconnect();

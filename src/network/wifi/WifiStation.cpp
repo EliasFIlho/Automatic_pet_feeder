@@ -7,11 +7,11 @@ LOG_MODULE_DECLARE(NETWORK_LOGS);
 #define WIFI_CALLBACK_FLAGS (NET_EVENT_WIFI_CONNECT_RESULT | NET_EVENT_WIFI_DISCONNECT_RESULT | NET_EVENT_WIFI_IFACE_STATUS | NET_EVENT_WIFI_SCAN_DONE)
 #define WIFI_DHCP_CALLBACK_FLAGS (NET_EVENT_IPV4_DHCP_START | NET_EVENT_IPV4_ADDR_ADD)
 
-void WifiStation::wifi_event_handler(struct net_mgmt_event_callback *cb, uint32_t evt, struct net_if *iface)
+void WifiStation::wifi_event_handler(struct net_mgmt_event_callback *cb, uint64_t mgmt_event, struct net_if *iface)
 {
     WifiStation &instance = WifiStation::Get_Instance();
 
-    switch (evt)
+    switch (mgmt_event)
     {
     case NET_EVENT_WIFI_CONNECT_RESULT:
     {
@@ -37,12 +37,12 @@ void WifiStation::wifi_event_handler(struct net_mgmt_event_callback *cb, uint32_
     case NET_EVENT_WIFI_SCAN_DONE:
         LOG_WRN("SCAN DONE");
     default:
-        LOG_WRN("UNEXPECTED EVENT - %d", evt);
+        LOG_WRN("UNEXPECTED EVENT - %lld", mgmt_event);
         break;
     }
 }
 
-void WifiStation::dhcp4_event_handler(struct net_mgmt_event_callback *cb, uint32_t mgmt_event, struct net_if *iface)
+void WifiStation::dhcp4_event_handler(struct net_mgmt_event_callback *cb, uint64_t mgmt_event, struct net_if *iface)
 {
 
     switch (mgmt_event)

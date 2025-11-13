@@ -48,7 +48,6 @@ void MQTT::mqtt_evt_handler(struct mqtt_client *client,
     {
     case MQTT_EVT_CONNACK:
 
-
         if (evt->result != 0)
         {
             LOG_ERR("MQTT Event Connect failed [%d]", evt->result);
@@ -65,7 +64,7 @@ void MQTT::mqtt_evt_handler(struct mqtt_client *client,
         break;
     case MQTT_EVT_PUBLISH:
 
-        //printk("DATA PUBLISHED");
+        // printk("DATA PUBLISHED");
         self->on_mqtt_publish(client, evt);
 
         break;
@@ -102,7 +101,7 @@ void MQTT::mqtt_evt_handler(struct mqtt_client *client,
 
         break;
     default:
-        LOG_INF("Something trigged - [%d]",evt->type);
+        LOG_INF("Something trigged - [%d]", evt->type);
         break;
     }
 }
@@ -139,12 +138,14 @@ void MQTT::on_disconnect()
  * @return true
  * @return false
  */
+
+// TODO: Try to get the broker ip using getaddrinfo
 bool MQTT::setup_broker()
 {
-
+    int ret;
     this->broker.sin_family = AF_INET;
     this->broker.sin_port = htons(CONFIG_MQTT_BROKER_PORT);
-    int ret = zsock_inet_pton(AF_INET, CONFIG_MQTT_BROKER_ADDR, &this->broker.sin_addr);
+    ret = zsock_inet_pton(AF_INET, CONFIG_MQTT_BROKER_ADDR, &this->broker.sin_addr);
     if (ret != 1)
     {
         LOG_ERR("SOCKET ERROR: CAN NOT CONVERT SERVER ADDRESS: %d", ret);
@@ -152,7 +153,7 @@ bool MQTT::setup_broker()
     }
     else
     {
-        LOG_INF("SOCKET EVENT: MQTT ADDRESS CONVERTED");
+        LOG_INF("SOCKET: MQTT ADDRESS CONVERTED");
         return true;
     }
 }
@@ -208,7 +209,7 @@ bool MQTT::connect()
         if (ret != 0)
         {
             LOG_ERR("MQTT Connect failed [%d]", ret);
-            k_msleep(500);
+            k_msleep(1000);
             continue;
         }
 
@@ -217,11 +218,6 @@ bool MQTT::connect()
         if (ret > 0)
         {
             mqtt_input(&this->client_ctx);
-        }
-
-        if (!this->is_connected())
-        {
-            mqtt_abort(&this->client_ctx);
         }
     }
     return true;
@@ -268,6 +264,7 @@ bool MQTT::subscribe()
  */
 void MQTT::init()
 {
+
     mqtt_client_init(&this->client_ctx);
     this->client_ctx.broker = &this->broker;
     this->client_ctx.evt_cb = this->mqtt_evt_handler;
@@ -352,7 +349,6 @@ bool MQTT::is_connected()
 
 bool MQTT::setup_client()
 {
-    this->init();
 
     if (this->setup_broker())
     {
@@ -363,6 +359,7 @@ bool MQTT::setup_client()
         LOG_ERR("MQTT ERROR TO SET BROKER");
         return false;
     }
+    this->init();
 
     if (this->connect())
     {
@@ -439,25 +436,43 @@ void MQTT::reconnect()
 void MQTT::mqtt_task(void *p1, void *, void *)
 {
     auto *self = static_cast<MQTT *>(p1);
-    self->setup_client();
-    int read_mqtt_task_wdt_id = self->_guard.create_and_get_wtd_timer_id(CONFIG_MQTT_WATCHDOG_TIMEOUT_THREAD);
-    while (true)
+    uint8_t setup_tries = 0;
+    while (!self->setup_client())
     {
-        if (self->is_connected())
+        setup_tries++;
+        if (setup_tries > 5)
         {
-            // Poll for incoming data
-            self->read_payload();
-            // Check for incoming data to publish
-            self->mqtt_publish_payload();
-
-            // Feed task watchdog
-            self->_guard.feed(read_mqtt_task_wdt_id);
+            break;
         }
-        else
+        k_msleep(1000);
+    }
+    if (setup_tries > 5)
+    {
+        LOG_WRN("MQTT Could not setup client");
+        k_sleep(K_FOREVER);
+    }
+    else
+    {
+
+        int read_mqtt_task_wdt_id = self->_guard.create_and_get_wtd_timer_id(CONFIG_MQTT_WATCHDOG_TIMEOUT_THREAD);
+        while (true)
         {
-            self->reconnect();
-            self->_guard.feed(read_mqtt_task_wdt_id);
-            k_msleep(CONFIG_MQTT_THREAD_RECONNECT_PERIOD);
+            if (self->is_connected())
+            {
+                // Poll for incoming data
+                self->read_payload();
+                // Check for incoming data to publish
+                self->mqtt_publish_payload();
+
+                // Feed task watchdog
+                self->_guard.feed(read_mqtt_task_wdt_id);
+            }
+            else
+            {
+                self->reconnect();
+                self->_guard.feed(read_mqtt_task_wdt_id);
+                k_msleep(CONFIG_MQTT_THREAD_RECONNECT_PERIOD);
+            }
         }
     }
 }
@@ -473,14 +488,16 @@ void MQTT::start_mqtt()
 
 void MQTT::abort()
 {
-    if(this->is_connected()){
-        mqtt_disconnect(&this->client_ctx,NULL);
+    if (this->is_connected())
+    {
+        mqtt_disconnect(&this->client_ctx, NULL);
         mqtt_abort(&this->client_ctx);
-    }else{
+    }
+    else
+    {
         mqtt_abort(&this->client_ctx);
     }
     k_thread_abort(this->MQTT_Thread_id);
-
 }
 
 bool MQTT::is_payload_updated()

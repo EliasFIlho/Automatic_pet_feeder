@@ -41,6 +41,8 @@ void Watchdog::feed(int task_wtd_id)
     if (ret != 0)
     {
         LOG_ERR("Error to feed watchdog task in APP\n\r");
+    }else{
+        LOG_INF("Watchdog %d feeded",task_wtd_id);
     }
 }
 int Watchdog::create_and_get_wtd_timer_id(uint32_t reload_period)
@@ -48,11 +50,11 @@ int Watchdog::create_and_get_wtd_timer_id(uint32_t reload_period)
     int task_wdt_id = task_wdt_add(reload_period, NULL, NULL);
     if (task_wdt_id != -EINVAL && task_wdt_id != ENOMEM)
     {
-        LOG_INF("Task wtd created: [%d]\n\r", task_wdt_id);
+        LOG_INF("Task wtd created: [%d]", task_wdt_id);
     }
     else
     {
-        LOG_ERR("Error to create task wtd: [%d]\n\r", task_wdt_id);
+        LOG_ERR("Error to create task wtd: [%d]", task_wdt_id);
     }
     return task_wdt_id;
 }
