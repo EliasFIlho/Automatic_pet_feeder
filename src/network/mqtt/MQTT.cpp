@@ -156,7 +156,11 @@ bool MQTT::setup_broker()
 {
     int ret;
     this->broker.sin_family = AF_INET;
+#if CONFIG_MQTT_TLS_ENABLE
+    this->broker.sin_port = htons(CONFIG_MQTT_BROKER_PORT_TLS);
+#else
     this->broker.sin_port = htons(CONFIG_MQTT_BROKER_PORT);
+#endif
     ret = zsock_inet_pton(AF_INET, CONFIG_MQTT_BROKER_ADDR, &this->broker.sin_addr);
     if (ret != 1)
     {
@@ -539,6 +543,7 @@ int32_t MQTT::setup_tls()
     tls_config->cipher_list = NULL;
     tls_config->sec_tag_list = m_sec_tags;
     tls_config->sec_tag_count = ARRAY_SIZE(m_sec_tags);
-    tls_config->hostname = NULL;
+    tls_config->hostname = "broker.local";
+    return 0;
 }
 #endif

@@ -29,6 +29,10 @@ config MQTT_BROKER_PORT
     int "Broker port"
     default 1883
 
+config MQTT_BROKER_PORT_TLS
+    int "Broker port"
+    default 8883
+
 config MQTT_RX_BUFFER_SIZE
     int "Rx Buffer size for MQTT"
     default 1024
