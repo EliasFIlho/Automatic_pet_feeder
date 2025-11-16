@@ -7,6 +7,18 @@
 
 LOG_MODULE_REGISTER(MQTT_LOG);
 
+// TODO: Add TLS to this module and test
+#if CONFIG_MQTT_TLS_ENABLE
+#include "tls_cert/cert.h"
+
+#define MQTT_CA_CERT_TAG 1
+
+static const sec_tag_t m_sec_tags[] = {
+    MQTT_CA_CERT_TAG,
+};
+
+#endif
+
 // MQTT Thread Stack
 #define MQTT_THREAD_OPTIONS (K_FP_REGS | K_ESSENTIAL)
 K_THREAD_STACK_DEFINE(MQTT_STACK_AREA, CONFIG_MQTT_THREAD_STACK_SIZE);
@@ -360,6 +372,9 @@ bool MQTT::setup_client()
         return false;
     }
     this->init();
+#if CONFIG_MQTT_TLS_ENABLE
+    this->setup_tls();
+#endif
 
     if (this->connect())
     {
@@ -504,3 +519,26 @@ bool MQTT::is_payload_updated()
 {
     return false;
 }
+
+#if CONFIG_MQTT_TLS_ENABLE
+int32_t MQTT::setup_tls()
+{
+
+    struct mqtt_sec_config *tls_config;
+    this->client_ctx.transport.type = MQTT_TRANSPORT_SECURE;
+    int ret;
+
+    ret = tls_credential_add(MQTT_CA_CERT_TAG, TLS_CREDENTIAL_CA_CERTIFICATE, ca_certificate, sizeof(ca_certificate));
+    if (ret < 0)
+    {
+        LOG_ERR("Failed to register public certificate: %d", ret);
+        return ret;
+    }
+    tls_config = &this->client_ctx.transport.tls.config;
+    tls_config->peer_verify = TLS_PEER_VERIFY_REQUIRED;
+    tls_config->cipher_list = NULL;
+    tls_config->sec_tag_list = m_sec_tags;
+    tls_config->sec_tag_count = ARRAY_SIZE(m_sec_tags);
+    tls_config->hostname = NULL;
+}
+#endif

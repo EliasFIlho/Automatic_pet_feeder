@@ -74,5 +74,8 @@ config MQTT_PUBLISH_BUFFER_SIZE
     int "Publish buffer size"
     default 100
 
+config MQTT_TLS_ENABLE
+    bool "Enable TLS configuration"
+    default n
 
 endmenu

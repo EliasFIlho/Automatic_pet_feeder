@@ -8,9 +8,7 @@
 #include "IWatchDog.hpp"
 #include "IJson.hpp"
 
-
 extern k_msgq mqtt_publish_queue;
-
 
 /**
  * @brief MQTT Class
@@ -52,6 +50,9 @@ private:
     void reconnect();
     void populate_payload_struct(struct mqtt_binstr *payload, struct level_sensor *data);
     static void on_mqtt_publish(struct mqtt_client *const client, const struct mqtt_evt *evt);
+#if CONFIG_MQTT_TLS_ENABLE
+    int32_t setup_tls();
+#endif
 
 public:
     MQTT(IWatchDog &guard, IStorage &_fs, IJson &json);

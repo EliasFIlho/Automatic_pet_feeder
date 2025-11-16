@@ -8,12 +8,10 @@
 #include "IWifi.hpp"
 
 
-//TODO: Create state flow for connection process: Keep things simple ;p
-enum class CON_STATE
+enum class CONNECTION_STATE
 {
     CONNECTED,
     CONNECTING,
-    SCANNING,
     DISCONNECTED
 };
 
@@ -22,7 +20,7 @@ class WifiStation : public IWifi
 private:
     char ssid[CONFIG_WIFI_SSID_BUF_LEN];
     char psk[CONFIG_WIFI_PSK_BUF_LEN];
-    CON_STATE con_state;
+    CONNECTION_STATE con_state;
     struct net_if *sta_iface;
     struct k_work_delayable reconnect_k_work;
     struct net_mgmt_event_callback wifi_cb;

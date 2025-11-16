@@ -53,6 +53,8 @@ NET_ERROR NetworkService::start()
         this->_wifi.set_wifi_psk(psk);
     }
 
+    //TODO: Create a retry logic
+
     if (this->_wifi.wifi_init())
     {
         LOG_INF("WIFI INIT OK");

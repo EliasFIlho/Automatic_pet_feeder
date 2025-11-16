@@ -21,7 +21,7 @@ void WifiStation::wifi_event_handler(struct net_mgmt_event_callback *cb, uint64_
         {
             LOG_INF("WIFI Connected");
             k_sem_give(&instance.wifi_connected);
-            instance.con_state = CON_STATE::CONNECTED;
+            instance.con_state = CONNECTION_STATE::CONNECTED;
         }
 
         break;
@@ -68,6 +68,7 @@ WifiStation::WifiStation()
 {
     k_sem_init(&this->wifi_connected, 0, 1);
     k_sem_init(&this->ipv4_connected, 0, 1);
+    this->con_state = CONNECTION_STATE::DISCONNECTED;
 }
 
 WifiStation::~WifiStation()
@@ -125,6 +126,7 @@ int WifiStation::connect_to_wifi()
         LOG_ERR("Error in net_mgmt: %d", ret);
         return ret;
     }
+    this->con_state = CONNECTION_STATE::CONNECTING;
     ret = wait_wifi_to_connect();
     if (ret < 0)
     {
@@ -196,12 +198,13 @@ int WifiStation::wait_wifi_to_connect(void)
     if (k_sem_take(&wifi_connected, K_SECONDS(CONFIG_WIFI_CONNECT_TIMEOUT)) != 0)
     {
         LOG_ERR("UNABLE TO CONNECT TO WIFI - TIMEOUT");
+        this->con_state = CONNECTION_STATE::DISCONNECTED;
         return -1;
     }
     else
     {
         LOG_INF("CONNECTED TO WIFI NETWORK");
-        this->con_state = CON_STATE::CONNECTED;
+        this->con_state = CONNECTION_STATE::CONNECTED;
         return 0;
     }
 }
@@ -211,7 +214,7 @@ int WifiStation::wifi_disconnect(void)
     int ret;
 
     ret = net_mgmt(NET_REQUEST_WIFI_DISCONNECT, sta_iface, NULL, 0);
-    this->con_state = CON_STATE::DISCONNECTED;
+    this->con_state = CONNECTION_STATE::DISCONNECTED;
     return ret;
 }
 
@@ -226,20 +229,7 @@ void WifiStation::set_wifi_psk(char *psk)
 
 bool WifiStation::is_connected()
 {
-    struct wifi_iface_status status;
-
-    net_mgmt(NET_REQUEST_WIFI_IFACE_STATUS, this->sta_iface, &status, sizeof(struct wifi_iface_status));
-    if (status.state == WIFI_STATE_DISCONNECTED)
-    {
-        LOG_WRN("WIFI DISCONNECTD");
-
-        return false;
-    }
-    else
-    {
-        LOG_INF("WIFI CONNECTED - WIFI RSSI: %d", status.rssi);
-        return true;
-    }
+    return (this->con_state == CONNECTION_STATE::CONNECTED);
 }
 
 int32_t WifiStation::get_rssi()
@@ -257,10 +247,7 @@ int32_t WifiStation::get_rssi()
 }
 void WifiStation::on_disconnect()
 {
-
-#if !CONFIG_ESP32_WIFI_STA_RECONNECT
     k_work_reschedule(&this->reconnect_k_work, K_SECONDS(30));
-#endif
 }
 
 void WifiStation::reconnect_work(struct k_work *work)
