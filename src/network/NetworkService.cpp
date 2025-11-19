@@ -135,8 +135,9 @@ void NetworkService::notify(NetworkEvent evt)
 
 void NetworkService::rise_evt(NetworkEvent evt)
 {
+    LOG_WRN("GOT EVENT");
     NetEventMsg msg {.evt = evt};
-    k_msgq_put(&net_evt_queue, &evt, K_NO_WAIT);
+    k_msgq_put(&net_evt_queue, &msg, K_NO_WAIT);
 }
 
 //TODO: Add return for max lister reach
@@ -153,8 +154,9 @@ void NetworkService::network_evt_dispatch_task(void *p1, void *, void *)
     NetEventMsg evts;
     while (true)
     {
-        if (k_msgq_get(&net_evt_queue, &evts, K_FOREVER))
+        if (k_msgq_get(&net_evt_queue, &evts, K_FOREVER) == 0)
         {
+            LOG_WRN("Notifying events");
             self->notify(evts.evt);
         }
     }

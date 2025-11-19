@@ -24,6 +24,7 @@ void LvlSensor::on_network_event(NetworkEvent evt)
         // Start send data thought MQTT
         break;
     case NetworkEvent::MQTT_DISCONNECTED:
+        LOG_WRN("MQTT DISCONNECT STOP SENDING SENSOR DATA");
         // Stop send data through MQTT
         break;
     default:

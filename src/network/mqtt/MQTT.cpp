@@ -142,7 +142,6 @@ MQTT::~MQTT()
  */
 void MQTT::on_disconnect()
 {
-    NetworkService::rise_evt(NetworkEvent::MQTT_DISCONNECTED);
     this->is_mqtt_connected = false;
     this->nfds = 0;
 }
