@@ -11,5 +11,10 @@ config RSSI_LOWER_VALUE
 config RSSI_HIGHER_VALUE
     int "Higher value to RSSI for map function"
     default -30
-
+config NETWORK_DISPATCH_THREAD_STACK_SIZE
+    int "Stack size for network dispatch thread"
+    default 2048
+config NETWORK_DISPATCH_THREAD_PRIORITY
+    int "Network evt dispatch thread priority"
+    default 5
 endmenu

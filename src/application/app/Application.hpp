@@ -8,9 +8,13 @@
 #include "NetworkService.hpp"
 #include "SchedulerRules.hpp"
 #include "ITaskRunner.hpp"
+#include "INetworkEvents"
 #include <array>
 
-class Application
+
+
+
+class Application : public INetworkEvents
 {
 private:
     //TODO: Need to make rules int a fixed size array and populate
@@ -25,6 +29,7 @@ private:
     bool is_dispenser_executed;
     bool rules_avaliable;
 
+
 private:
     bool is_date_match();                      // Check if specif date matchs with the rule selected specific date
     bool is_week_days_match(); // check if the current day matchs with the rule selected day
@@ -32,7 +37,7 @@ private:
     int32_t get_rules();                           // Acess filesystem and get the current scheduler
     void dispense_food();                      // Dispense a X amount of food (the amount calc will be defined after the mechanics)
     bool check_rules();                        // Compare current time stamp with the rules
-
+    void on_network_event(NetworkEvent evt);
     static void app(void *p1, void *, void *); // Application function
 
 public:
@@ -40,4 +45,5 @@ public:
     ~Application();
     void step();
     void init_application(); // Start application thread
+
 };

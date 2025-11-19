@@ -1,4 +1,5 @@
 #include "MQTT.hpp"
+#include "NetworkService.hpp"
 #include <zephyr/kernel.h>
 #include <zephyr/net/socket.h>
 #include <zephyr/net/mqtt.h>
@@ -44,6 +45,7 @@ void MQTT::on_mqtt_publish(struct mqtt_client *const client, const struct mqtt_e
     /* Place null terminator at end of payload buffer */
     payload[rc] = '\0';
     self->_fs.write_data(RULES_ID, payload);
+    NetworkService::rise_evt(NetworkEvent::MQTT_NEW_DATA);
 }
 
 /**
@@ -66,17 +68,17 @@ void MQTT::mqtt_evt_handler(struct mqtt_client *client,
             break;
         }
         self->is_mqtt_connected = true;
+        NetworkService::rise_evt(NetworkEvent::MQTT_CONNECTED);
 
         break;
     case MQTT_EVT_DISCONNECT:
 
         LOG_WRN("MQTT_EVT_DISCONNECT Event");
         self->on_disconnect();
-
+        NetworkService::rise_evt(NetworkEvent::MQTT_DISCONNECTED);
         break;
     case MQTT_EVT_PUBLISH:
 
-        // printk("DATA PUBLISHED");
         self->on_mqtt_publish(client, evt);
 
         break;
@@ -140,6 +142,7 @@ MQTT::~MQTT()
  */
 void MQTT::on_disconnect()
 {
+    NetworkService::rise_evt(NetworkEvent::MQTT_DISCONNECTED);
     this->is_mqtt_connected = false;
     this->nfds = 0;
 }
@@ -180,12 +183,22 @@ bool MQTT::setup_broker()
  */
 void MQTT::set_fds()
 {
+#if CONFIG_MQTT_TLS_ENABLE
+    if (this->client_ctx.transport.type == MQTT_TRANSPORT_SECURE)
+    {
+        this->fds[0].fd = this->client_ctx.transport.tls.sock;
+    }
+#else
+
     if (this->client_ctx.transport.type == MQTT_TRANSPORT_NON_SECURE)
     {
         this->fds[0].fd = this->client_ctx.transport.tcp.sock;
     }
 
+#endif
+
     this->fds[0].events = ZSOCK_POLLIN;
+    this->fds->revents = 0;
     this->nfds = 1;
 }
 
@@ -218,24 +231,21 @@ bool MQTT::connect()
 
     this->is_mqtt_connected = false;
     int ret;
-    /* Block until MQTT CONNACK event callback occurs */
-    while (!this->is_connected())
-    {
-        ret = mqtt_connect(&this->client_ctx);
-        if (ret != 0)
-        {
-            LOG_ERR("MQTT Connect failed [%d]", ret);
-            k_msleep(1000);
-            continue;
-        }
 
-        /* Poll MQTT socket for response */
-        ret = poll_mqtt_socket(5000);
-        if (ret > 0)
-        {
-            mqtt_input(&this->client_ctx);
-        }
+    ret = mqtt_connect(&this->client_ctx);
+    if (ret != 0)
+    {
+        LOG_ERR("MQTT Connect failed [%d]", ret);
+        return false;
     }
+
+    /* Poll MQTT socket for response */
+    ret = poll_mqtt_socket(5000);
+    if (ret > 0)
+    {
+        mqtt_input(&this->client_ctx);
+    }
+
     return true;
 }
 
@@ -472,7 +482,6 @@ void MQTT::mqtt_task(void *p1, void *, void *)
     }
     else
     {
-
         int read_mqtt_task_wdt_id = self->_guard.create_and_get_wtd_timer_id(CONFIG_MQTT_WATCHDOG_TIMEOUT_THREAD);
         while (true)
         {

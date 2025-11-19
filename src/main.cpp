@@ -30,6 +30,7 @@ LOG_MODULE_REGISTER(LOGS);
  *
  */
 K_MSGQ_DEFINE(mqtt_publish_queue, sizeof(struct level_sensor), 10, 1);
+K_MSGQ_DEFINE(net_evt_queue, sizeof(struct level_sensor), 10, 1);
 
 /**
  * @brief Device tree devices
@@ -39,12 +40,11 @@ const struct device *const sensor_dev = DEVICE_DT_GET(DT_NODELABEL(hc_sr04));
 const struct device *const hw_wdt_dev = DEVICE_DT_GET(DT_ALIAS(watchdog0));
 struct pwm_dt_spec net_led = PWM_DT_SPEC_GET(DT_NODELABEL(fade_led));
 
-
 /**
  * @brief Objects declaration
- * 
+ *
  * NOTE: I think this all should be their interface versions to make more sense
- *  
+ *
  */
 Watchdog guard(hw_wdt_dev);
 Storage fs;
@@ -59,10 +59,9 @@ TaskRunner task_runner;
 Application app(rtc, motor, fs, guard, json, task_runner);
 LvlSensor sensor(sensor_dev);
 
-
 // TODO: Document modules with doxygen style
 
-//TODO: See how to use Kconfig without modify Zephyr base Kconfig
+// TODO: See how to use Kconfig without modify Zephyr base Kconfig
 int main(void)
 {
 
@@ -76,17 +75,18 @@ int main(void)
         LOG_ERR("Error to init Fs\r\n");
         return -1;
     }
-
+    net.register_listener(&app);
+    net.register_listener(&sensor);
     if (net.start() == NET_ERROR::NET_OK)
     {
-        app.init_application();
-        sensor.init();
+        LOG_INF("NET COMPONENTS STARTED");
     }
     else
     {
-        //TODO: Create a offline logic (It will be basically the same but without the NTP request and MQTT, so just the basic)
-        LOG_ERR("NET ERROR\n\r");
+        LOG_ERR("NET ERROR");
     }
+    app.init_application();
+    sensor.init();
 
     while (true)
     {

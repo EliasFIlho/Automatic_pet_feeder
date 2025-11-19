@@ -46,7 +46,6 @@ int RTC::sync_time()
             if (ret != 0)
             {
                 count++;
-                //printk("Error to do SNTP request retry count [%d]\r\n", count);
             }
             else
             {
@@ -71,7 +70,7 @@ void RTC::update_time()
     int ret = gettimeofday(&this->tv, NULL);
     if (ret < 0)
     {
-        //printf("Error in gettimeofday(): %d\n", errno);
+        
     }
     time_t now = time(NULL);
     gmtime_r(&now, &this->tm);

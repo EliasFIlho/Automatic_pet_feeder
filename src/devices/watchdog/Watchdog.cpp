@@ -4,12 +4,10 @@
 #include <errno.h>
 #include <zephyr/logging/log.h>
 
-
 LOG_MODULE_REGISTER(WTD_LOG);
 
-Watchdog::Watchdog(const struct device * const hw_wdt_dev) : _hw_wdt_dev{hw_wdt_dev}
+Watchdog::Watchdog(const struct device *const hw_wdt_dev) : _hw_wdt_dev{hw_wdt_dev}
 {
-
 }
 
 Watchdog::~Watchdog()
@@ -19,10 +17,12 @@ Watchdog::~Watchdog()
 uint32_t Watchdog::init()
 {
     int ret;
-    if(!device_is_ready(this->_hw_wdt_dev)){
+    if (!device_is_ready(this->_hw_wdt_dev))
+    {
         ret = task_wdt_init(NULL);
-
-    }else{
+    }
+    else
+    {
         ret = task_wdt_init(this->_hw_wdt_dev);
     }
     if (ret != 0)
@@ -41,8 +41,10 @@ void Watchdog::feed(int task_wtd_id)
     if (ret != 0)
     {
         LOG_ERR("Error to feed watchdog task in APP\n\r");
-    }else{
-        LOG_INF("Watchdog %d feeded",task_wtd_id);
+    }
+    else
+    {
+        LOG_INF("Watchdog %d feeded", task_wtd_id);
     }
 }
 int Watchdog::create_and_get_wtd_timer_id(uint32_t reload_period)

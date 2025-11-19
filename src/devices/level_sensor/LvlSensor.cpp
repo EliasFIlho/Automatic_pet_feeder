@@ -16,6 +16,21 @@ LvlSensor::~LvlSensor()
 {
 }
 
+void LvlSensor::on_network_event(NetworkEvent evt)
+{
+    switch (evt)
+    {
+    case NetworkEvent::MQTT_CONNECTED:
+        // Start send data thought MQTT
+        break;
+    case NetworkEvent::MQTT_DISCONNECTED:
+        // Stop send data through MQTT
+        break;
+    default:
+        break;
+    }
+}
+
 int32_t LvlSensor::init()
 {
     if (!device_is_ready(this->sensor_dev))
@@ -42,13 +57,13 @@ void LvlSensor::get_level()
         return;
     }
     ret = sensor_channel_get(this->sensor_dev, SENSOR_CHAN_DISTANCE, &distance);
-    if(ret != 0){
+    if (ret != 0)
+    {
         LOG_ERR("ERROR: Get channel failed: %d", ret);
-    }else{
-
-        //printk("%s: %d.%03dm\n", sensor_dev->name, distance.val1, distance.val2);
+    }
+    else
+    {
         this->sample.value = distance.val1;
-
     }
 }
 

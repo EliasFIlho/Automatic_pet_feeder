@@ -1,6 +1,8 @@
 #include <string.h>
 #include "WifiStation.hpp"
+#include "NetworkService.hpp"
 #include <zephyr/logging/log.h>
+
 
 LOG_MODULE_DECLARE(NETWORK_LOGS);
 
@@ -245,6 +247,10 @@ int32_t WifiStation::get_rssi()
         return 0;
     }
 }
+
+/*TODO: Check the impact of semaphores wait using k_work, 
+check if is a good pratice to create a exclusive thread that keeps blocked until disconnect event and try reconnect*/
+
 void WifiStation::on_disconnect()
 {
     k_work_reschedule(&this->reconnect_k_work, K_SECONDS(30));

@@ -1,6 +1,6 @@
 #include "Application.hpp"
 
-#define WTD_TIMEOUT_THRESHOLD 500
+#define WTD_TIMEOUT_THRESHOLD 5000
 
 Application::Application(IClock &clk, IMotor &motor, IStorage &fs, IWatchDog &guard, IJson &json, ITaskRunner &runner) : _clk(clk), _motor(motor), _fs(fs), _guard(guard), _json(json), _runner(runner)
 {
@@ -9,6 +9,29 @@ Application::Application(IClock &clk, IMotor &motor, IStorage &fs, IWatchDog &gu
 
 Application::~Application()
 {
+}
+
+
+void Application::on_network_event(NetworkEvent evt)
+{
+    switch (evt)
+    {
+    case NetworkEvent::WIFI_CONNECTED:
+        // Enable RTC sync using SNTP
+        break;
+    case NetworkEvent::WIFI_DISCONNECTED:
+        // Disable RTC sync and go offline mode
+        break;
+    case NetworkEvent::MQTT_DISCONNECTED:
+        // Check if is relevant
+        break;
+    case NetworkEvent::MQTT_NEW_DATA:
+        // Refresh the scheduller rules buffer with storage new data
+        this->get_rules();
+        break;
+    default:
+        break;
+    }
 }
 
 int32_t Application::get_rules()
@@ -137,7 +160,6 @@ void Application::step()
     {
         this->is_dispenser_executed = false;
     }
-
 }
 
 void Application::app(void *p1, void *, void *)
@@ -154,14 +176,13 @@ void Application::app(void *p1, void *, void *)
         if (!self->rules_avaliable)
         {
             self->get_rules();
-            self->_runner.sleep(CONFIG_APPLICATION_THREAD_PERIOD);
         }
         else
         {
             self->step();
-            self->_runner.sleep(CONFIG_APPLICATION_THREAD_PERIOD);
         }
         self->_guard.feed(self->task_wdt_id);
+        self->_runner.sleep(CONFIG_APPLICATION_THREAD_PERIOD);
     }
 }
 

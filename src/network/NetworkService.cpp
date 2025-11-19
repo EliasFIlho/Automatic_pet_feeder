@@ -2,8 +2,11 @@
 #include <zephyr/logging/log.h>
 
 LOG_MODULE_REGISTER(NETWORK_LOGS);
+#define MAX_ATTEMPT 3
+#define SSID_TEMP_BUFFER_LEN 16
+#define PSK_TEMP_BUFFER_LEN 16
 
-
+K_THREAD_STACK_DEFINE(NETWORK_DISPATCH_STACK_AREA, CONFIG_NETWORK_DISPATCH_THREAD_STACK_SIZE);
 
 NetworkService::NetworkService(IMQTT &mqtt, IWifi &wifi, IStorage &fs, ILed &led) : _mqtt(mqtt), _wifi(wifi), _fs(fs), _led(led)
 {
@@ -13,88 +16,56 @@ NetworkService::~NetworkService()
 {
 }
 
-bool NetworkService::is_mqtt_updated_payload()
-{
-    return false;
-}
-
-void dummy()
-{
-    return;
-}
-
 NET_ERROR NetworkService::start()
 {
-    char ssid[16];
-    char psk[16];
+    k_thread_create(&this->dispatcher_thread,
+                    NETWORK_DISPATCH_STACK_AREA,
+                    CONFIG_NETWORK_DISPATCH_THREAD_STACK_SIZE,
+                    NetworkService::network_evt_dispatch_task,
+                    this, NULL, NULL, CONFIG_NETWORK_DISPATCH_THREAD_PRIORITY, 0, K_NO_WAIT);
+    char ssid[SSID_TEMP_BUFFER_LEN];
+    char psk[PSK_TEMP_BUFFER_LEN];
     int ret;
     LOG_INF("Start Network LOGS");
-    ret = this->_fs.read_data(SSID_ID, ssid, sizeof(ssid));
-    if (ret < 0)
+
+    if (this->_fs.read_data(SSID_ID, ssid, sizeof(ssid)) < 0)
     {
-        LOG_ERR("MISSING_WIFI_CREDENTIALS");
-        this->indicate_error(NET_ERROR::MISSING_WIFI_CREDENTIALS);
-        return NET_ERROR::MISSING_WIFI_CREDENTIALS;
+        return this->fail(NET_ERROR::MISSING_WIFI_CREDENTIALS, "SSID Missing");
     }
-    else
+    if (this->_fs.read_data(PASSWORD_ID, psk, sizeof(psk)) < 0)
     {
-        this->_wifi.set_wifi_ssid(ssid);
+        return this->fail(NET_ERROR::MISSING_WIFI_CREDENTIALS, "Password Missing");
     }
 
-    ret = this->_fs.read_data(PASSWORD_ID, psk, sizeof(psk));
-    if (ret < 0)
-    {
-        LOG_ERR("MISSING_WIFI_CREDENTIALS");
-        this->indicate_error(NET_ERROR::MISSING_WIFI_CREDENTIALS);
-        return NET_ERROR::MISSING_WIFI_CREDENTIALS;
-    }
-    else
-    {
-        this->_wifi.set_wifi_psk(psk);
-    }
+    this->_wifi.set_wifi_ssid(ssid);
+    this->_wifi.set_wifi_psk(psk);
 
-    //TODO: Create a retry logic
-
-    if (this->_wifi.wifi_init())
+    if (!this->_wifi.wifi_init())
     {
-        LOG_INF("WIFI INIT OK");
+        return this->fail(NET_ERROR::WIFI_INIT_ERROR, "Error to init wifi");
+    }
+    LOG_INF("WIFI INIT OK");
+
+    for (int attempt = 0; attempt <= MAX_ATTEMPT; attempt++)
+    {
         ret = this->_wifi.connect_to_wifi();
-        if (ret < 0)
+        if (ret >= 0)
         {
-            if (ret == -EIO)
-            {
-                LOG_ERR("IFACE_MISSING");
-                this->indicate_error(NET_ERROR::IFACE_MISSING);
-                return NET_ERROR::IFACE_MISSING;
-            }
-            else if (ret == -1)
-            {
-                LOG_ERR("WIFI_TIMEOUT");
-                this->indicate_error(NET_ERROR::WIFI_TIMEOUT);
-                return NET_ERROR::WIFI_TIMEOUT;
-            }
-            else
-            {
-                LOG_ERR("WIFI_INIT_ERROR");
-                this->indicate_error(NET_ERROR::WIFI_INIT_ERROR);
-                return NET_ERROR::WIFI_INIT_ERROR;
-            }
-        }
-        else
-        {
-            LOG_INF("START RSSI MONITOR");
             this->init_rssi_monitor();
-            LOG_INF("START MQTT");
             this->_mqtt.start_mqtt();
             return NET_ERROR::NET_OK;
         }
+
+        if (ret == -EIO)
+        {
+            return this->fail(NET_ERROR::IFACE_MISSING, "Network interface missing");
+        }
+        if (attempt < MAX_ATTEMPT)
+        {
+            k_msleep(3000);
+        }
     }
-    else
-    {
-        LOG_ERR("WIFI_INIT_ERROR");
-        this->indicate_error(NET_ERROR::WIFI_INIT_ERROR);
-        return NET_ERROR::WIFI_INIT_ERROR;
-    }
+    return this->fail(NET_ERROR::WIFI_TIMEOUT, "Wifi timeout to connect");
 }
 
 void NetworkService::stop()
@@ -136,8 +107,55 @@ void NetworkService::rssi_monitor(struct k_work *work)
 {
     k_work_delayable *dwork = k_work_delayable_from_work(work);
     auto *self = CONTAINER_OF(dwork, NetworkService, rssi_monitor_work);
-
-    int32_t rssi = self->_wifi.get_rssi();
-    self->_led.set_mapped_output(rssi, CONFIG_RSSI_LOWER_VALUE, CONFIG_RSSI_HIGHER_VALUE);
+    if (self->_wifi.is_connected())
+    {
+        int32_t rssi = self->_wifi.get_rssi();
+        self->_led.set_mapped_output(rssi, CONFIG_RSSI_LOWER_VALUE, CONFIG_RSSI_HIGHER_VALUE);
+    }
+    else
+    {
+        self->_led.set_output(LOW);
+    }
     k_work_reschedule(dwork, K_SECONDS(CONFIG_RSSI_WORK_PERIOD));
+}
+
+NET_ERROR NetworkService::fail(NET_ERROR code, const char *msg)
+{
+    LOG_ERR("%s", msg);
+    this->indicate_error(code);
+    return code;
+}
+
+void NetworkService::notify(NetworkEvent evt)
+{
+    for(int i = 0;i<this->listener_count;i++){
+        this->listeners[i]->on_network_event(evt);
+    }
+}
+
+void NetworkService::rise_evt(NetworkEvent evt)
+{
+    NetEventMsg msg {.evt = evt};
+    k_msgq_put(&net_evt_queue, &evt, K_NO_WAIT);
+}
+
+//TODO: Add return for max lister reach
+void NetworkService::register_listener(INetworkEvents *listener){
+    if(this->listener_count < MAX_LISTERNERS){
+        this->listeners[this->listener_count] = listener;
+        this->listener_count++;
+    }
+}
+
+void NetworkService::network_evt_dispatch_task(void *p1, void *, void *)
+{
+    auto *self = static_cast<NetworkService *>(p1);
+    NetEventMsg evts;
+    while (true)
+    {
+        if (k_msgq_get(&net_evt_queue, &evts, K_FOREVER))
+        {
+            self->notify(evts.evt);
+        }
+    }
 }

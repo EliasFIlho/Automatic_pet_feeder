@@ -49,6 +49,7 @@
         "numbers": "cpp",
         "ostream": "cpp",
         "streambuf": "cpp",
-        "cinttypes": "cpp"
+        "cinttypes": "cpp",
+        "inetworkevents": "cpp"
     }
 }
