@@ -1,7 +1,7 @@
 #include <zephyr/kernel.h>
 #include "ILvlSensor.hpp"
 #include "MQTT_utils.hpp"
-#include "INetworkEvents"
+#include "INetworkEvents.hpp"
 
 extern k_msgq mqtt_publish_queue;
 
@@ -11,6 +11,7 @@ private:
     struct k_thread sensor_thread;
     struct level_sensor sample;
     const struct device *sensor_dev;
+    bool isMQTTconnectd;
 
 private:
     void get_level();

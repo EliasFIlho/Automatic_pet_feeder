@@ -3,7 +3,7 @@
 #include "IWifi.hpp"
 #include "IStorage.hpp"
 #include "ILed.hpp"
-#include "INetworkEvents"
+#include "INetworkEvents.hpp"
 #include <zephyr/kernel.h>
 
 
@@ -57,6 +57,9 @@ private:
     static void network_evt_dispatch_task(void *p1, void *, void *);
     int32_t init_rssi_monitor();
     void notify(NetworkEvent evt);
+    NET_ERROR set_wifi_credentials();
+    NET_ERROR connect_to_wifi();
+    void start_mqtt();
     
     public:
     NetworkService(IMQTT &mqtt, IWifi &wifi, IStorage &fs, ILed &led);

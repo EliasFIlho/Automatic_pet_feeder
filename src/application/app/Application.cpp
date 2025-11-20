@@ -1,16 +1,15 @@
 #include "Application.hpp"
 
 #define WTD_TIMEOUT_THRESHOLD 5000
+#define RULES_TEMP_BUFF 250
 
 Application::Application(IClock &clk, IMotor &motor, IStorage &fs, IWatchDog &guard, IJson &json, ITaskRunner &runner) : _clk(clk), _motor(motor), _fs(fs), _guard(guard), _json(json), _runner(runner)
 {
-    this->is_dispenser_executed = false;
 }
 
 Application::~Application()
 {
 }
-
 
 void Application::on_network_event(NetworkEvent evt)
 {
@@ -36,18 +35,16 @@ void Application::on_network_event(NetworkEvent evt)
 
 int32_t Application::get_rules()
 {
-    char rules_buff[250];
+    char rules_buff[RULES_TEMP_BUFF];
     int32_t ret;
     ret = this->_fs.read_data(RULES_ID, rules_buff, sizeof(rules_buff));
     if (ret < 0)
     {
-        this->rules_avaliable = false;
         return ret;
     }
     else
     {
         this->_json.parse(rules_buff, &this->rules);
-        this->rules_avaliable = true;
         return 0;
     }
 }
@@ -169,23 +166,18 @@ void Application::app(void *p1, void *, void *)
     self->_clk.sync_time();
     self->_motor.init();
     self->task_wdt_id = self->_guard.create_and_get_wtd_timer_id(CONFIG_APPLICATION_THREAD_PERIOD + WTD_TIMEOUT_THRESHOLD);
-    self->rules_avaliable = false;
+    self->is_dispenser_executed = false;
+    self->get_rules();
 
     while (true)
     {
-        if (!self->rules_avaliable)
-        {
-            self->get_rules();
-        }
-        else
-        {
-            self->step();
-        }
+        self->step();
         self->_guard.feed(self->task_wdt_id);
         self->_runner.sleep(CONFIG_APPLICATION_THREAD_PERIOD);
     }
 }
 
+//TODO: i've add this runner to avoid kernel modules inside application, but this seems too much...I'll create a interface for application so i can mock for tests in host machine
 void Application::init_application()
 {
     this->_runner.create_task(Application::app, this);

@@ -23,49 +23,12 @@ NET_ERROR NetworkService::start()
                     CONFIG_NETWORK_DISPATCH_THREAD_STACK_SIZE,
                     NetworkService::network_evt_dispatch_task,
                     this, NULL, NULL, CONFIG_NETWORK_DISPATCH_THREAD_PRIORITY, 0, K_NO_WAIT);
-    char ssid[SSID_TEMP_BUFFER_LEN];
-    char psk[PSK_TEMP_BUFFER_LEN];
-    int ret;
-    LOG_INF("Start Network LOGS");
-
-    if (this->_fs.read_data(SSID_ID, ssid, sizeof(ssid)) < 0)
-    {
-        return this->fail(NET_ERROR::MISSING_WIFI_CREDENTIALS, "SSID Missing");
+    NET_ERROR ret = this->connect_to_wifi();
+    if(ret != NET_ERROR::NET_OK){
+        return ret;
     }
-    if (this->_fs.read_data(PASSWORD_ID, psk, sizeof(psk)) < 0)
-    {
-        return this->fail(NET_ERROR::MISSING_WIFI_CREDENTIALS, "Password Missing");
-    }
-
-    this->_wifi.set_wifi_ssid(ssid);
-    this->_wifi.set_wifi_psk(psk);
-
-    if (!this->_wifi.wifi_init())
-    {
-        return this->fail(NET_ERROR::WIFI_INIT_ERROR, "Error to init wifi");
-    }
-    LOG_INF("WIFI INIT OK");
-
-    for (int attempt = 0; attempt <= MAX_ATTEMPT; attempt++)
-    {
-        ret = this->_wifi.connect_to_wifi();
-        if (ret >= 0)
-        {
-            this->init_rssi_monitor();
-            this->_mqtt.start_mqtt();
-            return NET_ERROR::NET_OK;
-        }
-
-        if (ret == -EIO)
-        {
-            return this->fail(NET_ERROR::IFACE_MISSING, "Network interface missing");
-        }
-        if (attempt < MAX_ATTEMPT)
-        {
-            k_msleep(3000);
-        }
-    }
-    return this->fail(NET_ERROR::WIFI_TIMEOUT, "Wifi timeout to connect");
+    this->start_mqtt();
+    return NET_ERROR::NET_OK;
 }
 
 void NetworkService::stop()
@@ -128,21 +91,23 @@ NET_ERROR NetworkService::fail(NET_ERROR code, const char *msg)
 
 void NetworkService::notify(NetworkEvent evt)
 {
-    for(int i = 0;i<this->listener_count;i++){
+    for (int i = 0; i < this->listener_count; i++)
+    {
         this->listeners[i]->on_network_event(evt);
     }
 }
 
 void NetworkService::rise_evt(NetworkEvent evt)
 {
-    LOG_WRN("GOT EVENT");
-    NetEventMsg msg {.evt = evt};
+    NetEventMsg msg{.evt = evt};
     k_msgq_put(&net_evt_queue, &msg, K_NO_WAIT);
 }
 
-//TODO: Add return for max lister reach
-void NetworkService::register_listener(INetworkEvents *listener){
-    if(this->listener_count < MAX_LISTERNERS){
+// TODO: Add return for max lister reach
+void NetworkService::register_listener(INetworkEvents *listener)
+{
+    if (this->listener_count < MAX_LISTERNERS)
+    {
         this->listeners[this->listener_count] = listener;
         this->listener_count++;
     }
@@ -156,8 +121,67 @@ void NetworkService::network_evt_dispatch_task(void *p1, void *, void *)
     {
         if (k_msgq_get(&net_evt_queue, &evts, K_FOREVER) == 0)
         {
-            LOG_WRN("Notifying events");
             self->notify(evts.evt);
         }
     }
+}
+
+NET_ERROR NetworkService::set_wifi_credentials()
+{
+    char ssid[SSID_TEMP_BUFFER_LEN];
+    char psk[PSK_TEMP_BUFFER_LEN];
+    int ret;
+    LOG_INF("Start Network LOGS");
+
+    if (this->_fs.read_data(SSID_ID, ssid, sizeof(ssid)) < 0)
+    {
+        return this->fail(NET_ERROR::MISSING_WIFI_CREDENTIALS, "SSID Missing");
+    }
+    if (this->_fs.read_data(PASSWORD_ID, psk, sizeof(psk)) < 0)
+    {
+        return this->fail(NET_ERROR::MISSING_WIFI_CREDENTIALS, "Password Missing");
+    }
+
+    this->_wifi.set_wifi_ssid(ssid);
+    this->_wifi.set_wifi_psk(psk);
+    return NET_ERROR::NET_OK;
+}
+
+NET_ERROR NetworkService::connect_to_wifi()
+{
+    int ret;
+
+    if (!this->_wifi.wifi_init())
+    {
+        return this->fail(NET_ERROR::WIFI_INIT_ERROR, "Error to init wifi");
+    }
+    LOG_INF("WIFI INIT OK");
+
+    if(this->set_wifi_credentials() != NET_ERROR::NET_OK){
+        return NET_ERROR::MISSING_WIFI_CREDENTIALS;
+    }
+
+    for (int attempt = 0; attempt <= MAX_ATTEMPT; attempt++)
+    {
+        ret = this->_wifi.connect_to_wifi();
+        if (ret >= 0)
+        {
+            this->init_rssi_monitor();
+            return NET_ERROR::NET_OK;
+        }
+        if (ret == -EIO)
+        {
+            return this->fail(NET_ERROR::IFACE_MISSING, "Network interface missing");
+        }
+        if (attempt < MAX_ATTEMPT)
+        {
+            LOG_WRN("Wifi connect retry - attemp [%d]",attempt);
+            k_msleep(3000);
+        }
+    }
+    return this->fail(NET_ERROR::WIFI_TIMEOUT, "Wifi timeout to connect");
+}
+void NetworkService::start_mqtt()
+{
+    this->_mqtt.start_mqtt();
 }

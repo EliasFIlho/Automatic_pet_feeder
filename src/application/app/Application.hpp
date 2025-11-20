@@ -8,7 +8,7 @@
 #include "NetworkService.hpp"
 #include "SchedulerRules.hpp"
 #include "ITaskRunner.hpp"
-#include "INetworkEvents"
+#include "INetworkEvents.hpp"
 #include <array>
 
 
@@ -27,7 +27,6 @@ private:
     ITaskRunner &_runner;
     int task_wdt_id;
     bool is_dispenser_executed;
-    bool rules_avaliable;
 
 
 private:
@@ -37,13 +36,13 @@ private:
     int32_t get_rules();                           // Acess filesystem and get the current scheduler
     void dispense_food();                      // Dispense a X amount of food (the amount calc will be defined after the mechanics)
     bool check_rules();                        // Compare current time stamp with the rules
-    void on_network_event(NetworkEvent evt);
+    void on_network_event(NetworkEvent evt); // Callback for network events
+    void step();
     static void app(void *p1, void *, void *); // Application function
 
 public:
     Application(IClock &clk, IMotor &motor, IStorage &fs, IWatchDog &guard, IJson &json, ITaskRunner &runner);
     ~Application();
-    void step();
     void init_application(); // Start application thread
 
 };

@@ -21,11 +21,12 @@ void LvlSensor::on_network_event(NetworkEvent evt)
     switch (evt)
     {
     case NetworkEvent::MQTT_CONNECTED:
+        this->isMQTTconnectd = true;
         // Start send data thought MQTT
         break;
     case NetworkEvent::MQTT_DISCONNECTED:
         LOG_WRN("MQTT DISCONNECT STOP SENDING SENSOR DATA");
-        // Stop send data through MQTT
+        this->isMQTTconnectd = false;
         break;
     default:
         break;
@@ -80,7 +81,10 @@ void LvlSensor::sample_sensor(void *p1, void *, void *)
     while (true)
     {
         self->get_level();
-        self->send_data();
+        if (self->isMQTTconnectd)
+        {
+            self->send_data();
+        }
         k_msleep(CONFIG_LEVEL_SENSOR_THREAD_PERIOD);
     }
 }
