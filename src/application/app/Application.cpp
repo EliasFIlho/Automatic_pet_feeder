@@ -45,6 +45,7 @@ int32_t Application::get_rules()
     else
     {
         this->_json.parse(rules_buff, &this->rules);
+        this->isRulesAvaliable = true;
         return 0;
     }
 }
@@ -147,15 +148,15 @@ void Application::step()
 {
     if (this->check_rules())
     {
-        if (!this->is_dispenser_executed)
+        if (!this->isDispenserExecuted)
         {
             this->dispense_food();
-            this->is_dispenser_executed = true;
+            this->isDispenserExecuted = true;
         }
     }
     else
     {
-        this->is_dispenser_executed = false;
+        this->isDispenserExecuted = false;
     }
 }
 
@@ -166,12 +167,15 @@ void Application::app(void *p1, void *, void *)
     self->_clk.sync_time();
     self->_motor.init();
     self->task_wdt_id = self->_guard.create_and_get_wtd_timer_id(CONFIG_APPLICATION_THREAD_PERIOD + WTD_TIMEOUT_THRESHOLD);
-    self->is_dispenser_executed = false;
+    self->isDispenserExecuted = false;
+    self->isRulesAvaliable = false;
     self->get_rules();
 
     while (true)
     {
-        self->step();
+        if(self->isRulesAvaliable){
+            self->step();
+        }
         self->_guard.feed(self->task_wdt_id);
         self->_runner.sleep(CONFIG_APPLICATION_THREAD_PERIOD);
     }

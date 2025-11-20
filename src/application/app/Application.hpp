@@ -26,7 +26,8 @@ private:
     IJson &_json;
     ITaskRunner &_runner;
     int task_wdt_id;
-    bool is_dispenser_executed;
+    bool isDispenserExecuted;
+    bool isRulesAvaliable;
 
 
 private:
