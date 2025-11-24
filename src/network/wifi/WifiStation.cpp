@@ -3,7 +3,6 @@
 #include "NetworkService.hpp"
 #include <zephyr/logging/log.h>
 
-
 LOG_MODULE_DECLARE(NETWORK_LOGS);
 
 #define WIFI_CALLBACK_FLAGS (NET_EVENT_WIFI_CONNECT_RESULT | NET_EVENT_WIFI_DISCONNECT_RESULT | NET_EVENT_WIFI_IFACE_STATUS | NET_EVENT_WIFI_SCAN_DONE)
@@ -57,7 +56,7 @@ void WifiStation::dhcp4_event_handler(struct net_mgmt_event_callback *cb, uint64
 
         LOG_INF("Device got IP");
         WifiStation &instance = WifiStation::Get_Instance();
-        
+
         k_sem_give(&instance.ipv4_connected);
         break;
     }
@@ -127,6 +126,10 @@ int WifiStation::connect_to_wifi()
     {
         LOG_ERR("Error in net_mgmt: %d", ret);
         return ret;
+    }
+    else
+    {
+        LOG_WRN("NET_MGMT RETURN %d", ret);
     }
     this->con_state = CONNECTION_STATE::CONNECTING;
     ret = wait_wifi_to_connect();
@@ -248,12 +251,12 @@ int32_t WifiStation::get_rssi()
     }
 }
 
-/*TODO: Check the impact of semaphores wait using k_work, 
+/*TODO: Check the impact of semaphores wait using k_work,
 check if is a good pratice to create a exclusive thread that keeps blocked until disconnect event and try reconnect*/
 
 void WifiStation::on_disconnect()
 {
-    k_work_reschedule(&this->reconnect_k_work, K_SECONDS(30));
+    k_work_reschedule(&this->reconnect_k_work, K_SECONDS(10));
 }
 
 void WifiStation::reconnect_work(struct k_work *work)

@@ -5,10 +5,8 @@
 #include <zephyr/net/mqtt.h>
 #include <zephyr/task_wdt/task_wdt.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/data/json.h>
 
-LOG_MODULE_REGISTER(MQTT_LOG);
-
-// TODO: Add TLS to this module and test
 #if CONFIG_MQTT_TLS_ENABLE
 #include "tls_cert/cert.h"
 
@@ -20,10 +18,69 @@ static const sec_tag_t m_sec_tags[] = {
 
 #endif
 
-// MQTT Thread Stack
+/**
+ * @brief Thread stack and option defines
+ *
+ */
 #define MQTT_THREAD_OPTIONS (K_FP_REGS | K_ESSENTIAL)
 K_THREAD_STACK_DEFINE(MQTT_STACK_AREA, CONFIG_MQTT_THREAD_STACK_SIZE);
 
+/**
+ * @brief Construct a new log module register object
+ *
+ */
+LOG_MODULE_REGISTER(MQTT_LOG);
+
+/**
+ * @brief JSON structure to parse + validate data
+ *
+ */
+static const struct json_obj_descr rules_specific_date[] = {
+    JSON_OBJ_DESCR_PRIM(SpecifcDateRule_t, year, JSON_TOK_UINT),
+    JSON_OBJ_DESCR_PRIM(SpecifcDateRule_t, month, JSON_TOK_UINT),
+    JSON_OBJ_DESCR_PRIM(SpecifcDateRule_t, day, JSON_TOK_UINT),
+};
+
+static const struct json_obj_descr rules_time[] = {
+    JSON_OBJ_DESCR_PRIM(TimeRule_t, hour, JSON_TOK_UINT),
+    JSON_OBJ_DESCR_PRIM(TimeRule_t, minutes, JSON_TOK_UINT),
+};
+
+static const struct json_obj_descr rules_json_obj[] = {
+
+    JSON_OBJ_DESCR_OBJECT(Rules_t, date, rules_specific_date),
+    JSON_OBJ_DESCR_OBJECT(Rules_t, time, rules_time),
+    JSON_OBJ_DESCR_PRIM(Rules_t, period, JSON_TOK_UINT),
+    JSON_OBJ_DESCR_PRIM(Rules_t, week_days, JSON_TOK_UINT),
+    JSON_OBJ_DESCR_PRIM(Rules_t, amount, JSON_TOK_UINT),
+
+};
+
+/**
+ * @brief Parse payload and validate data
+ *
+ * @param payload
+ * @return true
+ * @return false
+ */
+bool MQTT::parse_and_validate_payload(char *payload, Rules_t *rules)
+{
+
+    int ret = this->_json.parse(payload, rules, rules_json_obj,ARRAY_SIZE(rules_json_obj));
+    if (ret < 0)
+    {
+        LOG_ERR("ERROR TO PASE JSON FILE: %d", ret);
+        return false;
+    }
+    else
+    {
+        LOG_INF("JSON FILE PARSED");
+        return true;
+        // TODO: Implement validation part
+    }
+}
+
+// TODO: Check if this need to be static and why did i make this way
 /**
  * @brief Handle publish event in MQTT callback
  *
@@ -33,19 +90,26 @@ K_THREAD_STACK_DEFINE(MQTT_STACK_AREA, CONFIG_MQTT_THREAD_STACK_SIZE);
 void MQTT::on_mqtt_publish(struct mqtt_client *const client, const struct mqtt_evt *evt)
 {
     auto *self = static_cast<MQTT *>(client->user_data);
-    int rc;
+    int ret;
     char payload[500];
-
-    rc = mqtt_read_publish_payload(client, payload, 500);
-    if (rc < 0)
+    ret = mqtt_read_publish_payload(client, payload, 500);
+    if (ret < 0)
     {
-        LOG_ERR("Failed to read received MQTT payload [%d]", rc);
+        LOG_ERR("Failed to read received MQTT payload [%d]", ret);
         return;
     }
     /* Place null terminator at end of payload buffer */
-    payload[rc] = '\0';
-    self->_fs.write_data(RULES_ID, payload);
-    NetworkService::rise_evt(NetworkEvent::MQTT_NEW_DATA);
+    payload[ret] = '\0';
+    Rules_t rules_payload;
+
+    if (self->parse_and_validate_payload(payload, &rules_payload))
+    {
+        ret = self->_fs.write_buffer(RULES_ID, &rules_payload, sizeof(rules_payload));
+        if (ret >= 0)
+        {
+            NetworkService::rise_evt(NetworkEvent::MQTT_NEW_DATA);
+        }
+    }
 }
 
 /**
@@ -54,8 +118,7 @@ void MQTT::on_mqtt_publish(struct mqtt_client *const client, const struct mqtt_e
  * @param client
  * @param evt
  */
-void MQTT::mqtt_evt_handler(struct mqtt_client *client,
-                            const struct mqtt_evt *evt)
+void MQTT::mqtt_evt_handler(struct mqtt_client *client, const struct mqtt_evt *evt)
 {
     auto *self = static_cast<MQTT *>(client->user_data);
     switch (evt->type)
@@ -67,7 +130,7 @@ void MQTT::mqtt_evt_handler(struct mqtt_client *client,
             LOG_ERR("MQTT Event Connect failed [%d]", evt->result);
             break;
         }
-        self->is_mqtt_connected = true;
+        self->isMqttConnected = true;
         NetworkService::rise_evt(NetworkEvent::MQTT_CONNECTED);
 
         break;
@@ -142,7 +205,7 @@ MQTT::~MQTT()
  */
 void MQTT::on_disconnect()
 {
-    this->is_mqtt_connected = false;
+    this->isMqttConnected = false;
     this->nfds = 0;
 }
 
@@ -228,7 +291,7 @@ int MQTT::poll_mqtt_socket(int timout)
 bool MQTT::connect()
 {
 
-    this->is_mqtt_connected = false;
+    this->isMqttConnected = false;
     int ret;
 
     ret = mqtt_connect(&this->client_ctx);
@@ -369,7 +432,7 @@ int MQTT::read_payload()
  */
 bool MQTT::is_connected()
 {
-    return this->is_mqtt_connected;
+    return this->isMqttConnected;
 }
 
 bool MQTT::setup_client()

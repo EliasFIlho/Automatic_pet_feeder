@@ -20,9 +20,6 @@ private:
 public:
     RTC();
     ~RTC();
-    
-    //TODO: Create a init method that will create a timer to re-sync RTC
-
     int sync_time(); // Function to sync wall-clock time
     int get_week_day(); // Function to parse and return the week day
     int get_epoch();

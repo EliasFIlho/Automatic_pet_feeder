@@ -8,13 +8,12 @@ class StepperController : public IMotor
 {
 private:
     int current_position;
-    //TODO: Make these structs as pointers and get the values in main
-    struct gpio_dt_spec direction;
-    struct gpio_dt_spec steps;
-    struct gpio_dt_spec enable;
+    struct gpio_dt_spec *_direction;
+    struct gpio_dt_spec *_steps;
+    struct gpio_dt_spec *_enable;
 
 public:
-    StepperController();
+    StepperController(struct gpio_dt_spec * dir, struct gpio_dt_spec * step, struct gpio_dt_spec * en);
     ~StepperController();
     void move_to(int step);
     void move_for(int amout);

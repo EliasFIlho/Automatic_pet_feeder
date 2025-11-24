@@ -9,6 +9,7 @@
 #include <zephyr/fs/zms.h>
 #include <zephyr/logging/log.h>
 #include <stdlib.h>
+#include <iostream>
 
 #define ZMS_PARTITION storage_partition
 #define ZMS_PARTITION_DEVICE FIXED_PARTITION_DEVICE(ZMS_PARTITION)
@@ -24,6 +25,11 @@ Storage::~Storage()
 {
 }
 
+/**
+ * @brief Init filesystem
+ *
+ * @return FILE_SYSTEM_ERROR
+ */
 FILE_SYSTEM_ERROR Storage::init_storage()
 {
     struct flash_pages_info info;
@@ -51,50 +57,69 @@ FILE_SYSTEM_ERROR Storage::init_storage()
     return FILE_SYSTEM_ERROR::STORAGE_OK;
 }
 
-int Storage::read_data(uint32_t id, char *buf, unsigned int buf_len)
+/**
+ * @brief Generic private write function that will be used by the public calls to read from ZMS
+ *
+ * @param id
+ * @param ptr
+ * @param size
+ * @return int32_t
+ */
+int32_t Storage::read_buffer(uint32_t id, void *ptr, size_t size)
 {
-
-    int rc = zms_read(&fs, id, buf, buf_len);
-    if (rc > 0)
+    int ret = zms_read(&this->fs, id, ptr, size);
+    if (ret < 0)
     {
-        buf[rc] = '\0';
-        //LOG_INF("Data readed: %s\n\r", buf);
+        LOG_ERR("ERROR TO READ DATA: %d", ret);
+        return ret;
+    }
+    if (id != RULES_ID)
+    {
+        auto str_buffer = static_cast<char *>(ptr);
+        str_buffer[ret] = '\0';
+        LOG_INF("READED DATA: %s", str_buffer);
     }
     else
     {
-        LOG_WRN("No data in FS");
+        LOG_INF("RULES DATA READED");
     }
-    return rc;
+    return ret;
 }
 
-// TODO: Check if is valid a template for data parameter to make write method more modular
-int32_t Storage::write_data(uint32_t id, const char *str)
+/**
+ * @brief Generic private write function that will be used by the public calls to write in ZMS
+ *
+ * @param id
+ * @param ptr
+ * @param size
+ * @return int32_t
+ */
+int32_t Storage::write_buffer(uint32_t id, void *ptr, size_t size)
 {
-    int32_t fs_free_space = this->get_free_space();
-    if ((fs_free_space > 0) && (static_cast<uint32_t>(fs_free_space) < strlen(str)))
-    {
+    int32_t free_space = this->get_free_space();
+
+    if (free_space < 0)
+        return free_space;
+
+    if ((uint32_t)free_space < size)
         return -ENOSPC;
-    }
-    else if (fs_free_space < 0)
-    {
-        return fs_free_space;
-    }
-    else
-    {
 
-        int rc = zms_write(&fs, id, str, strlen(str));
-        if (rc < 0)
-        {
-            LOG_ERR("Error while writing Entry rc=%d", rc);
-        }
-        else
-        {
-            LOG_INF("Sucess to write data - %d bytes",rc);
-        }
-        return rc;
-    }
+    int ret = zms_write(&fs, id, ptr, size);
+
+    if (ret != size)
+        LOG_ERR("Error while writing Entry ret=%d", ret);
+    else
+        LOG_INF("Success to write %zu bytes", size);
+
+    return ret;
 }
 
+
+/**
+ * @brief Get ZMS free space
+ *
+ * @return int32_t
+ */
 int32_t Storage::get_free_space()
 {
     int32_t ret = zms_calc_free_space(&this->fs);

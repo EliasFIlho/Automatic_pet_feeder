@@ -17,10 +17,11 @@ private:
 
 private:
     int32_t get_free_space();
-public:
+    
+    public:
     Storage();
     ~Storage();
     FILE_SYSTEM_ERROR init_storage();
-    int read_data(uint32_t id, char *buf, size_t buf_len);
-    int32_t write_data(uint32_t id, const char *str);
+    int32_t write_buffer(uint32_t id, void *ptr, size_t size);
+    int32_t read_buffer(uint32_t id, void *ptr, size_t size);
 };

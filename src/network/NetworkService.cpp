@@ -133,11 +133,11 @@ NET_ERROR NetworkService::set_wifi_credentials()
     int ret;
     LOG_INF("Start Network LOGS");
 
-    if (this->_fs.read_data(SSID_ID, ssid, sizeof(ssid)) < 0)
+    if (this->_fs.read_buffer(SSID_ID, ssid, sizeof(ssid)) < 0)
     {
         return this->fail(NET_ERROR::MISSING_WIFI_CREDENTIALS, "SSID Missing");
     }
-    if (this->_fs.read_data(PASSWORD_ID, psk, sizeof(psk)) < 0)
+    if (this->_fs.read_buffer(PASSWORD_ID, psk, sizeof(psk)) < 0)
     {
         return this->fail(NET_ERROR::MISSING_WIFI_CREDENTIALS, "Password Missing");
     }

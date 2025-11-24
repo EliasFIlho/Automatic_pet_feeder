@@ -9,7 +9,6 @@ add_subdirectory(interface)  # defines target: ports
 
 # ---- Your libs (split by layer) ----
 add_subdirectory(src/application)
-add_subdirectory(src/application/app)
 add_subdirectory(src/devices/rtc)
 add_subdirectory(src/devices/motor)
 add_subdirectory(src/devices/watchdog)

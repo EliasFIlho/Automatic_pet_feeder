@@ -8,15 +8,11 @@
 
 LOG_MODULE_REGISTER(MOTOR_LOG);
 
-
-//TODO: Considere to make motor spin as k_work to decrease spin speed and do not affect other threads
-
-
 /**
  * @brief Construct a new StepperController::StepperController object
  *
  */
-StepperController::StepperController()
+StepperController::StepperController(struct gpio_dt_spec * dir, struct gpio_dt_spec * step, struct gpio_dt_spec * en) : _direction{dir}, _steps{step}, _enable{en}
 {
 }
 
@@ -30,34 +26,30 @@ StepperController::~StepperController()
 
 uint32_t StepperController::init()
 {
-    //TODO: Move these macro calls to main and pointer assign to constructor
-    this->direction = GPIO_DT_SPEC_GET_BY_IDX(DT_NODELABEL(stepper), gpios, 0);
-    this->steps = GPIO_DT_SPEC_GET_BY_IDX(DT_NODELABEL(stepper), gpios, 1);
-    this->enable = GPIO_DT_SPEC_GET_BY_IDX(DT_NODELABEL(stepper), gpios, 2);
-
+ 
     bool success = true;
 
     // Check if devices are ready
-    if (!device_is_ready(direction.port) || !device_is_ready(steps.port) || !device_is_ready(enable.port))
+    if (!device_is_ready(_direction->port) || !device_is_ready(_steps->port) || !device_is_ready(_enable->port))
     {
         LOG_ERR("Device not ready!!");
         success = false;
     }
 
     // Check each step in sequence
-    if (gpio_pin_configure_dt(&this->direction, GPIO_OUTPUT) != 0) {
+    if (gpio_pin_configure_dt(this->_direction, GPIO_OUTPUT) != 0) {
         LOG_ERR("Error configuring direction pin");
         success = false;
     }
-    if (gpio_pin_configure_dt(&this->steps, GPIO_OUTPUT) != 0) {
+    if (gpio_pin_configure_dt(this->_steps, GPIO_OUTPUT) != 0) {
         LOG_ERR("Error configuring steps pin");
         success = false;
     }
-    if (gpio_pin_configure_dt(&this->enable, GPIO_OUTPUT) != 0) {
+    if (gpio_pin_configure_dt(this->_enable, GPIO_OUTPUT) != 0) {
         LOG_ERR("Error configuring enable pin");
         success = false;
     }
-    if (gpio_pin_set_dt(&this->enable, 1) != 0) {
+    if (gpio_pin_set_dt(this->_enable, 1) != 0) {
         LOG_ERR("Error setting enable pin");
         success = false;
     }
@@ -78,29 +70,29 @@ void StepperController::move_to(int step)
 
     if (step < this->current_position)
     {
-        gpio_pin_set_dt(&enable, 0);
-        gpio_pin_set_dt(&direction, 0);
+        gpio_pin_set_dt(_enable, 0);
+        gpio_pin_set_dt(_direction, 0);
         error = this->current_position - step;
         for (int i = 0; i < error; i++)
         {
-            gpio_pin_toggle_dt(&steps);
+            gpio_pin_toggle_dt(_steps);
             this->current_position--;
             k_usleep(500);
         }
-        gpio_pin_set_dt(&enable, 1);
+        gpio_pin_set_dt(_enable, 1);
     }
     else if (step > this->current_position)
     {
-        gpio_pin_set_dt(&enable, 0);
-        gpio_pin_set_dt(&direction, 1);
+        gpio_pin_set_dt(_enable, 0);
+        gpio_pin_set_dt(_direction, 1);
         error = step - this->current_position;
         for (int i = 0; i < error; i++)
         {
-            gpio_pin_toggle_dt(&steps);
+            gpio_pin_toggle_dt(_steps);
             this->current_position++;
             k_usleep(500);
         }
-        gpio_pin_set_dt(&enable, 1);
+        gpio_pin_set_dt(_enable, 1);
     }
     else
     {
@@ -115,13 +107,13 @@ void StepperController::move_to(int step)
  */
 void StepperController::move_for(int amout)
 {
-    gpio_pin_set_dt(&direction, 0);
-    gpio_pin_set_dt(&enable, 0);
+    gpio_pin_set_dt(_direction, 0);
+    gpio_pin_set_dt(_enable, 0);
     for (int i = 0; i < amout; i++)
     {
-        gpio_pin_toggle_dt(&steps);
+        gpio_pin_toggle_dt(_steps);
         current_position++;
         k_usleep(500);
     }
-    gpio_pin_set_dt(&enable, 1);
+    gpio_pin_set_dt(_enable, 1);
 }

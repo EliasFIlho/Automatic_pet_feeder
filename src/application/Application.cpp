@@ -1,9 +1,11 @@
 #include "Application.hpp"
 
 #define WTD_TIMEOUT_THRESHOLD 5000
-#define RULES_TEMP_BUFF 250
 
-Application::Application(IClock &clk, IMotor &motor, IStorage &fs, IWatchDog &guard, IJson &json, ITaskRunner &runner) : _clk(clk), _motor(motor), _fs(fs), _guard(guard), _json(json), _runner(runner)
+K_THREAD_STACK_DEFINE(APP_STACK_AREA, CONFIG_APP_THREAD_STACK_SIZE);
+LOG_MODULE_REGISTER(APPLICATION_LOG);
+
+Application::Application(IClock &clk, IMotor &motor, IStorage &fs, IWatchDog &guard, IJson &json) : _clk(clk), _motor(motor), _fs(fs), _guard(guard), _json(json)
 {
 }
 
@@ -17,12 +19,11 @@ void Application::on_network_event(NetworkEvent evt)
     {
     case NetworkEvent::WIFI_CONNECTED:
         // Enable RTC sync using SNTP
+        this->isNetworkConnected = true;
         break;
     case NetworkEvent::WIFI_DISCONNECTED:
         // Disable RTC sync and go offline mode
-        break;
-    case NetworkEvent::MQTT_DISCONNECTED:
-        // Check if is relevant
+        this->isNetworkConnected = false;
         break;
     case NetworkEvent::MQTT_NEW_DATA:
         // Refresh the scheduller rules buffer with storage new data
@@ -35,16 +36,14 @@ void Application::on_network_event(NetworkEvent evt)
 
 int32_t Application::get_rules()
 {
-    char rules_buff[RULES_TEMP_BUFF];
     int32_t ret;
-    ret = this->_fs.read_data(RULES_ID, rules_buff, sizeof(rules_buff));
+    ret = this->_fs.read_buffer(RULES_ID, &this->rules, sizeof(this->rules));
     if (ret < 0)
     {
         return ret;
     }
     else
     {
-        this->_json.parse(rules_buff, &this->rules);
         this->isRulesAvaliable = true;
         return 0;
     }
@@ -173,16 +172,16 @@ void Application::app(void *p1, void *, void *)
 
     while (true)
     {
-        if(self->isRulesAvaliable){
+        if (self->isRulesAvaliable)
+        {
             self->step();
         }
         self->_guard.feed(self->task_wdt_id);
-        self->_runner.sleep(CONFIG_APPLICATION_THREAD_PERIOD);
+        k_msleep(CONFIG_APPLICATION_THREAD_PERIOD);
     }
 }
 
-//TODO: i've add this runner to avoid kernel modules inside application, but this seems too much...I'll create a interface for application so i can mock for tests in host machine
 void Application::init_application()
 {
-    this->_runner.create_task(Application::app, this);
+    k_thread_create(&this->app_thread, APP_STACK_AREA, CONFIG_APP_THREAD_STACK_SIZE, Application::app, this, NULL, NULL, CONFIG_APP_THREAD_PRIORITY, 0, K_NO_WAIT);
 }

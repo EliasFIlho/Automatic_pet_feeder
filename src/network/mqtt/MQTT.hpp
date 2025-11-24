@@ -7,6 +7,7 @@
 #include "IStorage.hpp"
 #include "IWatchDog.hpp"
 #include "IJson.hpp"
+#include "SchedulerRules.hpp"
 
 extern k_msgq mqtt_publish_queue;
 
@@ -23,7 +24,7 @@ private:
     struct sockaddr_in broker;
     struct mqtt_utf8 user_utf8;
     struct mqtt_utf8 pass_utf8;
-    bool is_mqtt_connected;
+    bool isMqttConnected;
     char publish_buf[CONFIG_MQTT_PUBLISH_BUFFER_SIZE];
     uint8_t rx_buffer[CONFIG_MQTT_RX_BUFFER_SIZE];
     uint8_t tx_buffer[CONFIG_MQTT_TX_BUFFER_SIZE];
@@ -53,6 +54,7 @@ private:
 #if CONFIG_MQTT_TLS_ENABLE
     int32_t setup_tls();
 #endif
+    bool parse_and_validate_payload(char *payload, Rules_t *rules);
 
 public:
     MQTT(IWatchDog &guard, IStorage &_fs, IJson &json);

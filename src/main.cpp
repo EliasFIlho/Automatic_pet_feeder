@@ -1,13 +1,6 @@
-/*
- *
- * Init Wifi and send a HTTP GET request to google
- *
- */
-
 #include <zephyr/kernel.h>
 #include <string.h>
 #include "Application.hpp"
-#include "TaskRunner.hpp"
 #include "StepperController.hpp"
 #include "RTC.hpp"
 #include "Storage.hpp"
@@ -32,6 +25,7 @@ LOG_MODULE_REGISTER(LOGS);
 K_MSGQ_DEFINE(mqtt_publish_queue, sizeof(struct level_sensor), 10, 1);
 K_MSGQ_DEFINE(net_evt_queue, sizeof(struct NetEventMsg), 10, 1);
 
+
 /**
  * @brief Device tree devices
  *
@@ -39,6 +33,10 @@ K_MSGQ_DEFINE(net_evt_queue, sizeof(struct NetEventMsg), 10, 1);
 const struct device *const sensor_dev = DEVICE_DT_GET(DT_NODELABEL(hc_sr04));
 const struct device *const hw_wdt_dev = DEVICE_DT_GET(DT_ALIAS(watchdog0));
 struct pwm_dt_spec net_led = PWM_DT_SPEC_GET(DT_NODELABEL(fade_led));
+struct gpio_dt_spec dir_stepper_dt = GPIO_DT_SPEC_GET_BY_IDX(DT_NODELABEL(stepper), gpios, 0);
+struct gpio_dt_spec steps_stepper_dt = GPIO_DT_SPEC_GET_BY_IDX(DT_NODELABEL(stepper), gpios, 1);
+struct gpio_dt_spec enable_stepper_dt = GPIO_DT_SPEC_GET_BY_IDX(DT_NODELABEL(stepper), gpios, 2);
+
 
 /**
  * @brief Objects declaration
@@ -49,18 +47,16 @@ struct pwm_dt_spec net_led = PWM_DT_SPEC_GET(DT_NODELABEL(fade_led));
 Watchdog guard(hw_wdt_dev);
 Storage fs;
 JsonModule json;
-StepperController motor;
+StepperController motor(&dir_stepper_dt,&steps_stepper_dt,&enable_stepper_dt);
 RTC rtc;
 MQTT mqtt(guard, fs, json);
 Led led(&net_led);
 IWifi &wifi = WifiStation::Get_Instance();
 NetworkService net(mqtt, wifi, fs, led);
-TaskRunner task_runner;
-Application app(rtc, motor, fs, guard, json, task_runner);
+Application app(rtc, motor, fs, guard, json);
 LvlSensor sensor(sensor_dev);
 
 // TODO: Document modules with doxygen style
-
 // TODO: See how to use Kconfig without modify Zephyr base Kconfig
 int main(void)
 {
