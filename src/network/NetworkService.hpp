@@ -64,7 +64,7 @@ private:
     public:
     NetworkService(IMQTT &mqtt, IWifi &wifi, IStorage &fs, ILed &led);
     NET_ERROR start();
-    void register_listener(INetworkEvents* listener);
+    int32_t register_listener(INetworkEvents* listener);
     static void rise_evt(NetworkEvent evt);
     void stop();
     ~NetworkService();

@@ -57,16 +57,15 @@ static const struct json_obj_descr rules_json_obj[] = {
 };
 
 /**
- * @brief Parse payload and validate data
- *
+ * @brief Parse payload
  * @param payload
  * @return true
  * @return false
  */
-bool MQTT::parse_and_validate_payload(char *payload, Rules_t *rules)
+bool MQTT::parse_payload(char *payload, Rules_t *rules)
 {
 
-    int ret = this->_json.parse(payload, rules, rules_json_obj,ARRAY_SIZE(rules_json_obj));
+    int ret = this->_json.parse(payload, rules, rules_json_obj, ARRAY_SIZE(rules_json_obj));
     if (ret < 0)
     {
         LOG_ERR("ERROR TO PASE JSON FILE: %d", ret);
@@ -75,12 +74,60 @@ bool MQTT::parse_and_validate_payload(char *payload, Rules_t *rules)
     else
     {
         LOG_INF("JSON FILE PARSED");
+
         return true;
-        // TODO: Implement validation part
     }
 }
 
-// TODO: Check if this need to be static and why did i make this way
+/**
+ * @brief   Validate the receive payload data
+ *
+ *   - Check for valid data based on perid selected
+        - Check if week day mask > 0 for weekly period
+        - Check for month greater than 12 for specifc period
+        - Check for days > 31
+        - Not realy sure about year limitations :p
+    - Check for corrupted data such as hour greater than 24 or minutes greater than 59
+
+ *
+ * @param rules
+ * @return true
+ * @return false
+ */
+bool MQTT::validate_payload(Rules_t *rules)
+{
+    if (rules->period == WEEKLY)
+    {
+        if (rules->week_days == 0 || rules->week_days > MAX_WEEK_DAYS_MASK_VALUE)
+        {
+            LOG_ERR("Wrong value for week days mask value equal to 0 or greater than 0x7F: %d", rules->week_days);
+            return false;
+        }
+    }
+    else if (rules->period == SPECIF)
+    {
+        if (rules->date.day > MAX_DAYS_SPECIFIC_VALUE || rules->date.month > MAX_MONTHS_SPECIFIC_VALUE ||
+            rules->date.day < MIN_DAYS_SPECIFIC_VALUE || rules->date.month < MIN_MONTHS_SPECIFIC_VALUE)
+        {
+            LOG_ERR("Wrong date field in JSON: [ Day - %d | Month - %d ]", rules->date.day, rules->date.month);
+            return false;
+        }
+    }
+    else
+    {
+        LOG_ERR("Wrong value for period field in JSON: %d", rules->period);
+        return false;
+    }
+
+    if (rules->time.hour > MAX_HOUR_TIME_VALUE || rules->time.minutes > MAX_MINUTE_TIME_VALUE)
+    {
+        LOG_ERR("Wrong time field in JSON: [ Hour - %d | Minutes - %d ]", rules->time.hour, rules->time.minutes);
+        return false;
+    }
+
+    return true;
+}
+
 /**
  * @brief Handle publish event in MQTT callback
  *
@@ -102,12 +149,15 @@ void MQTT::on_mqtt_publish(struct mqtt_client *const client, const struct mqtt_e
     payload[ret] = '\0';
     Rules_t rules_payload;
 
-    if (self->parse_and_validate_payload(payload, &rules_payload))
+    if (self->parse_payload(payload, &rules_payload))
     {
-        ret = self->_fs.write_buffer(RULES_ID, &rules_payload, sizeof(rules_payload));
-        if (ret >= 0)
+        if (self->validate_payload(&rules_payload))
         {
-            NetworkService::rise_evt(NetworkEvent::MQTT_NEW_DATA);
+            ret = self->_fs.write_buffer(RULES_ID, &rules_payload, sizeof(rules_payload));
+            if (ret >= 0)
+            {
+                NetworkService::rise_evt(NetworkEvent::MQTT_NEW_DATA);
+            }
         }
     }
 }
@@ -400,9 +450,6 @@ int MQTT::read_payload()
             {
                 LOG_ERR("MQTT Input failed [%d]", ret);
                 return ret;
-            }
-            else
-            {
             }
             /* Socket error */
             if (fds[0].revents & (ZSOCK_POLLHUP | ZSOCK_POLLERR))

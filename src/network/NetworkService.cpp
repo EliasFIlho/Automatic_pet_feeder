@@ -103,13 +103,14 @@ void NetworkService::rise_evt(NetworkEvent evt)
     k_msgq_put(&net_evt_queue, &msg, K_NO_WAIT);
 }
 
-// TODO: Add return for max lister reach
-void NetworkService::register_listener(INetworkEvents *listener)
+int32_t NetworkService::register_listener(INetworkEvents *listener)
 {
     if (this->listener_count < MAX_LISTERNERS)
     {
         this->listeners[this->listener_count] = listener;
         this->listener_count++;
+    }else{
+        return -ENOBUFS;
     }
 }
 

@@ -53,7 +53,7 @@ MQTT mqtt(guard, fs, json);
 Led led(&net_led);
 IWifi &wifi = WifiStation::Get_Instance();
 NetworkService net(mqtt, wifi, fs, led);
-Application app(rtc, motor, fs, guard, json);
+Application app(rtc, motor, fs, guard);
 LvlSensor sensor(sensor_dev);
 
 // TODO: Document modules with doxygen style

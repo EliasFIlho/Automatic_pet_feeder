@@ -1,10 +1,9 @@
 #pragma once
 
 #include "IMotor.hpp"
-#include "IClock.hpp"
+#include "IRTC.hpp"
 #include "IStorage.hpp"
 #include "IWatchDog.hpp"
-#include "IJson.hpp"
 #include "NetworkService.hpp"
 #include "SchedulerRules.hpp"
 #include "INetworkEvents.hpp"
@@ -17,11 +16,10 @@ class Application : public INetworkEvents
 private:
     // TODO: Need to make rules int a fixed size array and populate
     Rules_t rules;
-    IClock &_clk;
+    IRTC &_clk;
     IMotor &_motor;
     IStorage &_fs;
     IWatchDog &_guard;
-    IJson &_json;
     int task_wdt_id;
     bool isDispenserExecuted;
     bool isRulesAvaliable;
@@ -40,7 +38,7 @@ private:
     static void app(void *p1, void *, void *); // Application function
 
 public:
-    Application(IClock &clk, IMotor &motor, IStorage &fs, IWatchDog &guard, IJson &json);
+    Application(IRTC &clk, IMotor &motor, IStorage &fs, IWatchDog &guard);
     ~Application();
     void init_application(); // Start application thread
 };

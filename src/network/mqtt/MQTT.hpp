@@ -54,7 +54,8 @@ private:
 #if CONFIG_MQTT_TLS_ENABLE
     int32_t setup_tls();
 #endif
-    bool parse_and_validate_payload(char *payload, Rules_t *rules);
+    bool parse_payload(char *payload, Rules_t *rules);
+    bool validate_payload(Rules_t *rules);
 
 public:
     MQTT(IWatchDog &guard, IStorage &_fs, IJson &json);

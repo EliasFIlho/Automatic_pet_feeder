@@ -77,7 +77,7 @@ int32_t Storage::read_buffer(uint32_t id, void *ptr, size_t size)
     {
         auto str_buffer = static_cast<char *>(ptr);
         str_buffer[ret] = '\0';
-        LOG_INF("READED DATA: %s", str_buffer);
+        //LOG_INF("READED DATA: %s", str_buffer);
     }
     else
     {
