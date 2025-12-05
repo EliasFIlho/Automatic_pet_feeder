@@ -11,6 +11,17 @@
 
 extern k_msgq mqtt_publish_queue;
 
+enum class MQTT_STATES
+{
+    INIT,
+    CLIENT_READY,
+    BROKER_READY,
+    CONNECTING,
+    CONNECTED,
+    RUNNING,
+    ERROR,
+};
+
 /**
  * @brief MQTT Class
  *
@@ -25,6 +36,7 @@ private:
     struct mqtt_utf8 user_utf8;
     struct mqtt_utf8 pass_utf8;
     bool isMqttConnected;
+    bool isBrokerSeted;
     char publish_buf[CONFIG_MQTT_PUBLISH_BUFFER_SIZE];
     uint8_t rx_buffer[CONFIG_MQTT_RX_BUFFER_SIZE];
     uint8_t tx_buffer[CONFIG_MQTT_TX_BUFFER_SIZE];

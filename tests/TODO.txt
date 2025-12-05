@@ -1,2 +1,2 @@
-//TODO: See how to use ztest framework
+//TODO: See how to use ztest framework - quick update i saw some examples and the learning curve a little too much to say less... i'll keep trying later.
 //TODO: Create tests for modules

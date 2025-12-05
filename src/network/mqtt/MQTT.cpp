@@ -269,6 +269,7 @@ void MQTT::on_disconnect()
 // TODO: Try to get the broker ip using getaddrinfo
 bool MQTT::setup_broker()
 {
+    this->isBrokerSeted = false;
     int ret;
     this->broker.sin_family = AF_INET;
 #if CONFIG_MQTT_TLS_ENABLE
@@ -285,6 +286,7 @@ bool MQTT::setup_broker()
     else
     {
         LOG_INF("SOCKET: MQTT ADDRESS CONVERTED");
+        this->isBrokerSeted = true;
         return true;
     }
 }
@@ -484,30 +486,15 @@ bool MQTT::is_connected()
 
 bool MQTT::setup_client()
 {
-
-    if (this->setup_broker())
-    {
-        LOG_INF("MQTT Broker ready");
-    }
-    else
-    {
-        LOG_ERR("MQTT ERROR TO SET BROKER");
-        return false;
-    }
     this->init();
 #if CONFIG_MQTT_TLS_ENABLE
-    this->setup_tls();
-#endif
 
-    if (this->connect())
+    if (this->setup_tls() != 0)
     {
-        this->subscribe();
-    }
-    else
-    {
-        LOG_ERR("MQTT ERROR TO CONNECT");
         return false;
     }
+#endif
+
     return true;
 }
 
@@ -559,6 +546,15 @@ void MQTT::mqtt_publish_payload()
  */
 void MQTT::reconnect()
 {
+    if (!this->isBrokerSeted)
+    {
+        if (!this->setup_broker())
+        {
+            LOG_WRN("Could not setup broker...");
+            return;
+        }
+    }
+
     if (this->connect())
     {
         this->subscribe();
@@ -573,43 +569,107 @@ void MQTT::reconnect()
  */
 void MQTT::mqtt_task(void *p1, void *, void *)
 {
+    // reference to "this" pointer
     auto *self = static_cast<MQTT *>(p1);
-    uint8_t setup_tries = 0;
-    while (!self->setup_client())
+    int read_mqtt_task_wdt_id = self->_guard.create_and_get_wtd_timer_id(CONFIG_MQTT_WATCHDOG_TIMEOUT_THREAD);
+    MQTT_STATES curr_state = MQTT_STATES::INIT;
+    while (true)
     {
-        setup_tries++;
-        if (setup_tries > 5)
+        switch (curr_state)
         {
-            break;
-        }
-        k_msleep(1000);
-    }
-    if (setup_tries > 5)
-    {
-        LOG_WRN("MQTT Could not setup client");
-        k_sleep(K_FOREVER);
-    }
-    else
-    {
-        int read_mqtt_task_wdt_id = self->_guard.create_and_get_wtd_timer_id(CONFIG_MQTT_WATCHDOG_TIMEOUT_THREAD);
-        while (true)
-        {
-            if (self->is_connected())
+        case MQTT_STATES::INIT:
+            if (self->setup_client())
             {
-                // Poll for incoming data
-                self->read_payload();
-                // Check for incoming data to publish
-                self->mqtt_publish_payload();
-
-                // Feed task watchdog
-                self->_guard.feed(read_mqtt_task_wdt_id);
+                curr_state = MQTT_STATES::CLIENT_READY;
             }
             else
             {
-                self->reconnect();
+                LOG_WRN("Client init failed - retrying");
+                self->_guard.feed(read_mqtt_task_wdt_id);
+                k_msleep(1000);
+            }
+            break;
+
+        case MQTT_STATES::CLIENT_READY:
+            if (self->setup_broker())
+            {
+                curr_state = MQTT_STATES::BROKER_READY;
+            }
+            else
+            {
+                LOG_WRN("Broker init failed - retrying");
+                self->_guard.feed(read_mqtt_task_wdt_id);
+                k_msleep(1000);
+            }
+            break;
+
+        case MQTT_STATES::BROKER_READY:
+            if (self->connect())
+            {
+                curr_state = MQTT_STATES::CONNECTING;
+            }
+            else
+            {
+                LOG_WRN("Fail to connect - retrying");
                 self->_guard.feed(read_mqtt_task_wdt_id);
                 k_msleep(CONFIG_MQTT_THREAD_RECONNECT_PERIOD);
             }
+            break;
+
+        case MQTT_STATES::CONNECTING:
+            if (self->isMqttConnected)
+            {
+                if (self->subscribe())
+                {
+                    curr_state = MQTT_STATES::CONNECTED;
+                }
+                else
+                {
+                    curr_state = MQTT_STATES::ERROR;
+                }
+            }
+            else
+            {
+                LOG_WRN("Waiting for CONACK");
+                self->_guard.feed(read_mqtt_task_wdt_id);
+                k_msleep(CONFIG_MQTT_THREAD_RECONNECT_PERIOD);
+            }
+            break;
+
+        case MQTT_STATES::CONNECTED:
+
+            LOG_INF("MQTT fully connected");
+            curr_state = MQTT_STATES::RUNNING;
+
+            break;
+
+        case MQTT_STATES::RUNNING:
+            if (self->isMqttConnected)
+            {
+                int ret = self->read_payload();
+                if (ret == -ENOTCONN)
+                {
+                    curr_state = MQTT_STATES::ERROR;
+                }
+                else
+                {
+                    self->mqtt_publish_payload();
+                    self->_guard.feed(read_mqtt_task_wdt_id);
+                }
+            }
+            else
+            {
+                curr_state = MQTT_STATES::ERROR;
+            }
+            break;
+
+        case MQTT_STATES::ERROR:
+            LOG_ERR("MQTT ERROR - RESET FSM");
+            curr_state = MQTT_STATES::CLIENT_READY;
+            break;
+
+        default:
+            break;
         }
     }
 }
