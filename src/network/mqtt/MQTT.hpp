@@ -17,7 +17,6 @@ enum class MQTT_STATES
     CLIENT_READY,
     BROKER_READY,
     CONNECTING,
-    CONNECTED,
     RUNNING,
     ERROR,
 };

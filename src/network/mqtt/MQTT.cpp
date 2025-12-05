@@ -621,7 +621,7 @@ void MQTT::mqtt_task(void *p1, void *, void *)
             {
                 if (self->subscribe())
                 {
-                    curr_state = MQTT_STATES::CONNECTED;
+                    curr_state = MQTT_STATES::RUNNING;
                 }
                 else
                 {
@@ -635,14 +635,6 @@ void MQTT::mqtt_task(void *p1, void *, void *)
                 k_msleep(CONFIG_MQTT_THREAD_RECONNECT_PERIOD);
             }
             break;
-
-        case MQTT_STATES::CONNECTED:
-
-            LOG_INF("MQTT fully connected");
-            curr_state = MQTT_STATES::RUNNING;
-
-            break;
-
         case MQTT_STATES::RUNNING:
             if (self->isMqttConnected)
             {
