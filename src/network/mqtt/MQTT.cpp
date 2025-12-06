@@ -660,7 +660,7 @@ void MQTT::mqtt_task(void *p1, void *, void *)
             curr_state = MQTT_STATES::CLIENT_READY;
             break;
 
-        default:
+        default:    
             break;
         }
     }

@@ -58,6 +58,8 @@ LvlSensor sensor(sensor_dev);
 
 // TODO: Document modules with doxygen style
 // TODO: See how to use Kconfig without modify Zephyr base Kconfig
+
+//I'll convert all to state machines bcs looks fun lol (actually i'm learning a bit more about and seems that is realy easy to fit then in almost everything)
 int main(void)
 {
 

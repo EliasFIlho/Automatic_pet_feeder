@@ -11,6 +11,16 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
+
+enum class APP_STATES{
+    INIT,
+    LOAD_RULES,
+    CHECK_RULES,
+    PROCESS,
+    IDLE
+};
+
+
 class Application : public INetworkEvents
 {
 private:
@@ -21,9 +31,11 @@ private:
     IStorage &_fs;
     IWatchDog &_guard;
     int task_wdt_id;
+    APP_STATES state;
     bool isDispenserExecuted;
     bool isRulesAvaliable;
     bool isNetworkConnected;
+    bool shouldUpdateRules;
     struct k_thread app_thread;
 
 private:
@@ -34,7 +46,6 @@ private:
     void dispense_food();                    // Dispense a X amount of food (the amount calc will be defined after the mechanics)
     bool check_rules();                      // Compare current time stamp with the rules
     void on_network_event(NetworkEvent evt); // Callback for network events
-    void step();
     static void app(void *p1, void *, void *); // Application function
 
 public:

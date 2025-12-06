@@ -27,7 +27,7 @@ void Application::on_network_event(NetworkEvent evt)
         break;
     case NetworkEvent::MQTT_NEW_DATA:
         // Refresh the scheduller rules buffer with storage new data
-        this->get_rules();
+        this->shouldUpdateRules = true;
         break;
     default:
         break;
@@ -51,7 +51,7 @@ int32_t Application::get_rules()
 
 void Application::dispense_food()
 {
-    //TODO: Add notify to tasks that might want to know about.
+    // TODO: Add notify to tasks that might want to know about.
     /*
     Since the level sensor does not change the value that often, i think is a good idea to "force" a sample + publish after a dispenser event,
     that way the user will receive the current food level left after the dispenser.
@@ -150,41 +150,74 @@ bool Application::check_rules()
     }
 }
 
-void Application::step()
-{
-    if (this->check_rules())
-    {
-        if (!this->isDispenserExecuted)
-        {
-            this->dispense_food();
-            this->isDispenserExecuted = true;
-        }
-    }
-    else
-    {
-        this->isDispenserExecuted = false;
-    }
-}
-
 void Application::app(void *p1, void *, void *)
 {
     auto *self = static_cast<Application *>(p1);
-
-    self->_clk.sync_time();
-    self->_motor.init();
+    self->state = APP_STATES::INIT;
     self->task_wdt_id = self->_guard.create_and_get_wtd_timer_id(CONFIG_APPLICATION_THREAD_PERIOD + WTD_TIMEOUT_THRESHOLD);
-    self->isDispenserExecuted = false;
-    self->isRulesAvaliable = false;
-    self->get_rules();
 
     while (true)
     {
-        if (self->isRulesAvaliable)
+
+        switch (self->state)
         {
-            self->step();
+        case APP_STATES::INIT:
+            self->_clk.sync_time();
+            self->_motor.init();
+            self->isDispenserExecuted = false;
+            self->shouldUpdateRules = false;
+            self->state = APP_STATES::LOAD_RULES;
+            break;
+        case APP_STATES::LOAD_RULES:
+        
+            self->isRulesAvaliable = false;
+            self->get_rules();
+            self->state = APP_STATES::CHECK_RULES;
+            break;
+        case APP_STATES::CHECK_RULES:
+
+            if (!self->isRulesAvaliable)
+            {
+                self->state = APP_STATES::IDLE;
+                break;
+            }
+
+            if (self->check_rules())
+            {
+                self->state = APP_STATES::PROCESS;
+            }
+            else
+            {
+                self->isDispenserExecuted = false; // Reset dispenser flag
+                self->state = APP_STATES::IDLE;
+            }
+
+            break;
+        case APP_STATES::PROCESS:
+            if (!self->isDispenserExecuted)
+            {
+                self->dispense_food();
+                self->isDispenserExecuted = true;
+            }
+            self->state = APP_STATES::IDLE;
+            break;
+        case APP_STATES::IDLE:
+            if (self->shouldUpdateRules)
+            {
+                self->state = APP_STATES::LOAD_RULES;
+                self->shouldUpdateRules = false;
+            }
+            else
+            {
+                self->state = APP_STATES::CHECK_RULES;
+            }
+
+            self->_guard.feed(self->task_wdt_id);
+            k_msleep(CONFIG_APPLICATION_THREAD_PERIOD);
+            break;
+        default:
+            break;
         }
-        self->_guard.feed(self->task_wdt_id);
-        k_msleep(CONFIG_APPLICATION_THREAD_PERIOD);
     }
 }
 
