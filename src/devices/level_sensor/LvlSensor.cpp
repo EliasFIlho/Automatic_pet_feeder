@@ -16,15 +16,15 @@ LvlSensor::~LvlSensor()
 {
 }
 
-void LvlSensor::on_network_event(NetworkEvent evt)
+void LvlSensor::Update(Events evt)
 {
     switch (evt)
     {
-    case NetworkEvent::MQTT_CONNECTED:
+    case Events::MQTT_CONNECTED:
         this->isMQTTconnectd = true;
-        // Start send data thought MQTT
+        LOG_WRN("MQTT CONNECTED START SENDING SENSOR DATA");
         break;
-    case NetworkEvent::MQTT_DISCONNECTED:
+    case Events::MQTT_DISCONNECTED:
         LOG_WRN("MQTT DISCONNECT STOP SENDING SENSOR DATA");
         this->isMQTTconnectd = false;
         break;

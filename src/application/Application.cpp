@@ -13,19 +13,19 @@ Application::~Application()
 {
 }
 
-void Application::on_network_event(NetworkEvent evt)
+void Application::Update(Events evt)
 {
     switch (evt)
     {
-    case NetworkEvent::WIFI_CONNECTED:
+    case Events::WIFI_CONNECTED:
         // Enable RTC sync using SNTP
         this->isNetworkConnected = true;
         break;
-    case NetworkEvent::WIFI_DISCONNECTED:
+    case Events::WIFI_DISCONNECTED:
         // Disable RTC sync and go offline mode
         this->isNetworkConnected = false;
         break;
-    case NetworkEvent::MQTT_NEW_DATA:
+    case Events::MQTT_NEW_DATA:
         // Refresh the scheduller rules buffer with storage new data
         this->shouldUpdateRules = true;
         break;

@@ -1,6 +1,5 @@
 #include <string.h>
 #include "WifiStation.hpp"
-#include "NetworkService.hpp"
 #include <zephyr/logging/log.h>
 
 LOG_MODULE_DECLARE(NETWORK_LOGS);
@@ -67,9 +66,6 @@ void WifiStation::dhcp4_event_handler(struct net_mgmt_event_callback *cb, uint64
 
 WifiStation::WifiStation()
 {
-    k_sem_init(&this->wifi_connected, 0, 1);
-    k_sem_init(&this->ipv4_connected, 0, 1);
-    this->con_state = CONNECTION_STATE::DISCONNECTED;
 }
 
 WifiStation::~WifiStation()
@@ -78,6 +74,9 @@ WifiStation::~WifiStation()
 
 bool WifiStation::wifi_init(void)
 {
+    k_sem_init(&this->wifi_connected, 0, 1);
+    k_sem_init(&this->ipv4_connected, 0, 1);
+    this->con_state = CONNECTION_STATE::DISCONNECTED;
     k_sem_reset(&this->wifi_connected);
     k_sem_reset(&this->ipv4_connected);
     this->sta_iface = net_if_get_wifi_sta();
@@ -109,7 +108,7 @@ int WifiStation::connect_to_wifi()
         return -EIO;
     }
 
-    struct wifi_connect_req_params params = {0}; // Initializ as 0 to avoid garbage
+    struct wifi_connect_req_params params = {0}; // Initialize as 0 to avoid garbage
     int ret;
 
     params.ssid = (const uint8_t *)this->ssid;
@@ -251,9 +250,6 @@ int32_t WifiStation::get_rssi()
     }
 }
 
-/*TODO: Check the impact of semaphores wait using k_work,
-check if is a good pratice to create a exclusive thread that keeps blocked until disconnect event and try reconnect*/
-
 void WifiStation::on_disconnect()
 {
     k_work_reschedule(&this->reconnect_k_work, K_SECONDS(10));
@@ -274,4 +270,11 @@ WifiStation &WifiStation::Get_Instance()
 {
     static WifiStation inst;
     return inst;
+}
+
+void WifiStation::notify_evt(Events evt)
+{
+    struct NetEventMsg evts = {
+        .evt = evt};
+    k_msgq_put(&net_evt_queue, &evts, K_NO_WAIT);
 }

@@ -8,7 +8,7 @@
 #include "IWatchDog.hpp"
 #include "IJson.hpp"
 #include "SchedulerRules.hpp"
-
+#include "NetEvents.hpp"
 extern k_msgq mqtt_publish_queue;
 
 enum class MQTT_STATES
@@ -30,6 +30,7 @@ class MQTT : public IMQTT
 private:
     struct mqtt_client client_ctx;
     struct zsock_pollfd fds[1];
+    MQTT_STATES state;
     int nfds;
     struct sockaddr_in broker;
     struct mqtt_utf8 user_utf8;
@@ -67,11 +68,11 @@ private:
 #endif
     bool parse_payload(char *payload, Rules_t *rules);
     bool validate_payload(Rules_t *rules);
+    void notify_evt(Events evt);
 
 public:
     MQTT(IWatchDog &guard, IStorage &_fs, IJson &json);
     ~MQTT();
     void start_mqtt();
     void abort();
-    bool is_payload_updated();
 };

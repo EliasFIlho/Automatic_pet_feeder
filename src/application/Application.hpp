@@ -4,9 +4,9 @@
 #include "IRTC.hpp"
 #include "IStorage.hpp"
 #include "IWatchDog.hpp"
-#include "NetworkService.hpp"
+#include "Netmgnt.hpp"
 #include "SchedulerRules.hpp"
-#include "INetworkEvents.hpp"
+#include "IListener.hpp"
 #include <array>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
@@ -21,7 +21,7 @@ enum class APP_STATES{
 };
 
 
-class Application : public INetworkEvents
+class Application : public IListener
 {
 private:
     // TODO: Need to make rules int a fixed size array and populate
@@ -45,7 +45,7 @@ private:
     int32_t get_rules();                     // Acess filesystem and get the current scheduler
     void dispense_food();                    // Dispense a X amount of food (the amount calc will be defined after the mechanics)
     bool check_rules();                      // Compare current time stamp with the rules
-    void on_network_event(NetworkEvent evt); // Callback for network events
+    void Update(Events evt); // Callback for network events
     static void app(void *p1, void *, void *); // Application function
 
 public:

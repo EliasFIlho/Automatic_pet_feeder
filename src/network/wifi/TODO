@@ -1,0 +1,15 @@
+TODO: Create a wifi process module that will act as a state machine to handle connection and ip get events, this state machine will react to 
+events from wifi middleware and perform the associated process
+
+
+stateDiagram-v2
+    [*] --> INIT
+    INIT --> GET_CREDENTIALS
+    GET_CREDENTIALS --> CONNECT : Found Credentials
+    GET_CREDENTIALS --> ENABLE_WIFI_CONFIG_MODE : No Credentials
+    CONNECT --> WAIT_CONNECT
+    WAIT_CONNECT --> CONNECT : Fail to connect && trys < MAX_TRYS
+    WAIT_CONNECT --> WAIT_GET_IP : Sucess
+    WAIT_CONNECT --> ENABLE_WIFI_CONFIG_MODE : Max trys reached
+    WAIT_GET_IP --> CONNECT : IP Timeout
+    WAIT_GET_IP --> [*] : Got IP

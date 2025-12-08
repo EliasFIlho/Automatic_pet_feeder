@@ -6,6 +6,8 @@
 #include <zephyr/net/wifi_mgmt.h>
 #include <zephyr/net/dhcpv4_server.h>
 #include "IWifi.hpp"
+#include "NetEvents.hpp"
+
 
 
 enum class CONNECTION_STATE
@@ -35,6 +37,7 @@ private:
     int wait_wifi_to_connect(void);
     int wifi_wait_for_ip_addr(void);
     void on_disconnect();
+    void notify_evt(Events evt);
     static void reconnect_work(struct k_work *work);
 
 public:
@@ -45,7 +48,6 @@ public:
     void set_wifi_ssid(char *ssid);
     void set_wifi_psk(char *psk);
     bool is_connected();
-    void init_rssi_monitor();
     int32_t get_rssi();
     static WifiStation &Get_Instance();
 

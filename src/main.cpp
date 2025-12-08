@@ -9,9 +9,10 @@
 #include "IWifi.hpp"
 #include "MQTT.hpp"
 #include "Led.hpp"
-#include "NetworkService.hpp"
+#include "Netmgnt.hpp"
 #include "Watchdog.hpp"
 #include "LvlSensor.hpp"
+#include "NetEvents.hpp"
 #include "JsonModule.hpp"
 #include <zephyr/task_wdt/task_wdt.h>
 #include <zephyr/logging/log.h>
@@ -52,17 +53,18 @@ RTC rtc;
 MQTT mqtt(guard, fs, json);
 Led led(&net_led);
 IWifi &wifi = WifiStation::Get_Instance();
-NetworkService net(mqtt, wifi, fs, led);
+Netmgnt net(mqtt, wifi, fs, led);
 Application app(rtc, motor, fs, guard);
 LvlSensor sensor(sensor_dev);
 
 // TODO: Document modules with doxygen style
 // TODO: See how to use Kconfig without modify Zephyr base Kconfig
 
-//I'll convert all to state machines bcs looks fun lol (actually i'm learning a bit more about and seems that is realy easy to fit then in almost everything)
 int main(void)
 {
-
+    net.Attach(&sensor);
+    net.Attach(&app);
+    
     LOG_INF("Start Log at main");
     if (guard.init() != 0)
     {
@@ -73,8 +75,6 @@ int main(void)
         LOG_ERR("Error to init Fs\r\n");
         return -1;
     }
-    net.register_listener(&app);
-    net.register_listener(&sensor);
     if (net.start() == NET_ERROR::NET_OK)
     {
         LOG_INF("NET COMPONENTS STARTED");

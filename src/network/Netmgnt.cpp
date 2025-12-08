@@ -1,4 +1,5 @@
-#include "NetworkService.hpp"
+#include "Netmgnt.hpp"
+#include "NetEvents.hpp"
 #include <zephyr/logging/log.h>
 
 LOG_MODULE_REGISTER(NETWORK_LOGS);
@@ -8,36 +9,37 @@ LOG_MODULE_REGISTER(NETWORK_LOGS);
 
 K_THREAD_STACK_DEFINE(NETWORK_DISPATCH_STACK_AREA, CONFIG_NETWORK_DISPATCH_THREAD_STACK_SIZE);
 
-NetworkService::NetworkService(IMQTT &mqtt, IWifi &wifi, IStorage &fs, ILed &led) : _mqtt(mqtt), _wifi(wifi), _fs(fs), _led(led)
+Netmgnt::Netmgnt(IMQTT &mqtt, IWifi &wifi, IStorage &fs, ILed &led) : _mqtt(mqtt), _wifi(wifi), _fs(fs), _led(led)
 {
 }
 
-NetworkService::~NetworkService()
+Netmgnt::~Netmgnt()
 {
 }
 
-NET_ERROR NetworkService::start()
+NET_ERROR Netmgnt::start()
 {
     k_thread_create(&this->dispatcher_thread,
                     NETWORK_DISPATCH_STACK_AREA,
                     CONFIG_NETWORK_DISPATCH_THREAD_STACK_SIZE,
-                    NetworkService::network_evt_dispatch_task,
+                    Netmgnt::network_evt_dispatch_task,
                     this, NULL, NULL, CONFIG_NETWORK_DISPATCH_THREAD_PRIORITY, 0, K_NO_WAIT);
     NET_ERROR ret = this->connect_to_wifi();
-    if(ret != NET_ERROR::NET_OK){
+    if (ret != NET_ERROR::NET_OK)
+    {
         return ret;
     }
     this->start_mqtt();
     return NET_ERROR::NET_OK;
 }
 
-void NetworkService::stop()
+void Netmgnt::stop()
 {
     this->_mqtt.abort();
     this->_wifi.wifi_disconnect();
 }
 
-int32_t NetworkService::init_rssi_monitor()
+int32_t Netmgnt::init_rssi_monitor()
 {
     int ret = this->_led.init();
     if (ret != 0)
@@ -52,7 +54,7 @@ int32_t NetworkService::init_rssi_monitor()
     }
 }
 
-void NetworkService::indicate_error(NET_ERROR err)
+void Netmgnt::indicate_error(NET_ERROR err)
 {
     const auto &pattern = error_blink_table[static_cast<uint8_t>(err)];
     this->_led.set_output(LOW);
@@ -66,10 +68,10 @@ void NetworkService::indicate_error(NET_ERROR err)
     }
 }
 
-void NetworkService::rssi_monitor(struct k_work *work)
+void Netmgnt::rssi_monitor(struct k_work *work)
 {
     k_work_delayable *dwork = k_work_delayable_from_work(work);
-    auto *self = CONTAINER_OF(dwork, NetworkService, rssi_monitor_work);
+    auto *self = CONTAINER_OF(dwork, Netmgnt, rssi_monitor_work);
     if (self->_wifi.is_connected())
     {
         int32_t rssi = self->_wifi.get_rssi();
@@ -82,52 +84,30 @@ void NetworkService::rssi_monitor(struct k_work *work)
     k_work_reschedule(dwork, K_SECONDS(CONFIG_RSSI_WORK_PERIOD));
 }
 
-NET_ERROR NetworkService::fail(NET_ERROR code, const char *msg)
+NET_ERROR Netmgnt::fail(NET_ERROR code, const char *msg)
 {
     LOG_ERR("%s", msg);
     this->indicate_error(code);
     return code;
 }
 
-void NetworkService::notify(NetworkEvent evt)
+void Netmgnt::network_evt_dispatch_task(void *p1, void *, void *)
 {
-    for (int i = 0; i < this->listener_count; i++)
     {
-        this->listeners[i]->on_network_event(evt);
-    }
-}
-
-void NetworkService::rise_evt(NetworkEvent evt)
-{
-    NetEventMsg msg{.evt = evt};
-    k_msgq_put(&net_evt_queue, &msg, K_NO_WAIT);
-}
-
-int32_t NetworkService::register_listener(INetworkEvents *listener)
-{
-    if (this->listener_count < MAX_LISTERNERS)
-    {
-        this->listeners[this->listener_count] = listener;
-        this->listener_count++;
-    }else{
-        return -ENOBUFS;
-    }
-}
-
-void NetworkService::network_evt_dispatch_task(void *p1, void *, void *)
-{
-    auto *self = static_cast<NetworkService *>(p1);
-    NetEventMsg evts;
-    while (true)
-    {
-        if (k_msgq_get(&net_evt_queue, &evts, K_FOREVER) == 0)
+        auto *self = static_cast<Netmgnt *>(p1);
+        NetEventMsg evts;
+        while (true)
         {
-            self->notify(evts.evt);
+            if (k_msgq_get(&net_evt_queue, &evts, K_FOREVER) == 0)
+            {
+                LOG_WRN("Got event");
+                self->Notify(evts.evt);
+            }
         }
     }
 }
 
-NET_ERROR NetworkService::set_wifi_credentials()
+NET_ERROR Netmgnt::set_wifi_credentials()
 {
     char ssid[SSID_TEMP_BUFFER_LEN];
     char psk[PSK_TEMP_BUFFER_LEN];
@@ -148,7 +128,7 @@ NET_ERROR NetworkService::set_wifi_credentials()
     return NET_ERROR::NET_OK;
 }
 
-NET_ERROR NetworkService::connect_to_wifi()
+NET_ERROR Netmgnt::connect_to_wifi()
 {
     int ret;
 
@@ -158,7 +138,8 @@ NET_ERROR NetworkService::connect_to_wifi()
     }
     LOG_INF("WIFI INIT OK");
 
-    if(this->set_wifi_credentials() != NET_ERROR::NET_OK){
+    if (this->set_wifi_credentials() != NET_ERROR::NET_OK)
+    {
         return NET_ERROR::MISSING_WIFI_CREDENTIALS;
     }
 
@@ -176,13 +157,34 @@ NET_ERROR NetworkService::connect_to_wifi()
         }
         if (attempt < MAX_ATTEMPT)
         {
-            LOG_WRN("Wifi connect retry - attemp [%d]",attempt);
+            LOG_WRN("Wifi connect retry - attemp [%d]", attempt);
             k_msleep(3000);
         }
     }
     return this->fail(NET_ERROR::WIFI_TIMEOUT, "Wifi timeout to connect");
 }
-void NetworkService::start_mqtt()
+void Netmgnt::start_mqtt()
 {
     this->_mqtt.start_mqtt();
+}
+
+void Netmgnt::Attach(IListener *listener)
+{
+    if (this->listener_count < MAX_LISTERNERS)
+    {
+        this->listeners[this->listener_count] = listener;
+        this->listener_count++;
+        LOG_INF("Added Listener - %d", this->listener_count);
+    }
+}
+void Netmgnt::Detach(IListener *listener)
+{
+}
+void Netmgnt::Notify(Events evt)
+{
+    for (int i = 0; i < this->listener_count; i++)
+    {
+        this->listeners[i]->Update(evt);
+        LOG_WRN("Update listener - %d",i);
+    }
 }

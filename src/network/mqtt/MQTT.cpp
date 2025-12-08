@@ -1,5 +1,4 @@
 #include "MQTT.hpp"
-#include "NetworkService.hpp"
 #include <zephyr/kernel.h>
 #include <zephyr/net/socket.h>
 #include <zephyr/net/mqtt.h>
@@ -156,7 +155,7 @@ void MQTT::on_mqtt_publish(struct mqtt_client *const client, const struct mqtt_e
             ret = self->_fs.write_buffer(RULES_ID, &rules_payload, sizeof(rules_payload));
             if (ret >= 0)
             {
-                NetworkService::rise_evt(NetworkEvent::MQTT_NEW_DATA);
+                self->notify_evt(Events::MQTT_NEW_DATA);
             }
         }
     }
@@ -180,15 +179,16 @@ void MQTT::mqtt_evt_handler(struct mqtt_client *client, const struct mqtt_evt *e
             LOG_ERR("MQTT Event Connect failed [%d]", evt->result);
             break;
         }
+        self->notify_evt(Events::MQTT_CONNECTED);
         self->isMqttConnected = true;
-        NetworkService::rise_evt(NetworkEvent::MQTT_CONNECTED);
 
         break;
     case MQTT_EVT_DISCONNECT:
 
         LOG_WRN("MQTT_EVT_DISCONNECT Event");
+        self->notify_evt(Events::MQTT_DISCONNECTED);
         self->on_disconnect();
-        NetworkService::rise_evt(NetworkEvent::MQTT_DISCONNECTED);
+
         break;
     case MQTT_EVT_PUBLISH:
 
@@ -572,15 +572,15 @@ void MQTT::mqtt_task(void *p1, void *, void *)
     // reference to "this" pointer
     auto *self = static_cast<MQTT *>(p1);
     int read_mqtt_task_wdt_id = self->_guard.create_and_get_wtd_timer_id(CONFIG_MQTT_WATCHDOG_TIMEOUT_THREAD);
-    MQTT_STATES curr_state = MQTT_STATES::INIT;
+    self->state = MQTT_STATES::INIT;
     while (true)
     {
-        switch (curr_state)
+        switch (self->state)
         {
         case MQTT_STATES::INIT:
             if (self->setup_client())
             {
-                curr_state = MQTT_STATES::CLIENT_READY;
+                self->state = MQTT_STATES::CLIENT_READY;
             }
             else
             {
@@ -593,7 +593,7 @@ void MQTT::mqtt_task(void *p1, void *, void *)
         case MQTT_STATES::CLIENT_READY:
             if (self->setup_broker())
             {
-                curr_state = MQTT_STATES::BROKER_READY;
+                self->state = MQTT_STATES::BROKER_READY;
             }
             else
             {
@@ -606,7 +606,7 @@ void MQTT::mqtt_task(void *p1, void *, void *)
         case MQTT_STATES::BROKER_READY:
             if (self->connect())
             {
-                curr_state = MQTT_STATES::CONNECTING;
+                self->state = MQTT_STATES::CONNECTING;
             }
             else
             {
@@ -621,11 +621,11 @@ void MQTT::mqtt_task(void *p1, void *, void *)
             {
                 if (self->subscribe())
                 {
-                    curr_state = MQTT_STATES::RUNNING;
+                    self->state = MQTT_STATES::RUNNING;
                 }
                 else
                 {
-                    curr_state = MQTT_STATES::ERROR;
+                    self->state = MQTT_STATES::ERROR;
                 }
             }
             else
@@ -641,7 +641,7 @@ void MQTT::mqtt_task(void *p1, void *, void *)
                 int ret = self->read_payload();
                 if (ret == -ENOTCONN)
                 {
-                    curr_state = MQTT_STATES::ERROR;
+                    self->state = MQTT_STATES::ERROR;
                 }
                 else
                 {
@@ -651,16 +651,16 @@ void MQTT::mqtt_task(void *p1, void *, void *)
             }
             else
             {
-                curr_state = MQTT_STATES::ERROR;
+                self->state = MQTT_STATES::ERROR;
             }
             break;
 
         case MQTT_STATES::ERROR:
             LOG_ERR("MQTT ERROR - RESET FSM");
-            curr_state = MQTT_STATES::CLIENT_READY;
+            self->state = MQTT_STATES::CLIENT_READY;
             break;
 
-        default:    
+        default:
             break;
         }
     }
@@ -689,11 +689,6 @@ void MQTT::abort()
     k_thread_abort(this->MQTT_Thread_id);
 }
 
-bool MQTT::is_payload_updated()
-{
-    return false;
-}
-
 #if CONFIG_MQTT_TLS_ENABLE
 int32_t MQTT::setup_tls()
 {
@@ -717,3 +712,9 @@ int32_t MQTT::setup_tls()
     return 0;
 }
 #endif
+
+void MQTT::notify_evt(Events evt)
+{
+    NetEventMsg msg{.evt = evt};
+    k_msgq_put(&net_evt_queue, &msg, K_NO_WAIT);
+}
