@@ -24,7 +24,7 @@ LOG_MODULE_REGISTER(LOGS);
  *
  */
 K_MSGQ_DEFINE(mqtt_publish_queue, sizeof(struct level_sensor), 10, 1);
-K_MSGQ_DEFINE(net_evt_queue, sizeof(struct NetEventMsg), 10, 1);
+K_MSGQ_DEFINE(net_evt_queue, sizeof(struct EventMsg), 10, 1);
 
 
 /**

@@ -21,7 +21,7 @@ void WifiStation::wifi_event_handler(struct net_mgmt_event_callback *cb, uint64_
         {
             LOG_INF("WIFI Connected");
             k_sem_give(&instance.wifi_connected);
-            instance.con_state = CONNECTION_STATE::CONNECTED;
+            instance.notify_evt(Events::WIFI_CONNECTED);
         }
 
         break;
@@ -29,13 +29,14 @@ void WifiStation::wifi_event_handler(struct net_mgmt_event_callback *cb, uint64_
     case NET_EVENT_WIFI_DISCONNECT_RESULT:
 
         LOG_WRN("DEVICE DISCONNECTD FROM NETWORK");
-        instance.on_disconnect();
+        instance.notify_evt(Events::WIFI_DISCONNECTED);
         break;
 
     case NET_EVENT_WIFI_IFACE_STATUS:
         break;
     case NET_EVENT_WIFI_SCAN_DONE:
         LOG_WRN("SCAN DONE");
+        break;
     default:
         LOG_WRN("UNEXPECTED EVENT - %lld", mgmt_event);
         break;
@@ -44,6 +45,7 @@ void WifiStation::wifi_event_handler(struct net_mgmt_event_callback *cb, uint64_
 
 void WifiStation::dhcp4_event_handler(struct net_mgmt_event_callback *cb, uint64_t mgmt_event, struct net_if *iface)
 {
+    WifiStation &instance = WifiStation::Get_Instance();
 
     switch (mgmt_event)
     {
@@ -54,9 +56,10 @@ void WifiStation::dhcp4_event_handler(struct net_mgmt_event_callback *cb, uint64
     {
 
         LOG_INF("Device got IP");
-        WifiStation &instance = WifiStation::Get_Instance();
-
+        
         k_sem_give(&instance.ipv4_connected);
+        LOG_INF("Ip Semaphore released, throwing ip event");
+        instance.notify_evt(Events::IP_ACQUIRED);
         break;
     }
     default:
@@ -76,7 +79,6 @@ bool WifiStation::wifi_init(void)
 {
     k_sem_init(&this->wifi_connected, 0, 1);
     k_sem_init(&this->ipv4_connected, 0, 1);
-    this->con_state = CONNECTION_STATE::DISCONNECTED;
     k_sem_reset(&this->wifi_connected);
     k_sem_reset(&this->ipv4_connected);
     this->sta_iface = net_if_get_wifi_sta();
@@ -88,14 +90,16 @@ bool WifiStation::wifi_init(void)
     net_mgmt_add_event_callback(&this->ipv4_cb);
     net_mgmt_init_event_callback(&this->wifi_cb, this->wifi_event_handler, WIFI_CALLBACK_FLAGS);
     net_mgmt_add_event_callback(&this->wifi_cb);
-    k_work_init_delayable(&this->reconnect_k_work, this->reconnect_work);
+    // Perform NET_EVENT_WIFI_IFACE_STATUS req
     int ret = net_if_up(sta_iface);
     if (ret && ret != -EALREADY && ret != -ENOTSUP)
     {
+        this->notify_evt(Events::WIFI_IFACE_ERROR);
         return false;
     }
     else
     {
+        this->notify_evt(Events::WIFI_IFACE_UP);
         return true;
     }
 }
@@ -130,20 +134,18 @@ int WifiStation::connect_to_wifi()
     {
         LOG_WRN("NET_MGMT RETURN %d", ret);
     }
-    this->con_state = CONNECTION_STATE::CONNECTING;
+
     ret = wait_wifi_to_connect();
     if (ret < 0)
     {
         return ret;
     }
+}
 
-    ret = wifi_wait_for_ip_addr();
-    if (ret < 0)
-    {
-        return ret;
-    }
-    LOG_INF("No error in net_mgmt: %d", ret);
-    return ret;
+void WifiStation::start_dhcp()
+{
+    net_dhcpv4_start(this->sta_iface);
+    wifi_wait_for_ip_addr();
 }
 
 int WifiStation::wifi_wait_for_ip_addr(void)
@@ -161,6 +163,7 @@ int WifiStation::wifi_wait_for_ip_addr(void)
     if (k_sem_take(&ipv4_connected, K_SECONDS(CONFIG_WIFI_GET_IP_TIMEOUT)) != 0)
     {
         LOG_ERR("UNABLE TO GET IP ADDRESS - TIMEOUT");
+        this->notify_evt(Events::TIMEOUT);
         return -1;
     }
 
@@ -202,13 +205,13 @@ int WifiStation::wait_wifi_to_connect(void)
     if (k_sem_take(&wifi_connected, K_SECONDS(CONFIG_WIFI_CONNECT_TIMEOUT)) != 0)
     {
         LOG_ERR("UNABLE TO CONNECT TO WIFI - TIMEOUT");
-        this->con_state = CONNECTION_STATE::DISCONNECTED;
+        this->notify_evt(Events::TIMEOUT);
         return -1;
     }
     else
     {
         LOG_INF("CONNECTED TO WIFI NETWORK");
-        this->con_state = CONNECTION_STATE::CONNECTED;
+
         return 0;
     }
 }
@@ -218,22 +221,13 @@ int WifiStation::wifi_disconnect(void)
     int ret;
 
     ret = net_mgmt(NET_REQUEST_WIFI_DISCONNECT, sta_iface, NULL, 0);
-    this->con_state = CONNECTION_STATE::DISCONNECTED;
-    return ret;
-}
 
-void WifiStation::set_wifi_ssid(char *ssid)
-{
-    strcpy(this->ssid, ssid);
-}
-void WifiStation::set_wifi_psk(char *psk)
-{
-    strcpy(this->psk, psk);
+    return ret;
 }
 
 bool WifiStation::is_connected()
 {
-    return (this->con_state == CONNECTION_STATE::CONNECTED);
+    return false;
 }
 
 int32_t WifiStation::get_rssi()
@@ -250,22 +244,6 @@ int32_t WifiStation::get_rssi()
     }
 }
 
-void WifiStation::on_disconnect()
-{
-    k_work_reschedule(&this->reconnect_k_work, K_SECONDS(10));
-}
-
-void WifiStation::reconnect_work(struct k_work *work)
-{
-    WifiStation &instance = WifiStation::Get_Instance();
-    int ret = instance.connect_to_wifi();
-    if (ret < 0)
-    {
-        k_work_delayable *dwork = k_work_delayable_from_work(work);
-        k_work_reschedule(dwork, K_SECONDS(30));
-    }
-}
-
 WifiStation &WifiStation::Get_Instance()
 {
     static WifiStation inst;
@@ -274,7 +252,16 @@ WifiStation &WifiStation::Get_Instance()
 
 void WifiStation::notify_evt(Events evt)
 {
-    struct NetEventMsg evts = {
-        .evt = evt};
-    k_msgq_put(&net_evt_queue, &evts, K_NO_WAIT);
+    EventMsg msg{.evt = evt,
+                 .type = EventGroup::WIFI};
+
+    k_msgq_put(&net_evt_queue, &msg, K_NO_WAIT);
+}
+
+void WifiStation::set_credentials(const char *ssid, const char *psk)
+{
+    strcpy(this->ssid, ssid);
+    strcpy(this->psk, psk);
+
+    notify_evt(Events::WIFI_CREDS_OK);
 }

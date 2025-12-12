@@ -3,7 +3,3 @@
 #include "IListener.hpp"
 
 extern k_msgq net_evt_queue;
-
-struct NetEventMsg {
-    Events evt;
-};

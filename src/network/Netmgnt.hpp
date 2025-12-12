@@ -8,8 +8,6 @@
 
 #define MAX_LISTERNERS 5
 
-
-
 enum class NET_ERROR : uint8_t
 {
     NET_OK,
@@ -17,6 +15,29 @@ enum class NET_ERROR : uint8_t
     WIFI_INIT_ERROR,
     WIFI_TIMEOUT,
     IFACE_MISSING
+};
+
+enum class WifiSmState
+{
+    INIT,
+    LOADING_CREDENTIALS,
+    CONNECTING,
+    WAIT_IP,
+    CONNECTED,
+    ERROR
+};
+
+struct state_transition
+{
+    WifiSmState from;
+    Events evt;
+    WifiSmState to;
+};
+
+struct Wifi_State_Machine
+{
+
+    WifiSmState state;
 };
 
 class Netmgnt : public IDispatcher
@@ -47,20 +68,48 @@ private:
         {100, 900, 5},
     };
 
+    struct Wifi_State_Machine wifi_sm;
+
+    inline static constexpr state_transition transitions_tbl[] = {
+        // INIT
+        {WifiSmState::INIT, Events::WIFI_IFACE_UP, WifiSmState::LOADING_CREDENTIALS},
+        {WifiSmState::INIT, Events::WIFI_IFACE_ERROR, WifiSmState::ERROR},
+
+        // LOADING_CREDENTIALS
+        {WifiSmState::LOADING_CREDENTIALS, Events::WIFI_CREDS_OK, WifiSmState::CONNECTING},
+        {WifiSmState::LOADING_CREDENTIALS, Events::WIFI_CREDS_FAIL, WifiSmState::ERROR},
+
+        // CONNECTING
+        {WifiSmState::CONNECTING, Events::WIFI_CONNECTED, WifiSmState::WAIT_IP},
+        {WifiSmState::CONNECTING, Events::TIMEOUT, WifiSmState::ERROR},
+
+        // WAIT_IP
+        {WifiSmState::WAIT_IP, Events::IP_ACQUIRED, WifiSmState::CONNECTED},
+        {WifiSmState::WAIT_IP, Events::TIMEOUT, WifiSmState::ERROR},
+
+        // CONNECTED
+        {WifiSmState::CONNECTED, Events::WIFI_DISCONNECTED, WifiSmState::CONNECTING},
+
+        // ERROR
+        {WifiSmState::ERROR, Events::RETRY, WifiSmState::LOADING_CREDENTIALS}};
+
 private:
     void indicate_error(NET_ERROR err);
     static void rssi_monitor(struct k_work *work);
     NET_ERROR fail(NET_ERROR code, const char *msg);
-    static void network_evt_dispatch_task(void *p1, void *, void *);
+    void process_evt(Events evt);
+    void state_enter(WifiSmState state);
     int32_t init_rssi_monitor();
     NET_ERROR set_wifi_credentials();
-    NET_ERROR connect_to_wifi();
+
+    void start_dhcp();
+    void stop_dhcp();
+    void connect_to_wifi();
     void start_mqtt();
+    static void network_evt_dispatch_task(void *p1, void *, void *);
 
 public:
-    // Obverver pattern stuff
     void Attach(IListener *listener);
-    void Detach(IListener *listener);
     void Notify(Events evt);
     Netmgnt(IMQTT &mqtt, IWifi &wifi, IStorage &fs, ILed &led);
     NET_ERROR start();

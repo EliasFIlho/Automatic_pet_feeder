@@ -10,43 +10,31 @@
 
 
 
-enum class CONNECTION_STATE
-{
-    CONNECTED,
-    CONNECTING,
-    DISCONNECTED
-};
-
 class WifiStation : public IWifi
 {
 private:
     char ssid[CONFIG_WIFI_SSID_BUF_LEN];
     char psk[CONFIG_WIFI_PSK_BUF_LEN];
-    CONNECTION_STATE con_state;
     struct net_if *sta_iface;
-    struct k_work_delayable reconnect_k_work;
     struct net_mgmt_event_callback wifi_cb;
     struct net_mgmt_event_callback ipv4_cb;
-
     struct k_sem wifi_connected;
     struct k_sem ipv4_connected;
-
+    
 private:
     static void wifi_event_handler(struct net_mgmt_event_callback *cb, uint64_t mgmt_event, struct net_if *iface);
     static void dhcp4_event_handler(struct net_mgmt_event_callback *cb, uint64_t mgmt_event, struct net_if *iface);
+    void notify_evt(Events evt);
     int wait_wifi_to_connect(void);
     int wifi_wait_for_ip_addr(void);
-    void on_disconnect();
-    void notify_evt(Events evt);
-    static void reconnect_work(struct k_work *work);
-
-public:
+    
+    public:
     WifiStation();
     bool wifi_init();
     int connect_to_wifi();
     int wifi_disconnect();
-    void set_wifi_ssid(char *ssid);
-    void set_wifi_psk(char *psk);
+    void start_dhcp();
+    void set_credentials(const char *ssid, const char *psk);
     bool is_connected();
     int32_t get_rssi();
     static WifiStation &Get_Instance();

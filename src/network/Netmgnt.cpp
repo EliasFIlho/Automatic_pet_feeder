@@ -24,12 +24,11 @@ NET_ERROR Netmgnt::start()
                     CONFIG_NETWORK_DISPATCH_THREAD_STACK_SIZE,
                     Netmgnt::network_evt_dispatch_task,
                     this, NULL, NULL, CONFIG_NETWORK_DISPATCH_THREAD_PRIORITY, 0, K_NO_WAIT);
-    NET_ERROR ret = this->connect_to_wifi();
-    if (ret != NET_ERROR::NET_OK)
-    {
-        return ret;
-    }
-    this->start_mqtt();
+
+    LOG_WRN("Set Idle State");
+    this->wifi_sm.state = WifiSmState::INIT;
+    this->_wifi.wifi_init();
+
     return NET_ERROR::NET_OK;
 }
 
@@ -72,7 +71,7 @@ void Netmgnt::rssi_monitor(struct k_work *work)
 {
     k_work_delayable *dwork = k_work_delayable_from_work(work);
     auto *self = CONTAINER_OF(dwork, Netmgnt, rssi_monitor_work);
-    if (self->_wifi.is_connected())
+    if (self->wifi_sm.state == WifiSmState::CONNECTED)
     {
         int32_t rssi = self->_wifi.get_rssi();
         self->_led.set_mapped_output(rssi, CONFIG_RSSI_LOWER_VALUE, CONFIG_RSSI_HIGHER_VALUE);
@@ -93,14 +92,22 @@ NET_ERROR Netmgnt::fail(NET_ERROR code, const char *msg)
 
 void Netmgnt::network_evt_dispatch_task(void *p1, void *, void *)
 {
+    auto *self = static_cast<Netmgnt *>(p1);
+    EventMsg evts = {};
+    while (true)
     {
-        auto *self = static_cast<Netmgnt *>(p1);
-        NetEventMsg evts;
-        while (true)
+        LOG_WRN("Waiting for events");
+        if (k_msgq_get(&net_evt_queue, &evts, K_FOREVER) == 0)
         {
-            if (k_msgq_get(&net_evt_queue, &evts, K_FOREVER) == 0)
+            // Only process WIFI events types
+            if (evts.type == EventGroup::WIFI)
             {
-                LOG_WRN("Got event");
+                // Only process WIFI events types
+                self->Notify(evts.evt);
+                self->process_evt(evts.evt);
+            }
+            else if (evts.type == EventGroup::MQTT)
+            {
                 self->Notify(evts.evt);
             }
         }
@@ -123,46 +130,24 @@ NET_ERROR Netmgnt::set_wifi_credentials()
         return this->fail(NET_ERROR::MISSING_WIFI_CREDENTIALS, "Password Missing");
     }
 
-    this->_wifi.set_wifi_ssid(ssid);
-    this->_wifi.set_wifi_psk(psk);
+    this->_wifi.set_credentials(ssid, psk);
     return NET_ERROR::NET_OK;
 }
 
-NET_ERROR Netmgnt::connect_to_wifi()
+void Netmgnt::connect_to_wifi()
 {
-    int ret;
-
-    if (!this->_wifi.wifi_init())
-    {
-        return this->fail(NET_ERROR::WIFI_INIT_ERROR, "Error to init wifi");
-    }
-    LOG_INF("WIFI INIT OK");
-
-    if (this->set_wifi_credentials() != NET_ERROR::NET_OK)
-    {
-        return NET_ERROR::MISSING_WIFI_CREDENTIALS;
-    }
-
-    for (int attempt = 0; attempt <= MAX_ATTEMPT; attempt++)
-    {
-        ret = this->_wifi.connect_to_wifi();
-        if (ret >= 0)
-        {
-            this->init_rssi_monitor();
-            return NET_ERROR::NET_OK;
-        }
-        if (ret == -EIO)
-        {
-            return this->fail(NET_ERROR::IFACE_MISSING, "Network interface missing");
-        }
-        if (attempt < MAX_ATTEMPT)
-        {
-            LOG_WRN("Wifi connect retry - attemp [%d]", attempt);
-            k_msleep(3000);
-        }
-    }
-    return this->fail(NET_ERROR::WIFI_TIMEOUT, "Wifi timeout to connect");
+    this->_wifi.connect_to_wifi();
 }
+
+void Netmgnt::start_dhcp()
+{
+    this->_wifi.start_dhcp();
+}
+
+void Netmgnt::stop_dhcp()
+{
+}
+
 void Netmgnt::start_mqtt()
 {
     this->_mqtt.start_mqtt();
@@ -177,14 +162,58 @@ void Netmgnt::Attach(IListener *listener)
         LOG_INF("Added Listener - %d", this->listener_count);
     }
 }
-void Netmgnt::Detach(IListener *listener)
-{
-}
+
 void Netmgnt::Notify(Events evt)
 {
     for (int i = 0; i < this->listener_count; i++)
     {
         this->listeners[i]->Update(evt);
-        LOG_WRN("Update listener - %d",i);
+        LOG_WRN("Update listener - %d", i);
+    }
+}
+
+void Netmgnt::process_evt(Events evt)
+{
+    for (size_t i = 0; i < ARRAY_SIZE(Netmgnt::transitions_tbl); i++)
+    {
+        if ((this->wifi_sm.state == Netmgnt::transitions_tbl[i].from) && (evt == Netmgnt::transitions_tbl[i].evt))
+        {
+            this->wifi_sm.state = Netmgnt::transitions_tbl[i].to;
+            LOG_WRN("Moving from: %d  To: %d  due to: %d",
+                    static_cast<int>(Netmgnt::transitions_tbl[i].from),
+                    static_cast<int>(Netmgnt::transitions_tbl[i].to),
+                    static_cast<int>(Netmgnt::transitions_tbl[i].evt));
+            this->state_enter(Netmgnt::transitions_tbl[i].to);
+            break;
+        }
+    }
+}
+
+void Netmgnt::state_enter(WifiSmState state)
+{
+    switch (state)
+    {
+    case WifiSmState::LOADING_CREDENTIALS:
+        LOG_WRN("REACH STATE LOADING_CREDENTIALS");
+        this->set_wifi_credentials();
+        break;
+    case WifiSmState::CONNECTING:
+        LOG_WRN("REACH STATE CONNECTING");
+        this->connect_to_wifi();
+        break;
+    case WifiSmState::WAIT_IP:
+        LOG_WRN("REACH STATE WAIT_IP");
+        this->start_dhcp();
+        break;
+    case WifiSmState::CONNECTED:
+        LOG_WRN("REACH STATE CONNECTED");
+        this->init_rssi_monitor();
+        this->start_mqtt();
+        break;
+    case WifiSmState::ERROR:
+        break;
+
+    default:
+        break;
     }
 }
