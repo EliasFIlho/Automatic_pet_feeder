@@ -8,6 +8,36 @@
 
 #define MAX_LISTERNERS 5
 
+
+
+/*
+
+state-flow
+
+    [*] --> INITIALIZING : START
+    INITIALIZING --> LOADING_CREDENTIALS: WIFI_IFACE_UP
+    INITIALIZING --> IFACE_ERROR: WIFI_IFACE_ERROR
+
+    LOADING_CREDENTIALS --> CONNECTING: WIFI_CREDS_OK
+    LOADING_CREDENTIALS --> LOADING_CREDENTIALS: WIFI_CREDS_FAIL
+    LOADING_CREDENTIALS --> ENABLING_AP: WIFI_CREDS_NOT_FOUND
+
+    CONNECTING --> WAIT_IP: WIFI_CONNECTED
+
+    CONNECTING --> CONNECTING: TIMEOUT && Tries < MAX
+    CONNECTING --> ENABLING_AP: TIMEOUT && Tries > MAX
+    
+    WAIT_IP --> CONNECTED: IP_ACQUIRED
+    WAIT_IP --> WAIT_IP: TIMEOUT && Tries < MAX
+    WAIT_IP --> ENABLING_AP: TIMEOUT && Tries > MAX
+
+    
+
+    CONNECTED --> CONNECTING: WIFI_DISCONNECTED
+    CONNECTED --> [*]
+
+*/
+
 enum class NET_ERROR : uint8_t
 {
     NET_OK,
@@ -19,12 +49,13 @@ enum class NET_ERROR : uint8_t
 
 enum class WifiSmState
 {
-    INIT,
+    INITIALIZING,
     LOADING_CREDENTIALS,
     CONNECTING,
     WAIT_IP,
     CONNECTED,
-    ERROR
+    IFACE_ERROR,
+    ENABLING_AP
 };
 
 struct state_transition
@@ -38,6 +69,7 @@ struct Wifi_State_Machine
 {
 
     WifiSmState state;
+    uint8_t tries;
 };
 
 class Netmgnt : public IDispatcher
@@ -70,35 +102,11 @@ private:
 
     struct Wifi_State_Machine wifi_sm;
 
-    inline static constexpr state_transition transitions_tbl[] = {
-        // INIT
-        {WifiSmState::INIT, Events::WIFI_IFACE_UP, WifiSmState::LOADING_CREDENTIALS},
-        {WifiSmState::INIT, Events::WIFI_IFACE_ERROR, WifiSmState::ERROR},
-
-        // LOADING_CREDENTIALS
-        {WifiSmState::LOADING_CREDENTIALS, Events::WIFI_CREDS_OK, WifiSmState::CONNECTING},
-        {WifiSmState::LOADING_CREDENTIALS, Events::WIFI_CREDS_FAIL, WifiSmState::ERROR},
-
-        // CONNECTING
-        {WifiSmState::CONNECTING, Events::WIFI_CONNECTED, WifiSmState::WAIT_IP},
-        {WifiSmState::CONNECTING, Events::TIMEOUT, WifiSmState::ERROR},
-
-        // WAIT_IP
-        {WifiSmState::WAIT_IP, Events::IP_ACQUIRED, WifiSmState::CONNECTED},
-        {WifiSmState::WAIT_IP, Events::TIMEOUT, WifiSmState::ERROR},
-
-        // CONNECTED
-        {WifiSmState::CONNECTED, Events::WIFI_DISCONNECTED, WifiSmState::CONNECTING},
-
-        // ERROR
-        {WifiSmState::ERROR, Events::RETRY, WifiSmState::LOADING_CREDENTIALS}};
 
 private:
     void indicate_error(NET_ERROR err);
     static void rssi_monitor(struct k_work *work);
     NET_ERROR fail(NET_ERROR code, const char *msg);
-    void process_evt(Events evt);
-    void state_enter(WifiSmState state);
     int32_t init_rssi_monitor();
     NET_ERROR set_wifi_credentials();
 
@@ -107,6 +115,9 @@ private:
     void connect_to_wifi();
     void start_mqtt();
     static void network_evt_dispatch_task(void *p1, void *, void *);
+    void process_state(Events evt);
+    void transition(WifiSmState new_state);
+    void on_entry(WifiSmState state);
 
 public:
     void Attach(IListener *listener);

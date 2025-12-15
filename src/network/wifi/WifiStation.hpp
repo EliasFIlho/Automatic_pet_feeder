@@ -35,7 +35,6 @@ private:
     int wifi_disconnect();
     void start_dhcp();
     void set_credentials(const char *ssid, const char *psk);
-    bool is_connected();
     int32_t get_rssi();
     static WifiStation &Get_Instance();
 

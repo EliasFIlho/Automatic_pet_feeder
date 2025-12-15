@@ -25,10 +25,6 @@ NET_ERROR Netmgnt::start()
                     Netmgnt::network_evt_dispatch_task,
                     this, NULL, NULL, CONFIG_NETWORK_DISPATCH_THREAD_PRIORITY, 0, K_NO_WAIT);
 
-    LOG_WRN("Set Idle State");
-    this->wifi_sm.state = WifiSmState::INIT;
-    this->_wifi.wifi_init();
-
     return NET_ERROR::NET_OK;
 }
 
@@ -90,30 +86,6 @@ NET_ERROR Netmgnt::fail(NET_ERROR code, const char *msg)
     return code;
 }
 
-void Netmgnt::network_evt_dispatch_task(void *p1, void *, void *)
-{
-    auto *self = static_cast<Netmgnt *>(p1);
-    EventMsg evts = {};
-    while (true)
-    {
-        LOG_WRN("Waiting for events");
-        if (k_msgq_get(&net_evt_queue, &evts, K_FOREVER) == 0)
-        {
-            // Only process WIFI events types
-            if (evts.type == EventGroup::WIFI)
-            {
-                // Only process WIFI events types
-                self->Notify(evts.evt);
-                self->process_evt(evts.evt);
-            }
-            else if (evts.type == EventGroup::MQTT)
-            {
-                self->Notify(evts.evt);
-            }
-        }
-    }
-}
-
 NET_ERROR Netmgnt::set_wifi_credentials()
 {
     char ssid[SSID_TEMP_BUFFER_LEN];
@@ -172,47 +144,145 @@ void Netmgnt::Notify(Events evt)
     }
 }
 
-void Netmgnt::process_evt(Events evt)
+void Netmgnt::network_evt_dispatch_task(void *p1, void *, void *)
 {
-    for (size_t i = 0; i < ARRAY_SIZE(Netmgnt::transitions_tbl); i++)
+    auto *self = static_cast<Netmgnt *>(p1);
+    EventMsg evt = {};
+    self->wifi_sm.state = WifiSmState::INITIALIZING;
+    self->process_state(Events::START);
+
+    while (true)
     {
-        if ((this->wifi_sm.state == Netmgnt::transitions_tbl[i].from) && (evt == Netmgnt::transitions_tbl[i].evt))
+        LOG_WRN("Waiting for events");
+        if (k_msgq_get(&net_evt_queue, &evt, K_FOREVER) == 0)
         {
-            this->wifi_sm.state = Netmgnt::transitions_tbl[i].to;
-            LOG_WRN("Moving from: %d  To: %d  due to: %d",
-                    static_cast<int>(Netmgnt::transitions_tbl[i].from),
-                    static_cast<int>(Netmgnt::transitions_tbl[i].to),
-                    static_cast<int>(Netmgnt::transitions_tbl[i].evt));
-            this->state_enter(Netmgnt::transitions_tbl[i].to);
-            break;
+            // Only process WIFI events types
+            if (evt.type == EventGroup::WIFI)
+            {
+                self->process_state(evt.evt);
+            }
+            self->Notify(evt.evt);
         }
     }
 }
 
-void Netmgnt::state_enter(WifiSmState state)
+void Netmgnt::transition(WifiSmState new_state)
+{
+    LOG_INF("State %d -> %d", static_cast<int>(wifi_sm.state), static_cast<int>(new_state));
+
+    wifi_sm.state = new_state;
+    wifi_sm.tries = 0;
+
+    on_entry(new_state);
+}
+
+void Netmgnt::on_entry(WifiSmState state)
 {
     switch (state)
     {
-    case WifiSmState::LOADING_CREDENTIALS:
-        LOG_WRN("REACH STATE LOADING_CREDENTIALS");
-        this->set_wifi_credentials();
-        break;
-    case WifiSmState::CONNECTING:
-        LOG_WRN("REACH STATE CONNECTING");
-        this->connect_to_wifi();
-        break;
-    case WifiSmState::WAIT_IP:
-        LOG_WRN("REACH STATE WAIT_IP");
-        this->start_dhcp();
-        break;
-    case WifiSmState::CONNECTED:
-        LOG_WRN("REACH STATE CONNECTED");
-        this->init_rssi_monitor();
-        this->start_mqtt();
-        break;
-    case WifiSmState::ERROR:
+    case WifiSmState::INITIALIZING:
+        this->_wifi.wifi_init();
         break;
 
+    case WifiSmState::LOADING_CREDENTIALS:
+        this->set_wifi_credentials();
+        break;
+
+    case WifiSmState::CONNECTING:
+        this->connect_to_wifi();
+        break;
+
+    case WifiSmState::WAIT_IP:
+        this->start_dhcp();
+        break;
+
+    case WifiSmState::CONNECTED:
+        this->init_rssi_monitor();
+        this->start_mqtt();
+
+        break;
+    case WifiSmState::ENABLING_AP:
+        LOG_ERR("will implement this soon");
+        break;
+    default:
+        break;
+    }
+}
+
+void Netmgnt::process_state(Events evt)
+{
+
+    switch (this->wifi_sm.state)
+    {
+    case WifiSmState::INITIALIZING:
+        if (evt == Events::START)
+        {
+            this->transition(WifiSmState::INITIALIZING);
+        }
+        else if (evt == Events::WIFI_IFACE_UP)
+        {
+            this->transition(WifiSmState::LOADING_CREDENTIALS);
+        }
+        else if (evt == Events::WIFI_IFACE_ERROR)
+        {
+            this->transition(WifiSmState::IFACE_ERROR);
+        }
+        break;
+    case WifiSmState::LOADING_CREDENTIALS:
+        if (evt == Events::WIFI_CREDS_OK)
+        {
+
+            transition(WifiSmState::CONNECTING);
+        }
+        else if (evt == Events::WIFI_CREDS_FAIL)
+        {
+
+            transition(WifiSmState::LOADING_CREDENTIALS);
+        }
+        else if (evt == Events::WIFI_CREDS_NOT_FOUND)
+        {
+
+            transition(WifiSmState::ENABLING_AP);
+        }
+        break;
+    case WifiSmState::CONNECTING:
+        if (evt == Events::WIFI_CONNECTED)
+        {
+            transition(WifiSmState::WAIT_IP);
+        }
+        else if (evt == Events::TIMEOUT)
+        {
+            if (++wifi_sm.tries < MAX_ATTEMPT)
+                transition(WifiSmState::CONNECTING);
+            else
+                transition(WifiSmState::ENABLING_AP);
+        }
+        break;
+    case WifiSmState::WAIT_IP:
+        if (evt == Events::IP_ACQUIRED)
+        {
+
+            transition(WifiSmState::CONNECTED);
+        }
+        else if (evt == Events::TIMEOUT)
+        {
+            if (++wifi_sm.tries < MAX_ATTEMPT)
+                transition(WifiSmState::WAIT_IP);
+            else
+                transition(WifiSmState::ENABLING_AP);
+        }
+        break;
+    case WifiSmState::CONNECTED:
+        if (evt == Events::WIFI_DISCONNECTED)
+        {
+
+            transition(WifiSmState::CONNECTING);
+        }
+        break;
+    case WifiSmState::IFACE_ERROR:
+        break;
+    case WifiSmState::ENABLING_AP:
+        break;
     default:
         break;
     }

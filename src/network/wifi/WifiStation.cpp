@@ -56,7 +56,7 @@ void WifiStation::dhcp4_event_handler(struct net_mgmt_event_callback *cb, uint64
     {
 
         LOG_INF("Device got IP");
-        
+
         k_sem_give(&instance.ipv4_connected);
         LOG_INF("Ip Semaphore released, throwing ip event");
         instance.notify_evt(Events::IP_ACQUIRED);
@@ -84,6 +84,7 @@ bool WifiStation::wifi_init(void)
     this->sta_iface = net_if_get_wifi_sta();
     if (sta_iface == NULL)
     {
+        this->notify_evt(Events::WIFI_IFACE_ERROR);
         return false;
     }
     net_mgmt_init_event_callback(&this->ipv4_cb, dhcp4_event_handler, WIFI_DHCP_CALLBACK_FLAGS);
@@ -109,6 +110,7 @@ int WifiStation::connect_to_wifi()
     if (!this->sta_iface)
     {
         LOG_ERR("STA: interface no initialized");
+        this->notify_evt(Events::WIFI_IFACE_ERROR);
         return -EIO;
     }
 
@@ -223,11 +225,6 @@ int WifiStation::wifi_disconnect(void)
     ret = net_mgmt(NET_REQUEST_WIFI_DISCONNECT, sta_iface, NULL, 0);
 
     return ret;
-}
-
-bool WifiStation::is_connected()
-{
-    return false;
 }
 
 int32_t WifiStation::get_rssi()
