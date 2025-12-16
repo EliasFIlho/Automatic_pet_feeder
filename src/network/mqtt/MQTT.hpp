@@ -37,6 +37,7 @@ private:
     struct mqtt_utf8 pass_utf8;
     bool isMqttConnected;
     bool isBrokerSeted;
+    bool isWifiConnected;
     char publish_buf[CONFIG_MQTT_PUBLISH_BUFFER_SIZE];
     uint8_t rx_buffer[CONFIG_MQTT_RX_BUFFER_SIZE];
     uint8_t tx_buffer[CONFIG_MQTT_TX_BUFFER_SIZE];
@@ -45,6 +46,7 @@ private:
     IWatchDog &_guard;
     IStorage &_fs;
     IJson &_json;
+
 
 private:
     static void mqtt_task(void *p1, void *, void *);
@@ -74,5 +76,7 @@ public:
     MQTT(IWatchDog &guard, IStorage &_fs, IJson &json);
     ~MQTT();
     void start_mqtt();
+    void block_mqtt();
+    void release_mqtt();
     void abort();
 };

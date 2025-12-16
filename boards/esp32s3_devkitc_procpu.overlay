@@ -1,0 +1,52 @@
+#include <zephyr/dt-bindings/gpio/gpio.h>
+#include <zephyr/dt-bindings/pwm/pwm.h>
+#include <zephyr/dt-bindings/pinctrl/esp32-pinctrl.h>
+
+&wifi {
+    status = "okay";
+};
+
+
+/{
+    stepper: stepper{
+        compatible = "stepper,motor";
+        gpios = <&gpio0 18 GPIO_ACTIVE_HIGH>,
+                <&gpio0 19 GPIO_ACTIVE_HIGH>,
+                <&gpio0 5 GPIO_ACTIVE_HIGH>;
+    };
+
+    pwmleds {
+        compatible = "pwm-leds";
+        fade_led: fade_led {
+            pwms = <&ledc0 0 PWM_MSEC(10) PWM_POLARITY_NORMAL>;
+        };
+    };
+
+    hc_sr04: hc_sr04 {
+        compatible = "hc-sr04";
+        trigger-gpios = <&gpio0 27 GPIO_ACTIVE_HIGH>;
+        echo-gpios = <&gpio0 26 GPIO_ACTIVE_HIGH>;
+    };
+
+};
+
+&pinctrl {
+    ledc0_default: ledc0_default{
+        group1 {
+            pinmux = <LEDC_CH0_GPIO2>;
+            output-enable;
+        };
+    };
+};
+
+&ledc0 {
+    pinctrl-0 = <&ledc0_default>;
+    pinctrl-names = "default";
+    status = "okay";
+    #address-cells = <1>;
+    #size-cells = <0>;
+    channel0@0 {
+        reg = <0x0>;
+        timer = <0>;
+    };
+};

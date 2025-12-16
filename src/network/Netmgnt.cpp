@@ -170,10 +170,24 @@ void Netmgnt::transition(WifiSmState new_state)
 {
     LOG_INF("State %d -> %d", static_cast<int>(wifi_sm.state), static_cast<int>(new_state));
 
+    this->on_exit(wifi_sm.state);
+    
     wifi_sm.state = new_state;
-    wifi_sm.tries = 0;
 
-    on_entry(new_state);
+    this->on_entry(new_state);
+}
+
+void Netmgnt::on_exit(WifiSmState from)
+{
+    switch (from)
+    {
+    case WifiSmState::CONNECTED:
+        this->_mqtt.block_mqtt();
+        break;
+
+    default:
+        break;
+    }
 }
 
 void Netmgnt::on_entry(WifiSmState state)
@@ -197,11 +211,14 @@ void Netmgnt::on_entry(WifiSmState state)
         break;
 
     case WifiSmState::CONNECTED:
+        this->wifi_sm.tries = 0;
         this->init_rssi_monitor();
+        this->_mqtt.release_mqtt();
         this->start_mqtt();
 
         break;
     case WifiSmState::ENABLING_AP:
+        this->wifi_sm.tries = 0;
         LOG_ERR("will implement this soon");
         break;
     default:
@@ -261,7 +278,6 @@ void Netmgnt::process_state(Events evt)
     case WifiSmState::WAIT_IP:
         if (evt == Events::IP_ACQUIRED)
         {
-
             transition(WifiSmState::CONNECTED);
         }
         else if (evt == Events::TIMEOUT)
@@ -275,7 +291,6 @@ void Netmgnt::process_state(Events evt)
     case WifiSmState::CONNECTED:
         if (evt == Events::WIFI_DISCONNECTED)
         {
-
             transition(WifiSmState::CONNECTING);
         }
         break;

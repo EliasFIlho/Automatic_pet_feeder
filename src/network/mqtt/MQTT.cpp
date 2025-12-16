@@ -656,8 +656,16 @@ void MQTT::mqtt_task(void *p1, void *, void *)
             break;
 
         case MQTT_STATES::ERROR:
-            LOG_ERR("MQTT ERROR - RESET FSM");
-            self->state = MQTT_STATES::CLIENT_READY;
+            if (self->isWifiConnected)
+            {
+                self->state = MQTT_STATES::CLIENT_READY;
+            }
+            else
+            {
+                self->state = MQTT_STATES::ERROR; // Block state machine in ERROR state until network manager set wifi on back
+                self->_guard.feed(read_mqtt_task_wdt_id);
+                k_msleep(CONFIG_MQTT_THREAD_PERIOD);
+            }
             break;
 
         default:
@@ -718,4 +726,13 @@ void MQTT::notify_evt(Events evt)
     EventMsg msg{.evt = evt,
                  .type = EventGroup::MQTT};
     k_msgq_put(&net_evt_queue, &msg, K_NO_WAIT);
+}
+
+void MQTT::block_mqtt()
+{
+    this->isWifiConnected = false;
+}
+void MQTT::release_mqtt()
+{
+    this->isWifiConnected = true;
 }

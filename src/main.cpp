@@ -65,6 +65,7 @@ int main(void)
     net.Attach(&sensor);
     net.Attach(&app);
     
+    
     LOG_INF("Start Log at main");
     if (guard.init() != 0)
     {

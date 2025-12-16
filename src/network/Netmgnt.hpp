@@ -118,6 +118,7 @@ private:
     void process_state(Events evt);
     void transition(WifiSmState new_state);
     void on_entry(WifiSmState state);
+    void on_exit(WifiSmState from);
 
 public:
     void Attach(IListener *listener);
