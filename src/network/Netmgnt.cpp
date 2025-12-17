@@ -195,6 +195,7 @@ void Netmgnt::on_entry(WifiSmState state)
     switch (state)
     {
     case WifiSmState::INITIALIZING:
+        this->_led.set_output(RED);
         this->_wifi.wifi_init();
         break;
 
@@ -207,6 +208,7 @@ void Netmgnt::on_entry(WifiSmState state)
         break;
 
     case WifiSmState::WAIT_IP:
+        this->_led.set_output(YELLOW);
         this->start_dhcp();
         break;
 

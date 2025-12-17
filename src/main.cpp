@@ -33,7 +33,8 @@ K_MSGQ_DEFINE(net_evt_queue, sizeof(struct EventMsg), 10, 1);
  */
 const struct device *const sensor_dev = DEVICE_DT_GET(DT_NODELABEL(hc_sr04));
 const struct device *const hw_wdt_dev = DEVICE_DT_GET(DT_ALIAS(watchdog0));
-struct pwm_dt_spec net_led = PWM_DT_SPEC_GET(DT_NODELABEL(fade_led));
+const struct device *const net_led    = DEVICE_DT_GET(DT_ALIAS(led_strip));
+
 struct gpio_dt_spec dir_stepper_dt = GPIO_DT_SPEC_GET_BY_IDX(DT_NODELABEL(stepper), gpios, 0);
 struct gpio_dt_spec steps_stepper_dt = GPIO_DT_SPEC_GET_BY_IDX(DT_NODELABEL(stepper), gpios, 1);
 struct gpio_dt_spec enable_stepper_dt = GPIO_DT_SPEC_GET_BY_IDX(DT_NODELABEL(stepper), gpios, 2);
@@ -51,7 +52,7 @@ JsonModule json;
 StepperController motor(&dir_stepper_dt,&steps_stepper_dt,&enable_stepper_dt);
 RTC rtc;
 MQTT mqtt(guard, fs, json);
-Led led(&net_led);
+Led led(net_led);
 IWifi &wifi = WifiStation::Get_Instance();
 Netmgnt net(mqtt, wifi, fs, led);
 Application app(rtc, motor, fs, guard);

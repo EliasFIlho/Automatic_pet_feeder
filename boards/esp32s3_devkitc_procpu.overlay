@@ -1,6 +1,7 @@
 #include <zephyr/dt-bindings/gpio/gpio.h>
 #include <zephyr/dt-bindings/pwm/pwm.h>
 #include <zephyr/dt-bindings/pinctrl/esp32-pinctrl.h>
+#include <zephyr/dt-bindings/led/led.h>
 
 &wifi {
     status = "okay";
@@ -15,38 +16,43 @@
                 <&gpio0 5 GPIO_ACTIVE_HIGH>;
     };
 
-    pwmleds {
-        compatible = "pwm-leds";
-        fade_led: fade_led {
-            pwms = <&ledc0 0 PWM_MSEC(10) PWM_POLARITY_NORMAL>;
-        };
-    };
-
     hc_sr04: hc_sr04 {
         compatible = "hc-sr04";
         trigger-gpios = <&gpio0 27 GPIO_ACTIVE_HIGH>;
         echo-gpios = <&gpio0 26 GPIO_ACTIVE_HIGH>;
     };
 
+    aliases {
+		led-strip = &led_strip;
+	};
+
 };
 
-&pinctrl {
-    ledc0_default: ledc0_default{
-        group1 {
-            pinmux = <LEDC_CH0_GPIO2>;
-            output-enable;
-        };
-    };
+
+&i2s0_default {
+	group1 {
+		pinmux = <I2S0_O_SD_GPIO48>;
+	};
 };
 
-&ledc0 {
-    pinctrl-0 = <&ledc0_default>;
-    pinctrl-names = "default";
-    status = "okay";
-    #address-cells = <1>;
-    #size-cells = <0>;
-    channel0@0 {
-        reg = <0x0>;
-        timer = <0>;
-    };
+
+i2s_led: &i2s0 {
+	status = "okay";
+
+	dmas = <&dma 3>;
+	dma-names = "tx";
+
+	led_strip: ws2812@0 {
+		compatible = "worldsemi,ws2812-i2s";
+		reg = <0>;
+		chain-length = <1>;
+		color-mapping = <LED_COLOR_ID_GREEN
+				         LED_COLOR_ID_RED
+				         LED_COLOR_ID_BLUE>;
+		reset-delay = <500>;
+	};
+};
+
+&dma {
+	status = "okay";
 };
