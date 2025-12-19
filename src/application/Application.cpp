@@ -51,13 +51,6 @@ int32_t Application::get_rules()
 
 void Application::dispense_food()
 {
-    // TODO: Add notify to tasks that might want to know about.
-    /*
-    Since the level sensor does not change the value that often, i think is a good idea to "force" a sample + publish after a dispenser event,
-    that way the user will receive the current food level left after the dispenser.
-
-    Also, knowing that the sensor value does not change that often, is good to decrease the sample time.
-     */
     this->_motor.move_for(this->rules.amount);
 }
 

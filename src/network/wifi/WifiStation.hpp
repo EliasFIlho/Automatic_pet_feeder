@@ -18,12 +18,12 @@ private:
     struct net_if *sta_iface;
     struct net_mgmt_event_callback wifi_cb;
     struct net_mgmt_event_callback ipv4_cb;
-    struct k_sem wifi_connected;
-    struct k_sem ipv4_connected;
+    struct k_timer TIMEOUT_TMR;
     
 private:
     static void wifi_event_handler(struct net_mgmt_event_callback *cb, uint64_t mgmt_event, struct net_if *iface);
     static void dhcp4_event_handler(struct net_mgmt_event_callback *cb, uint64_t mgmt_event, struct net_if *iface);
+    static void timeout_tmr_handler(struct k_timer *timer_id);
     void notify_evt(Events evt);
     int wait_wifi_to_connect(void);
     int wifi_wait_for_ip_addr(void);
@@ -34,6 +34,7 @@ private:
     int connect_to_wifi();
     int wifi_disconnect();
     void start_dhcp();
+    void stop_dhcp();
     void set_credentials(const char *ssid, const char *psk);
     int32_t get_rssi();
     static WifiStation &Get_Instance();

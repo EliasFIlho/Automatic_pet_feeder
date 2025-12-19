@@ -282,6 +282,7 @@ void Netmgnt::process_state(Events evt)
         }
         break;
     case WifiSmState::IFACE_ERROR:
+        
         break;
     case WifiSmState::ENABLING_AP:
         break;

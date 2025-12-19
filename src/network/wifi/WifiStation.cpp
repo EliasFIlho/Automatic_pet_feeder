@@ -7,6 +7,12 @@ LOG_MODULE_DECLARE(NETWORK_LOGS);
 #define WIFI_CALLBACK_FLAGS (NET_EVENT_WIFI_CONNECT_RESULT | NET_EVENT_WIFI_DISCONNECT_RESULT | NET_EVENT_WIFI_IFACE_STATUS | NET_EVENT_WIFI_SCAN_DONE)
 #define WIFI_DHCP_CALLBACK_FLAGS (NET_EVENT_IPV4_DHCP_START | NET_EVENT_IPV4_ADDR_ADD)
 
+void WifiStation::timeout_tmr_handler(struct k_timer *timer_id)
+{
+    WifiStation &instance = WifiStation::Get_Instance();
+    instance.notify_evt(Events::TIMEOUT);
+}
+
 void WifiStation::wifi_event_handler(struct net_mgmt_event_callback *cb, uint64_t mgmt_event, struct net_if *iface)
 {
     WifiStation &instance = WifiStation::Get_Instance();
@@ -19,8 +25,8 @@ void WifiStation::wifi_event_handler(struct net_mgmt_event_callback *cb, uint64_
         int status = st ? st->status : -1;
         if (status == 0)
         {
+            k_timer_stop(&instance.TIMEOUT_TMR);
             LOG_INF("WIFI Connected");
-            k_sem_give(&instance.wifi_connected);
             instance.notify_evt(Events::WIFI_CONNECTED);
         }
 
@@ -56,9 +62,7 @@ void WifiStation::dhcp4_event_handler(struct net_mgmt_event_callback *cb, uint64
     {
 
         LOG_INF("Device got IP");
-
-        k_sem_give(&instance.ipv4_connected);
-        LOG_INF("Ip Semaphore released, throwing ip event");
+        k_timer_stop(&instance.TIMEOUT_TMR);
         instance.notify_evt(Events::IP_ACQUIRED);
         break;
     }
@@ -77,10 +81,7 @@ WifiStation::~WifiStation()
 
 bool WifiStation::wifi_init(void)
 {
-    k_sem_init(&this->wifi_connected, 0, 1);
-    k_sem_init(&this->ipv4_connected, 0, 1);
-    k_sem_reset(&this->wifi_connected);
-    k_sem_reset(&this->ipv4_connected);
+    k_timer_init(&this->TIMEOUT_TMR, this->timeout_tmr_handler, NULL);
     this->sta_iface = net_if_get_wifi_sta();
     if (sta_iface == NULL)
     {
@@ -95,7 +96,6 @@ bool WifiStation::wifi_init(void)
     int ret = net_if_up(sta_iface);
     if (ret && ret != -EALREADY && ret != -ENOTSUP)
     {
-        this->notify_evt(Events::WIFI_IFACE_ERROR);
         return false;
     }
     else
@@ -150,72 +150,22 @@ void WifiStation::start_dhcp()
     wifi_wait_for_ip_addr();
 }
 
+void WifiStation::stop_dhcp()
+{
+    net_dhcpv4_stop(this->sta_iface);
+}
+
 int WifiStation::wifi_wait_for_ip_addr(void)
 {
-    struct wifi_iface_status status;
-    if (!sta_iface)
-    {
-        LOG_ERR("STA: interface no initialized");
-        return -EIO;
-    }
-    char ip_addr[NET_IPV4_ADDR_LEN];
-    char gateway_addr[NET_IPV4_ADDR_LEN];
-    int ret;
 
-    if (k_sem_take(&ipv4_connected, K_SECONDS(CONFIG_WIFI_GET_IP_TIMEOUT)) != 0)
-    {
-        LOG_ERR("UNABLE TO GET IP ADDRESS - TIMEOUT");
-        this->notify_evt(Events::TIMEOUT);
-        return -1;
-    }
-
-    ret = net_mgmt(NET_REQUEST_WIFI_IFACE_STATUS, sta_iface, &status, sizeof(struct wifi_iface_status));
-    if (ret)
-    {
-        LOG_ERR("Error to request Wifi status\r\n");
-    }
-    else
-    {
-        memset(ip_addr, 0, sizeof(ip_addr));
-        if (net_addr_ntop(AF_INET, &sta_iface->config.ip.ipv4->unicast[0].ipv4.address.in_addr, ip_addr, sizeof(ip_addr)) == NULL)
-        {
-            LOG_ERR("Error to convert IP addr to string");
-        }
-
-        memset(gateway_addr, 0, sizeof(gateway_addr));
-        if (net_addr_ntop(AF_INET, &sta_iface->config.ip.ipv4->gw, gateway_addr, sizeof(gateway_addr)) == NULL)
-        {
-            LOG_ERR("Error to convert Gateway IP addr to string");
-        }
-    }
-
-    if (status.state >= WIFI_STATE_ASSOCIATED)
-    {
-        LOG_INF(" SSID: %-32s", status.ssid);
-        LOG_INF(" BAND: %s", wifi_band_txt(status.band));
-        LOG_INF(" CHANNEL: %d", status.channel);
-        LOG_INF(" SECURITY: %s", wifi_security_txt(status.security));
-        LOG_INF(" IP Addr: %s", ip_addr);
-        LOG_INF(" Gateway Addr: %s", gateway_addr);
-    }
+    k_timer_start(&this->TIMEOUT_TMR, K_SECONDS(CONFIG_WIFI_GET_IP_TIMEOUT), K_NO_WAIT);
     return 0;
 }
 
 int WifiStation::wait_wifi_to_connect(void)
 {
-    LOG_WRN("Waiting for wifi connection signal");
-    if (k_sem_take(&wifi_connected, K_SECONDS(CONFIG_WIFI_CONNECT_TIMEOUT)) != 0)
-    {
-        LOG_ERR("UNABLE TO CONNECT TO WIFI - TIMEOUT");
-        this->notify_evt(Events::TIMEOUT);
-        return -1;
-    }
-    else
-    {
-        LOG_INF("CONNECTED TO WIFI NETWORK");
-
-        return 0;
-    }
+    k_timer_start(&this->TIMEOUT_TMR, K_SECONDS(CONFIG_WIFI_CONNECT_TIMEOUT), K_NO_WAIT);
+    return 0;
 }
 
 int WifiStation::wifi_disconnect(void)
@@ -255,10 +205,11 @@ void WifiStation::notify_evt(Events evt)
     k_msgq_put(&net_evt_queue, &msg, K_NO_WAIT);
 }
 
+
+//TODO: Get a filesystem referencia herer and use the return of the methods to notify events
 void WifiStation::set_credentials(const char *ssid, const char *psk)
 {
     strcpy(this->ssid, ssid);
     strcpy(this->psk, psk);
-
     notify_evt(Events::WIFI_CREDS_OK);
 }

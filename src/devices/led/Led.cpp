@@ -5,8 +5,6 @@
 LOG_MODULE_REGISTER(LED_LOG);
 #define RGB(_r, _g, _b) {.r = (_r), .g = (_g), .b = (_b)}
 
-// TODO: Improve LED module to work with led_strip module/driver
-
 Led::Led(const struct device *const led) : _led(led)
 {
 }
