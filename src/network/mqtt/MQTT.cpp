@@ -584,7 +584,7 @@ void MQTT::mqtt_task(void *p1, void *, void *)
             }
             else
             {
-                LOG_WRN("Client init failed - retrying");
+                //LOG_WRN("Client init failed - retrying");
                 self->_guard.feed(read_mqtt_task_wdt_id);
                 k_msleep(1000);
             }
@@ -597,7 +597,7 @@ void MQTT::mqtt_task(void *p1, void *, void *)
             }
             else
             {
-                LOG_WRN("Broker init failed - retrying");
+                //LOG_WRN("Broker init failed - retrying");
                 self->_guard.feed(read_mqtt_task_wdt_id);
                 k_msleep(1000);
             }
@@ -610,7 +610,7 @@ void MQTT::mqtt_task(void *p1, void *, void *)
             }
             else
             {
-                LOG_WRN("Fail to connect - retrying");
+                //LOG_WRN("Fail to connect - retrying");
                 self->_guard.feed(read_mqtt_task_wdt_id);
                 k_msleep(CONFIG_MQTT_THREAD_RECONNECT_PERIOD);
             }
@@ -630,7 +630,7 @@ void MQTT::mqtt_task(void *p1, void *, void *)
             }
             else
             {
-                LOG_WRN("Waiting for CONACK");
+                //LOG_WRN("Waiting for CONACK");
                 self->_guard.feed(read_mqtt_task_wdt_id);
                 k_msleep(CONFIG_MQTT_THREAD_RECONNECT_PERIOD);
             }

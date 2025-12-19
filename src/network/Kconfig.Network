@@ -17,4 +17,8 @@ config NETWORK_DISPATCH_THREAD_STACK_SIZE
 config NETWORK_DISPATCH_THREAD_PRIORITY
     int "Network evt dispatch thread priority"
     default 5
+
+config NETWORK_CONNECTION_MAX_TRIES
+    int "Max tries that will be allowed to network to connect/reconnect"
+    default 20
 endmenu

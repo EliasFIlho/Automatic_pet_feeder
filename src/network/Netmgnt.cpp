@@ -3,7 +3,6 @@
 #include <zephyr/logging/log.h>
 
 LOG_MODULE_REGISTER(NETWORK_LOGS);
-#define MAX_ATTEMPT 3
 #define SSID_TEMP_BUFFER_LEN 16
 #define PSK_TEMP_BUFFER_LEN 16
 
@@ -52,13 +51,13 @@ int32_t Netmgnt::init_rssi_monitor()
 void Netmgnt::indicate_error(NET_ERROR err)
 {
     const auto &pattern = error_blink_table[static_cast<uint8_t>(err)];
-    this->_led.set_output(LOW);
+    this->_led.set_output(COLOR::RED, 0);
 
     for (int i = 0; i != pattern.repeat; i++)
     {
-        this->_led.set_output(HIGH);
+        this->_led.set_output(COLOR::RED, 255);
         k_msleep(pattern.on_time_ms);
-        this->_led.set_output(LOW);
+        this->_led.set_output(COLOR::RED, 0);
         k_msleep(pattern.off_time_ms);
     }
 }
@@ -70,11 +69,12 @@ void Netmgnt::rssi_monitor(struct k_work *work)
     if (self->wifi_sm.state == WifiSmState::CONNECTED)
     {
         int32_t rssi = self->_wifi.get_rssi();
-        self->_led.set_mapped_output(rssi, CONFIG_RSSI_LOWER_VALUE, CONFIG_RSSI_HIGHER_VALUE);
+        LOG_WRN("RSSI VALUE: %d",rssi);
+        self->_led.set_mapped_output(rssi, COLOR::GREEN, CONFIG_RSSI_LOWER_VALUE, CONFIG_RSSI_HIGHER_VALUE);
     }
     else
     {
-        self->_led.set_output(LOW);
+        self->_led.set_output(COLOR::RED, 255);
     }
     k_work_reschedule(dwork, K_SECONDS(CONFIG_RSSI_WORK_PERIOD));
 }
@@ -140,7 +140,6 @@ void Netmgnt::Notify(Events evt)
     for (int i = 0; i < this->listener_count; i++)
     {
         this->listeners[i]->Update(evt);
-        LOG_WRN("Update listener - %d", i);
     }
 }
 
@@ -153,7 +152,6 @@ void Netmgnt::network_evt_dispatch_task(void *p1, void *, void *)
 
     while (true)
     {
-        LOG_WRN("Waiting for events");
         if (k_msgq_get(&net_evt_queue, &evt, K_FOREVER) == 0)
         {
             // Only process WIFI events types
@@ -170,32 +168,19 @@ void Netmgnt::transition(WifiSmState new_state)
 {
     LOG_INF("State %d -> %d", static_cast<int>(wifi_sm.state), static_cast<int>(new_state));
 
-    this->on_exit(wifi_sm.state);
-    
     wifi_sm.state = new_state;
 
     this->on_entry(new_state);
 }
 
-void Netmgnt::on_exit(WifiSmState from)
-{
-    switch (from)
-    {
-    case WifiSmState::CONNECTED:
-        this->_mqtt.block_mqtt();
-        break;
 
-    default:
-        break;
-    }
-}
 
 void Netmgnt::on_entry(WifiSmState state)
 {
     switch (state)
     {
     case WifiSmState::INITIALIZING:
-        this->_led.set_output(RED);
+        this->_led.set_output(COLOR::RED, 255);
         this->_wifi.wifi_init();
         break;
 
@@ -208,7 +193,7 @@ void Netmgnt::on_entry(WifiSmState state)
         break;
 
     case WifiSmState::WAIT_IP:
-        this->_led.set_output(YELLOW);
+        this->_led.set_output(COLOR::YELLOW, 255);
         this->start_dhcp();
         break;
 
@@ -271,7 +256,7 @@ void Netmgnt::process_state(Events evt)
         }
         else if (evt == Events::TIMEOUT)
         {
-            if (++wifi_sm.tries < MAX_ATTEMPT)
+            if (++wifi_sm.tries < CONFIG_NETWORK_CONNECTION_MAX_TRIES)
                 transition(WifiSmState::CONNECTING);
             else
                 transition(WifiSmState::ENABLING_AP);
@@ -284,7 +269,7 @@ void Netmgnt::process_state(Events evt)
         }
         else if (evt == Events::TIMEOUT)
         {
-            if (++wifi_sm.tries < MAX_ATTEMPT)
+            if (++wifi_sm.tries < CONFIG_NETWORK_CONNECTION_MAX_TRIES)
                 transition(WifiSmState::WAIT_IP);
             else
                 transition(WifiSmState::ENABLING_AP);
