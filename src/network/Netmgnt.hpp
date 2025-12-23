@@ -1,7 +1,6 @@
 #pragma once
 #include "IMQTT.hpp"
 #include "IWifi.hpp"
-#include "IStorage.hpp"
 #include "ILed.hpp"
 #include "IDispatcher.hpp"
 #include <zephyr/kernel.h>
@@ -77,7 +76,6 @@ class Netmgnt : public IDispatcher
 private:
     IMQTT &_mqtt;
     IWifi &_wifi;
-    IStorage &_fs;
     ILed &_led;
     struct k_work_delayable rssi_monitor_work;
     struct k_thread dispatcher_thread;
@@ -122,8 +120,8 @@ private:
 public:
     void Attach(IListener *listener);
     void Notify(Events evt);
-    Netmgnt(IMQTT &mqtt, IWifi &wifi, IStorage &fs, ILed &led);
-    NET_ERROR start();
+    Netmgnt(IMQTT &mqtt, IWifi &wifi, ILed &led);
+    void start();
     void stop();
     ~Netmgnt();
 };

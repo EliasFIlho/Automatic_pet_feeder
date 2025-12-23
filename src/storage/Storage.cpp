@@ -32,6 +32,7 @@ Storage::~Storage()
  */
 FILE_SYSTEM_ERROR Storage::init_storage()
 {
+    k_mutex_init(&this->lock_mutex);
     struct flash_pages_info info;
     this->fs.flash_device = ZMS_PARTITION_DEVICE;
     if (!device_is_ready(this->fs.flash_device))
@@ -67,22 +68,25 @@ FILE_SYSTEM_ERROR Storage::init_storage()
  */
 int32_t Storage::read_buffer(uint32_t id, void *ptr, size_t size)
 {
+    k_mutex_lock(&this->lock_mutex, K_FOREVER);
     int ret = zms_read(&this->fs, id, ptr, size);
     if (ret < 0)
     {
         LOG_ERR("ERROR TO READ DATA: %d", ret);
+        k_mutex_unlock(&this->lock_mutex);
         return ret;
     }
     if (id != RULES_ID)
     {
         auto str_buffer = static_cast<char *>(ptr);
         str_buffer[ret] = '\0';
-        //LOG_INF("READED DATA: %s", str_buffer);
+        // LOG_INF("READED DATA: %s", str_buffer);
     }
     else
     {
         LOG_INF("RULES DATA READED");
     }
+    k_mutex_unlock(&this->lock_mutex);
     return ret;
 }
 
@@ -96,24 +100,40 @@ int32_t Storage::read_buffer(uint32_t id, void *ptr, size_t size)
  */
 int32_t Storage::write_buffer(uint32_t id, void *ptr, size_t size)
 {
+    k_mutex_lock(&this->lock_mutex, K_FOREVER);
+
     int32_t free_space = this->get_free_space();
 
     if (free_space < 0)
+    {
+        k_mutex_unlock(&this->lock_mutex);
         return free_space;
+    }
 
     if ((uint32_t)free_space < size)
+    {
+
+        k_mutex_unlock(&this->lock_mutex);
         return -ENOSPC;
+    }
 
     int ret = zms_write(&fs, id, ptr, size);
 
     if (ret != size)
+    {
+
         LOG_ERR("Error while writing Entry ret=%d", ret);
+    }
     else
+    {
+
         LOG_INF("Success to write %zu bytes", size);
+    }
+
+    k_mutex_unlock(&this->lock_mutex);
 
     return ret;
 }
-
 
 /**
  * @brief Get ZMS free space
@@ -132,4 +152,4 @@ int32_t Storage::get_free_space()
         LOG_INF("FILE SYSTEM FREE SPACE: %d", ret);
     }
     return ret;
-}
+} 

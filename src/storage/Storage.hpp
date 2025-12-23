@@ -14,6 +14,7 @@ class Storage : public IStorage
 
 private:
     struct zms_fs fs;
+    struct k_mutex lock_mutex;
 
 private:
     int32_t get_free_space();

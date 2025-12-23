@@ -7,15 +7,19 @@ LOG_MODULE_DECLARE(NETWORK_LOGS);
 #define WIFI_CALLBACK_FLAGS (NET_EVENT_WIFI_CONNECT_RESULT | NET_EVENT_WIFI_DISCONNECT_RESULT | NET_EVENT_WIFI_IFACE_STATUS | NET_EVENT_WIFI_SCAN_DONE)
 #define WIFI_DHCP_CALLBACK_FLAGS (NET_EVENT_IPV4_DHCP_START | NET_EVENT_IPV4_ADDR_ADD)
 
+#define SSID_TEMP_BUFFER_LEN 16
+#define PSK_TEMP_BUFFER_LEN 16
+
 void WifiStation::timeout_tmr_handler(struct k_timer *timer_id)
 {
-    WifiStation &instance = WifiStation::Get_Instance();
-    instance.notify_evt(Events::TIMEOUT);
+    auto *self = static_cast<WifiStation *>(k_timer_user_data_get(timer_id));
+
+    self->notify_evt(Events::TIMEOUT);
 }
 
 void WifiStation::wifi_event_handler(struct net_mgmt_event_callback *cb, uint64_t mgmt_event, struct net_if *iface)
 {
-    WifiStation &instance = WifiStation::Get_Instance();
+    auto *self = CONTAINER_OF(cb, WifiStation, wifi_cb);
 
     switch (mgmt_event)
     {
@@ -25,9 +29,9 @@ void WifiStation::wifi_event_handler(struct net_mgmt_event_callback *cb, uint64_
         int status = st ? st->status : -1;
         if (status == 0)
         {
-            k_timer_stop(&instance.TIMEOUT_TMR);
+            k_timer_stop(&self->TIMEOUT_TMR);
             LOG_INF("WIFI Connected");
-            instance.notify_evt(Events::WIFI_CONNECTED);
+            self->notify_evt(Events::WIFI_CONNECTED);
         }
 
         break;
@@ -35,7 +39,7 @@ void WifiStation::wifi_event_handler(struct net_mgmt_event_callback *cb, uint64_
     case NET_EVENT_WIFI_DISCONNECT_RESULT:
 
         LOG_WRN("DEVICE DISCONNECTD FROM NETWORK");
-        instance.notify_evt(Events::WIFI_DISCONNECTED);
+        self->notify_evt(Events::WIFI_DISCONNECTED);
         break;
 
     case NET_EVENT_WIFI_IFACE_STATUS:
@@ -51,8 +55,8 @@ void WifiStation::wifi_event_handler(struct net_mgmt_event_callback *cb, uint64_
 
 void WifiStation::dhcp4_event_handler(struct net_mgmt_event_callback *cb, uint64_t mgmt_event, struct net_if *iface)
 {
-    WifiStation &instance = WifiStation::Get_Instance();
 
+    auto *self = CONTAINER_OF(cb, WifiStation, ipv4_cb);
     switch (mgmt_event)
     {
     case NET_EVENT_IPV4_DHCP_START:
@@ -62,8 +66,8 @@ void WifiStation::dhcp4_event_handler(struct net_mgmt_event_callback *cb, uint64
     {
 
         LOG_INF("Device got IP");
-        k_timer_stop(&instance.TIMEOUT_TMR);
-        instance.notify_evt(Events::IP_ACQUIRED);
+        k_timer_stop(&self->TIMEOUT_TMR);
+        self->notify_evt(Events::IP_ACQUIRED);
         break;
     }
     default:
@@ -71,7 +75,7 @@ void WifiStation::dhcp4_event_handler(struct net_mgmt_event_callback *cb, uint64
     }
 }
 
-WifiStation::WifiStation()
+WifiStation::WifiStation(IStorage &fs) : _fs(fs)
 {
 }
 
@@ -82,6 +86,7 @@ WifiStation::~WifiStation()
 bool WifiStation::wifi_init(void)
 {
     k_timer_init(&this->TIMEOUT_TMR, this->timeout_tmr_handler, NULL);
+    k_timer_user_data_set(&this->TIMEOUT_TMR, this);
     this->sta_iface = net_if_get_wifi_sta();
     if (sta_iface == NULL)
     {
@@ -92,7 +97,6 @@ bool WifiStation::wifi_init(void)
     net_mgmt_add_event_callback(&this->ipv4_cb);
     net_mgmt_init_event_callback(&this->wifi_cb, this->wifi_event_handler, WIFI_CALLBACK_FLAGS);
     net_mgmt_add_event_callback(&this->wifi_cb);
-    // Perform NET_EVENT_WIFI_IFACE_STATUS req
     int ret = net_if_up(sta_iface);
     if (ret && ret != -EALREADY && ret != -ENOTSUP)
     {
@@ -191,12 +195,6 @@ int32_t WifiStation::get_rssi()
     }
 }
 
-WifiStation &WifiStation::Get_Instance()
-{
-    static WifiStation inst;
-    return inst;
-}
-
 void WifiStation::notify_evt(Events evt)
 {
     EventMsg msg{.evt = evt,
@@ -205,10 +203,18 @@ void WifiStation::notify_evt(Events evt)
     k_msgq_put(&net_evt_queue, &msg, K_NO_WAIT);
 }
 
-
-//TODO: Get a filesystem referencia herer and use the return of the methods to notify events
-void WifiStation::set_credentials(const char *ssid, const char *psk)
+void WifiStation::set_credentials()
 {
+    char ssid[SSID_TEMP_BUFFER_LEN];
+    char psk[PSK_TEMP_BUFFER_LEN];
+    if (this->_fs.read_buffer(SSID_ID, ssid, sizeof(ssid)) < 0)
+    {
+        this->notify_evt(Events::WIFI_CREDS_NOT_FOUND);
+    }
+    if (this->_fs.read_buffer(PASSWORD_ID, psk, sizeof(psk)) < 0)
+    {
+        this->notify_evt(Events::WIFI_CREDS_NOT_FOUND);
+    }
     strcpy(this->ssid, ssid);
     strcpy(this->psk, psk);
     notify_evt(Events::WIFI_CREDS_OK);

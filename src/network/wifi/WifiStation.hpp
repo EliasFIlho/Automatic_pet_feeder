@@ -6,6 +6,7 @@
 #include <zephyr/net/wifi_mgmt.h>
 #include <zephyr/net/dhcpv4_server.h>
 #include "IWifi.hpp"
+#include "IStorage.hpp"
 #include "NetEvents.hpp"
 
 
@@ -19,6 +20,7 @@ private:
     struct net_mgmt_event_callback wifi_cb;
     struct net_mgmt_event_callback ipv4_cb;
     struct k_timer TIMEOUT_TMR;
+    IStorage &_fs;
     
 private:
     static void wifi_event_handler(struct net_mgmt_event_callback *cb, uint64_t mgmt_event, struct net_if *iface);
@@ -29,15 +31,14 @@ private:
     int wifi_wait_for_ip_addr(void);
     
     public:
-    WifiStation();
+    WifiStation(IStorage &fs);
     bool wifi_init();
     int connect_to_wifi();
     int wifi_disconnect();
     void start_dhcp();
     void stop_dhcp();
-    void set_credentials(const char *ssid, const char *psk);
+    void set_credentials();
     int32_t get_rssi();
-    static WifiStation &Get_Instance();
 
     ~WifiStation();
 };

@@ -3,12 +3,11 @@
 #include <zephyr/logging/log.h>
 
 LOG_MODULE_REGISTER(NETWORK_LOGS);
-#define SSID_TEMP_BUFFER_LEN 16
-#define PSK_TEMP_BUFFER_LEN 16
+
 
 K_THREAD_STACK_DEFINE(NETWORK_DISPATCH_STACK_AREA, CONFIG_NETWORK_DISPATCH_THREAD_STACK_SIZE);
 
-Netmgnt::Netmgnt(IMQTT &mqtt, IWifi &wifi, IStorage &fs, ILed &led) : _mqtt(mqtt), _wifi(wifi), _fs(fs), _led(led)
+Netmgnt::Netmgnt(IMQTT &mqtt, IWifi &wifi, ILed &led) : _mqtt(mqtt), _wifi(wifi), _led(led)
 {
 }
 
@@ -16,15 +15,13 @@ Netmgnt::~Netmgnt()
 {
 }
 
-NET_ERROR Netmgnt::start()
+void Netmgnt::start()
 {
     k_thread_create(&this->dispatcher_thread,
                     NETWORK_DISPATCH_STACK_AREA,
                     CONFIG_NETWORK_DISPATCH_THREAD_STACK_SIZE,
                     Netmgnt::network_evt_dispatch_task,
                     this, NULL, NULL, CONFIG_NETWORK_DISPATCH_THREAD_PRIORITY, 0, K_NO_WAIT);
-
-    return NET_ERROR::NET_OK;
 }
 
 void Netmgnt::stop()
@@ -69,7 +66,7 @@ void Netmgnt::rssi_monitor(struct k_work *work)
     if (self->wifi_sm.state == WifiSmState::CONNECTED)
     {
         int32_t rssi = self->_wifi.get_rssi();
-        LOG_WRN("RSSI VALUE: %d",rssi);
+        LOG_WRN("RSSI VALUE: %d", rssi);
         self->_led.set_mapped_output(rssi, COLOR::GREEN, CONFIG_RSSI_LOWER_VALUE, CONFIG_RSSI_HIGHER_VALUE);
     }
     else
@@ -88,21 +85,8 @@ NET_ERROR Netmgnt::fail(NET_ERROR code, const char *msg)
 
 NET_ERROR Netmgnt::set_wifi_credentials()
 {
-    char ssid[SSID_TEMP_BUFFER_LEN];
-    char psk[PSK_TEMP_BUFFER_LEN];
-    int ret;
-    LOG_INF("Start Network LOGS");
 
-    if (this->_fs.read_buffer(SSID_ID, ssid, sizeof(ssid)) < 0)
-    {
-        return this->fail(NET_ERROR::MISSING_WIFI_CREDENTIALS, "SSID Missing");
-    }
-    if (this->_fs.read_buffer(PASSWORD_ID, psk, sizeof(psk)) < 0)
-    {
-        return this->fail(NET_ERROR::MISSING_WIFI_CREDENTIALS, "Password Missing");
-    }
-
-    this->_wifi.set_credentials(ssid, psk);
+    this->_wifi.set_credentials();
     return NET_ERROR::NET_OK;
 }
 
@@ -172,8 +156,6 @@ void Netmgnt::transition(WifiSmState new_state)
 
     this->on_entry(new_state);
 }
-
-
 
 void Netmgnt::on_entry(WifiSmState state)
 {
@@ -282,7 +264,7 @@ void Netmgnt::process_state(Events evt)
         }
         break;
     case WifiSmState::IFACE_ERROR:
-        
+
         break;
     case WifiSmState::ENABLING_AP:
         break;
