@@ -1,4 +1,5 @@
 target_include_directories(app PRIVATE .)
-target_sources(app PRIVATE
-               ${CMAKE_CURRENT_SOURCE_DIR}/WifiStation.cpp
-)
+
+FILE(GLOB wifi_source ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+
+target_sources(app PRIVATE ${wifi_source})

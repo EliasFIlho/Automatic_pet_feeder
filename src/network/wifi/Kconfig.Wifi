@@ -15,6 +15,18 @@ config WIFI_PSK_BUF_LEN
 config WIFI_SSID_BUF_LEN
     int "Wifi SSID buffer len"
     default 32
+config WIFI_AP_SSID
+    string "AP SSID Displayed name"
+    default "Pet-Feeder"
+config WIFI_AP_PSK
+    string "AP PSK used to connect"
+    default "12345678"
 
+config WIFI_AP_MASK
+    string "Network mask for AP mode"
+    default "255.255.255.0"
+config WIFI_AP_IP
+    string "Network IP for AP mode"
+    default "192.168.100.1"
 
 endmenu

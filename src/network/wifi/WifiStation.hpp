@@ -1,7 +1,6 @@
 #pragma once
 
 #include <zephyr/kernel.h>
-#include <zephyr/drivers/pwm.h>
 #include <zephyr/device.h>
 #include <zephyr/net/wifi_mgmt.h>
 #include <zephyr/net/dhcpv4_server.h>

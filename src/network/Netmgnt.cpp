@@ -4,10 +4,9 @@
 
 LOG_MODULE_REGISTER(NETWORK_LOGS);
 
-
 K_THREAD_STACK_DEFINE(NETWORK_DISPATCH_STACK_AREA, CONFIG_NETWORK_DISPATCH_THREAD_STACK_SIZE);
 
-Netmgnt::Netmgnt(IMQTT &mqtt, IWifi &wifi, ILed &led) : _mqtt(mqtt), _wifi(wifi), _led(led)
+Netmgnt::Netmgnt(IMQTT &mqtt, IWifi &wifi, ILed &led, IWifiAp &soft_ap) : _mqtt(mqtt), _wifi(wifi), _led(led), _ap(soft_ap)
 {
 }
 
@@ -171,6 +170,7 @@ void Netmgnt::on_entry(WifiSmState state)
         break;
 
     case WifiSmState::CONNECTING:
+        this->_mqtt.block_mqtt();
         this->connect_to_wifi();
         break;
 
@@ -184,11 +184,13 @@ void Netmgnt::on_entry(WifiSmState state)
         this->init_rssi_monitor();
         this->_mqtt.release_mqtt();
         this->start_mqtt();
-
+        // this->_ap.ap_init(); // Test only
         break;
     case WifiSmState::ENABLING_AP:
+        // TODO: Implement transitions to AP mode and implement HTTPS server for wifi credentials user inputs
         this->wifi_sm.tries = 0;
-        LOG_ERR("will implement this soon");
+        this->_led.set_output(COLOR::BLUE, 255);
+        this->_ap.ap_init();
         break;
     default:
         break;

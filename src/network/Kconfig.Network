@@ -20,5 +20,5 @@ config NETWORK_DISPATCH_THREAD_PRIORITY
 
 config NETWORK_CONNECTION_MAX_TRIES
     int "Max tries that will be allowed to network to connect/reconnect"
-    default 20
+    default 10
 endmenu

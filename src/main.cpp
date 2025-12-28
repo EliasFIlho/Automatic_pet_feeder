@@ -6,7 +6,7 @@
 #include "Storage.hpp"
 #include "SchedulerRules.hpp"
 #include "WifiStation.hpp"
-#include "IWifi.hpp"
+#include "WifiAp.hpp"
 #include "MQTT.hpp"
 #include "Led.hpp"
 #include "Netmgnt.hpp"
@@ -50,7 +50,8 @@ RTC rtc;
 MQTT mqtt(guard, fs, json);
 Led led(net_led);
 WifiStation wifi(fs);
-Netmgnt net(mqtt, wifi, led);
+WifiAp soft_ap;
+Netmgnt net(mqtt, wifi, led,soft_ap);
 Application app(rtc, motor, fs, guard);
 LvlSensor sensor(sensor_dev);
 

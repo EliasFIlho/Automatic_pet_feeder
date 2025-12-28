@@ -1,5 +1,4 @@
 #include <zephyr/dt-bindings/gpio/gpio.h>
-#include <zephyr/dt-bindings/pwm/pwm.h>
 #include <zephyr/dt-bindings/pinctrl/esp32-pinctrl.h>
 #include <zephyr/dt-bindings/led/led.h>
 
@@ -24,6 +23,11 @@
 
     aliases {
 		led-strip = &led_strip;
+	};
+
+	wifi_ap: wifi_ap {
+		compatible = "espressif,esp32-wifi";
+		status = "okay";
 	};
 
 };
