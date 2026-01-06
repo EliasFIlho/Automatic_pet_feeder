@@ -3,3 +3,4 @@
 *.odt
 *.der
 *.inc
+**/generated

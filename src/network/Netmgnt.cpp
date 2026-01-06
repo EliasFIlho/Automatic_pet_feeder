@@ -187,7 +187,7 @@ void Netmgnt::on_entry(WifiSmState state)
         // this->_ap.ap_init(); // Test only
         break;
     case WifiSmState::ENABLING_AP:
-        // TODO: Implement transitions to AP mode and implement HTTPS server for wifi credentials user inputs
+        // TODO: Implement HTTPS server for wifi credentials user inputs
         this->wifi_sm.tries = 0;
         this->_led.set_output(COLOR::BLUE, 255);
         this->_ap.ap_init();
@@ -220,53 +220,64 @@ void Netmgnt::process_state(Events evt)
         if (evt == Events::WIFI_CREDS_OK)
         {
 
-            transition(WifiSmState::CONNECTING);
+            this->transition(WifiSmState::CONNECTING);
         }
         else if (evt == Events::WIFI_CREDS_FAIL)
         {
 
-            transition(WifiSmState::LOADING_CREDENTIALS);
+            this->transition(WifiSmState::LOADING_CREDENTIALS);
         }
         else if (evt == Events::WIFI_CREDS_NOT_FOUND)
         {
 
-            transition(WifiSmState::ENABLING_AP);
+            this->transition(WifiSmState::ENABLING_AP);
         }
         break;
     case WifiSmState::CONNECTING:
         if (evt == Events::WIFI_CONNECTED)
         {
-            transition(WifiSmState::WAIT_IP);
+            this->transition(WifiSmState::WAIT_IP);
         }
         else if (evt == Events::TIMEOUT)
         {
             if (++wifi_sm.tries < CONFIG_NETWORK_CONNECTION_MAX_TRIES)
-                transition(WifiSmState::CONNECTING);
+            {
+
+                this->transition(WifiSmState::CONNECTING);
+            }
             else
-                transition(WifiSmState::ENABLING_AP);
+            {
+
+                this->transition(WifiSmState::ENABLING_AP);
+            }
         }
         break;
     case WifiSmState::WAIT_IP:
         if (evt == Events::IP_ACQUIRED)
         {
-            transition(WifiSmState::CONNECTED);
+            this->transition(WifiSmState::CONNECTED);
         }
         else if (evt == Events::TIMEOUT)
         {
             if (++wifi_sm.tries < CONFIG_NETWORK_CONNECTION_MAX_TRIES)
-                transition(WifiSmState::WAIT_IP);
+            {
+
+                this->transition(WifiSmState::WAIT_IP);
+            }
             else
-                transition(WifiSmState::ENABLING_AP);
+            {
+
+                this->transition(WifiSmState::ENABLING_AP);
+            }
         }
         break;
     case WifiSmState::CONNECTED:
         if (evt == Events::WIFI_DISCONNECTED)
         {
-            transition(WifiSmState::CONNECTING);
+            this->transition(WifiSmState::CONNECTING);
         }
         break;
     case WifiSmState::IFACE_ERROR:
-
         break;
     case WifiSmState::ENABLING_AP:
         break;
