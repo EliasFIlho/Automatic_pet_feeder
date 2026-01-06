@@ -6,7 +6,7 @@ LOG_MODULE_REGISTER(NETWORK_LOGS);
 
 K_THREAD_STACK_DEFINE(NETWORK_DISPATCH_STACK_AREA, CONFIG_NETWORK_DISPATCH_THREAD_STACK_SIZE);
 
-Netmgnt::Netmgnt(IMQTT &mqtt, IWifi &wifi, ILed &led, IWifiAp &soft_ap) : _mqtt(mqtt), _wifi(wifi), _led(led), _ap(soft_ap)
+Netmgnt::Netmgnt(IMQTT &mqtt, IWifi &wifi, ILed &led, IWifiAp &soft_ap,IHTTPServer &http_server) : _mqtt(mqtt), _wifi(wifi), _led(led), _ap(soft_ap), _http(http_server)
 {
 }
 
@@ -70,7 +70,7 @@ void Netmgnt::rssi_monitor(struct k_work *work)
     }
     else
     {
-        self->_led.set_output(COLOR::RED, 255);
+
     }
     k_work_reschedule(dwork, K_SECONDS(CONFIG_RSSI_WORK_PERIOD));
 }
@@ -171,6 +171,7 @@ void Netmgnt::on_entry(WifiSmState state)
 
     case WifiSmState::CONNECTING:
         this->_mqtt.block_mqtt();
+        k_work_cancel_delayable(&this->rssi_monitor_work);
         this->connect_to_wifi();
         break;
 
@@ -182,9 +183,10 @@ void Netmgnt::on_entry(WifiSmState state)
     case WifiSmState::CONNECTED:
         this->wifi_sm.tries = 0;
         this->init_rssi_monitor();
-        this->_mqtt.release_mqtt();
-        this->start_mqtt();
-        // this->_ap.ap_init(); // Test only
+        // this->_mqtt.release_mqtt();
+        // this->start_mqtt();
+        //this->_ap.ap_init(); // Test only
+        this->_http.start(); // Test only - will be created a new state for it
         break;
     case WifiSmState::ENABLING_AP:
         // TODO: Implement HTTPS server for wifi credentials user inputs

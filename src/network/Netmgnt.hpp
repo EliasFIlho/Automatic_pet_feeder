@@ -4,6 +4,7 @@
 #include "ILed.hpp"
 #include "IWifiAp.hpp"
 #include "IDispatcher.hpp"
+#include "IHTTPServer.hpp"
 #include <zephyr/kernel.h>
 
 #define MAX_LISTERNERS 5
@@ -82,6 +83,7 @@ private:
     IWifi &_wifi;
     ILed &_led;
     IWifiAp &_ap;
+    IHTTPServer &_http;
     struct k_work_delayable rssi_monitor_work;
     struct k_thread dispatcher_thread;
     uint8_t listener_count = 0;
@@ -125,7 +127,7 @@ private:
 public:
     void Attach(IListener *listener);
     void Notify(Events evt);
-    Netmgnt(IMQTT &mqtt, IWifi &wifi, ILed &led, IWifiAp &soft_ap);
+    Netmgnt(IMQTT &mqtt, IWifi &wifi, ILed &led, IWifiAp &soft_ap, IHTTPServer &http_server);
     void start();
     void stop();
     ~Netmgnt();

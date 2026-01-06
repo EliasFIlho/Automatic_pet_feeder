@@ -14,6 +14,7 @@
 #include "LvlSensor.hpp"
 #include "NetEvents.hpp"
 #include "JsonModule.hpp"
+#include "HTTPServer.hpp"
 #include <zephyr/task_wdt/task_wdt.h>
 #include <zephyr/logging/log.h>
 
@@ -51,7 +52,8 @@ MQTT mqtt(guard, fs, json);
 Led led(net_led);
 WifiStation wifi(fs);
 WifiAp soft_ap;
-Netmgnt net(mqtt, wifi, led,soft_ap);
+HTTPServer http_server;
+Netmgnt net(mqtt, wifi, led, soft_ap, http_server);
 Application app(rtc, motor, fs, guard);
 LvlSensor sensor(sensor_dev);
 
