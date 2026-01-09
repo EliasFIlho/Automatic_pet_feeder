@@ -6,7 +6,7 @@ LOG_MODULE_REGISTER(NETWORK_LOGS);
 
 K_THREAD_STACK_DEFINE(NETWORK_DISPATCH_STACK_AREA, CONFIG_NETWORK_DISPATCH_THREAD_STACK_SIZE);
 
-Netmgnt::Netmgnt(IMQTT &mqtt, IWifi &wifi, ILed &led, IWifiAp &soft_ap,IHTTPServer &http_server) : _mqtt(mqtt), _wifi(wifi), _led(led), _ap(soft_ap), _http(http_server)
+Netmgnt::Netmgnt(IMQTT &mqtt, IWifi &wifi, ILed &led, IWifiAp &soft_ap, IHTTPServer &http_server) : _mqtt(mqtt), _wifi(wifi), _led(led), _ap(soft_ap), _http(http_server)
 {
 }
 
@@ -70,7 +70,6 @@ void Netmgnt::rssi_monitor(struct k_work *work)
     }
     else
     {
-
     }
     k_work_reschedule(dwork, K_SECONDS(CONFIG_RSSI_WORK_PERIOD));
 }
@@ -147,13 +146,48 @@ void Netmgnt::network_evt_dispatch_task(void *p1, void *, void *)
     }
 }
 
+void Netmgnt::on_exit(WifiSmState state)
+{
+    LOG_INF("Leanving State %d", static_cast<int>(state));
+    switch (state)
+    {
+    case WifiSmState::INITIALIZING:
+
+        break;
+
+    case WifiSmState::LOADING_CREDENTIALS:
+        break;
+
+    case WifiSmState::CONNECTING:
+
+        break;
+
+    case WifiSmState::WAIT_IP:
+
+        break;
+
+    case WifiSmState::CONNECTED:
+
+        break;
+    case WifiSmState::ENABLING_AP:
+
+        break;
+    case WifiSmState::ENABLING_HTTP_SERVER:
+
+    default:
+        break;
+    }
+}
+
 void Netmgnt::transition(WifiSmState new_state)
 {
     LOG_INF("State %d -> %d", static_cast<int>(wifi_sm.state), static_cast<int>(new_state));
 
-    wifi_sm.state = new_state;
+    this->on_exit(this->wifi_sm.state);
 
-    this->on_entry(new_state);
+    this->wifi_sm.state = new_state;
+
+    this->on_entry(this->wifi_sm.state);
 }
 
 void Netmgnt::on_entry(WifiSmState state)
@@ -185,14 +219,17 @@ void Netmgnt::on_entry(WifiSmState state)
         this->init_rssi_monitor();
         // this->_mqtt.release_mqtt();
         // this->start_mqtt();
-        //this->_ap.ap_init(); // Test only
+        // this->_ap.ap_init(); // Test only
         this->_http.start(); // Test only - will be created a new state for it
         break;
     case WifiSmState::ENABLING_AP:
-        // TODO: Implement HTTPS server for wifi credentials user inputs
         this->wifi_sm.tries = 0;
         this->_led.set_output(COLOR::BLUE, 255);
         this->_ap.ap_init();
+        break;
+    case WifiSmState::ENABLING_HTTP_SERVER:
+        // TODO: At this state when some data was sent through the http server it will raise a event that will move again to connecting
+        this->_http.start();
         break;
     default:
         break;
@@ -282,6 +319,10 @@ void Netmgnt::process_state(Events evt)
     case WifiSmState::IFACE_ERROR:
         break;
     case WifiSmState::ENABLING_AP:
+        if (evt == Events::WIFI_AP_ENABLE)
+        {
+            this->transition(WifiSmState::ENABLING_HTTP_SERVER);
+        }
         break;
     default:
         break;

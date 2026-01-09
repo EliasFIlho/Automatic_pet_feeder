@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -25,33 +24,13 @@
             max-width: 350px;
         }
 
-        .header {
-            text-align: center;
-            margin-bottom: 1.5rem;
-        }
+        .header { text-align: center; margin-bottom: 1.5rem; }
+        .header h2 { margin: 0; color: #333; font-size: 1.5rem; }
+        .header p { color: #666; font-size: 0.9rem; }
 
-        .header h2 {
-            margin: 0;
-            color: #333;
-            font-size: 1.5rem;
-        }
-
-        .header p {
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-        .form-group {
-            margin-bottom: 1rem;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: #495057;
-        }
-
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: #495057; }
+        
         input {
             width: 100%;
             padding: 0.75rem;
@@ -59,12 +38,6 @@
             border-radius: 6px;
             box-sizing: border-box;
             font-size: 1rem;
-        }
-
-        input:focus {
-            outline: none;
-            border-color: #0d6efd;
-            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
         }
 
         button {
@@ -78,15 +51,10 @@
             font-weight: bold;
             cursor: pointer;
             margin-top: 1rem;
+            transition: opacity 0.2s;
         }
 
-        button:hover {
-            background-color: #0b5ed7;
-        }
-
-        button:active {
-            transform: translateY(1px);
-        }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
 
         .footer {
             margin-top: 1.5rem;
@@ -94,9 +62,16 @@
             text-align: center;
             color: #adb5bd;
         }
+
+        /* Success/Error message styling */
+        #status-msg {
+            margin-top: 1rem;
+            text-align: center;
+            font-size: 0.85rem;
+            display: none;
+        }
     </style>
 </head>
-
 <body>
 
     <div class="card">
@@ -105,7 +80,7 @@
             <p>Connect to your home Wi-Fi</p>
         </div>
 
-        <form action="/save" method="post">
+        <form id="wifi-form">
             <div class="form-group">
                 <label for="ssid">Wi-Fi Name (SSID)</label>
                 <input type="text" id="ssid" name="ssid" placeholder="e.g. MyHomeNetwork" required>
@@ -116,14 +91,58 @@
                 <input type="password" id="password" name="password" placeholder="**********" required>
             </div>
 
-            <button type="submit">Connect Device</button>
+            <button type="submit" id="submit-btn">Connect Device</button>
+            <div id="status-msg"></div>
         </form>
 
-        <div class="footer">
-            Configuration Portal
-        </div>
+        <div class="footer">Configuration Portal</div>
     </div>
 
-</body>
+    <script>
+        const wifiForm = document.getElementById('wifi-form');
+        const submitBtn = document.getElementById('submit-btn');
+        const statusMsg = document.getElementById('status-msg');
 
+        wifiForm.addEventListener('submit', async (e) => {
+            e.preventDefault(); // Prevent standard page reload
+            
+            // UI Feedback: Loading state
+            submitBtn.disabled = true;
+            submitBtn.innerText = "Connecting...";
+            statusMsg.style.display = "none";
+
+            // 1. Convert form data to a JS Object
+            const formData = new FormData(wifiForm);
+            const jsonData = Object.fromEntries(formData.entries());
+
+            // 
+            try {
+                const response = await fetch('/save', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(jsonData)
+                });
+
+                if (response.ok) {
+                    showStatus("Connected! Your feeder is ready.", "#198754");
+                } else {
+                    showStatus("Error: Server rejected config.", "#dc3545");
+                }
+            } catch (err) {
+                showStatus("Error: Could not reach device.", "#dc3545");
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = "Connect Device";
+            }
+        });
+
+        function showStatus(text, color) {
+            statusMsg.innerText = text;
+            statusMsg.style.color = color;
+            statusMsg.style.display = "block";
+        }
+    </script>
+</body>
 </html>

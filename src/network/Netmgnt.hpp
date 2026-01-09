@@ -32,7 +32,7 @@ state-flow
     WAIT_IP --> WAIT_IP: TIMEOUT && Tries < MAX
     WAIT_IP --> ENABLING_AP: TIMEOUT && Tries > MAX
 
-    ENABLING_AP --> ENABLING_USER_UI: WIFI_AP_ENABLE
+    ENABLING_AP --> ENABLING_HTTP_SERVER: WIFI_AP_ENABLE
     
 
     
@@ -59,7 +59,8 @@ enum class WifiSmState
     WAIT_IP,
     CONNECTED,
     IFACE_ERROR,
-    ENABLING_AP
+    ENABLING_AP,
+    ENABLING_HTTP_SERVER
 };
 
 struct state_transition
@@ -123,6 +124,7 @@ private:
     void process_state(Events evt);
     void transition(WifiSmState new_state);
     void on_entry(WifiSmState state);
+    void on_exit(WifiSmState state);
 
 public:
     void Attach(IListener *listener);
