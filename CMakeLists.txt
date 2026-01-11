@@ -18,6 +18,7 @@ add_subdirectory(src/network/mqtt)
 add_subdirectory(src/network/json)
 add_subdirectory(src/network/http)
 add_subdirectory(src/storage)
+add_subdirectory(common)
 
 
 

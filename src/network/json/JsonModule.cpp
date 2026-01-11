@@ -46,12 +46,11 @@ int32_t JsonModule::parse(char *buffer_in, void *struct_out, const struct json_o
     int ret = json_obj_parse(buffer_in, strlen(buffer_in), json_obj, json_obj_size, struct_out);
     if (ret < 0)
     {
-        LOG_ERR("Error to parse rules: %d", ret);
+        LOG_ERR("Error to parse: %d", ret);
     }
     else
     {
         LOG_INF("Parser return value: %d", ret);
-        print_rules(static_cast<Rules_t *>(struct_out));
     }
     return ret;
 }

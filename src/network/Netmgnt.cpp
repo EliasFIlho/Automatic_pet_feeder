@@ -1,6 +1,13 @@
 #include "Netmgnt.hpp"
 #include "NetEvents.hpp"
 #include <zephyr/logging/log.h>
+#include "enum_to_string.hpp"
+
+/*
+TODO: Create private methods for each operation that calls other objects methods
+    e.g. "this->_http.start();" becomes "this->start_http_server();"
+
+*/
 
 LOG_MODULE_REGISTER(NETWORK_LOGS);
 
@@ -44,20 +51,6 @@ int32_t Netmgnt::init_rssi_monitor()
     }
 }
 
-void Netmgnt::indicate_error(NET_ERROR err)
-{
-    const auto &pattern = error_blink_table[static_cast<uint8_t>(err)];
-    this->_led.set_output(COLOR::RED, 0);
-
-    for (int i = 0; i != pattern.repeat; i++)
-    {
-        this->_led.set_output(COLOR::RED, 255);
-        k_msleep(pattern.on_time_ms);
-        this->_led.set_output(COLOR::RED, 0);
-        k_msleep(pattern.off_time_ms);
-    }
-}
-
 void Netmgnt::rssi_monitor(struct k_work *work)
 {
     k_work_delayable *dwork = k_work_delayable_from_work(work);
@@ -67,25 +60,14 @@ void Netmgnt::rssi_monitor(struct k_work *work)
         int32_t rssi = self->_wifi.get_rssi();
         LOG_WRN("RSSI VALUE: %d", rssi);
         self->_led.set_mapped_output(rssi, COLOR::GREEN, CONFIG_RSSI_LOWER_VALUE, CONFIG_RSSI_HIGHER_VALUE);
+        k_work_reschedule(dwork, K_SECONDS(CONFIG_RSSI_WORK_PERIOD));
     }
-    else
-    {
-    }
-    k_work_reschedule(dwork, K_SECONDS(CONFIG_RSSI_WORK_PERIOD));
 }
 
-NET_ERROR Netmgnt::fail(NET_ERROR code, const char *msg)
-{
-    LOG_ERR("%s", msg);
-    this->indicate_error(code);
-    return code;
-}
-
-NET_ERROR Netmgnt::set_wifi_credentials()
+void Netmgnt::set_wifi_credentials()
 {
 
     this->_wifi.set_credentials();
-    return NET_ERROR::NET_OK;
 }
 
 void Netmgnt::connect_to_wifi()
@@ -139,6 +121,7 @@ void Netmgnt::network_evt_dispatch_task(void *p1, void *, void *)
             // Only process WIFI events types
             if (evt.type == EventGroup::WIFI)
             {
+                LOG_WRN("ARRIVED EVENT: %s", EVENT_TO_STRING(evt.evt));
                 self->process_state(evt.evt);
             }
             self->Notify(evt.evt);

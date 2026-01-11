@@ -127,8 +127,10 @@
 
                 if (response.ok) {
                     showStatus("Connected! Your feeder is ready.", "#198754");
+                    window.location.href = "/success";
                 } else {
                     showStatus("Error: Server rejected config.", "#dc3545");
+                    window.location.href = "/error";
                 }
             } catch (err) {
                 showStatus("Error: Could not reach device.", "#dc3545");

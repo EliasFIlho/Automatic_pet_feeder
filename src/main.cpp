@@ -52,7 +52,7 @@ MQTT mqtt(guard, fs, json);
 Led led(net_led);
 WifiStation wifi(fs);
 WifiAp soft_ap;
-HTTPServer http_server;
+HTTPServer http_server(json, fs);
 Netmgnt net(mqtt, wifi, led, soft_ap, http_server);
 Application app(rtc, motor, fs, guard);
 LvlSensor sensor(sensor_dev);
@@ -65,6 +65,7 @@ int main(void)
 
     __ASSERT(guard.init() == 0, "Error to init watchdog");
     __ASSERT(fs.init_storage() == FILE_SYSTEM_ERROR::STORAGE_OK, "Error to init storage");
+
     net.Attach(&sensor);
     net.Attach(&app);
     net.start();

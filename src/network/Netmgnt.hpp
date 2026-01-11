@@ -42,14 +42,6 @@ state-flow
 
 */
 
-enum class NET_ERROR : uint8_t
-{
-    NET_OK,
-    MISSING_WIFI_CREDENTIALS,
-    WIFI_INIT_ERROR,
-    WIFI_TIMEOUT,
-    IFACE_MISSING
-};
 
 enum class WifiSmState
 {
@@ -89,32 +81,13 @@ private:
     struct k_thread dispatcher_thread;
     uint8_t listener_count = 0;
     IListener *listeners[MAX_LISTERNERS];
-
-    struct BlinkPattern
-    {
-        uint16_t on_time_ms;
-        uint16_t off_time_ms;
-        uint8_t repeat;
-    };
-
-    // TODO: Move those values to Kconfig to avoid magic numbers
-    inline static constexpr BlinkPattern error_blink_table[] = {
-        {0, 0, 0},
-        {200, 200, 2},
-        {500, 500, 3},
-        {1000, 1000, 2},
-        {100, 900, 5},
-    };
-
     struct Wifi_State_Machine wifi_sm;
 
 
 private:
-    void indicate_error(NET_ERROR err);
     static void rssi_monitor(struct k_work *work);
-    NET_ERROR fail(NET_ERROR code, const char *msg);
     int32_t init_rssi_monitor();
-    NET_ERROR set_wifi_credentials();
+    void set_wifi_credentials();
 
     void start_dhcp();
     void stop_dhcp();
