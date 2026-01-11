@@ -39,3 +39,28 @@ const char *EVENT_TO_STRING(Events evt)
         return "";
     }
 }
+
+const char *STATE_TO_STRING(WifiSmState state)
+{
+    switch (state)
+    {
+    case WifiSmState::INITIALIZING:
+        return "INITIALIZING";
+    case WifiSmState::LOADING_CREDENTIALS:
+        return "LOADING_CREDENTIALS";
+    case WifiSmState::CONNECTING:
+        return "CONNECTING";
+    case WifiSmState::WAIT_IP:
+        return "WAIT_IP";
+    case WifiSmState::CONNECTED:
+        return "CONNECTED";
+    case WifiSmState::IFACE_ERROR:
+        return "IFACE_ERROR";
+    case WifiSmState::ENABLING_AP:
+        return "ENABLING_AP";
+    case WifiSmState::ENABLING_HTTP_SERVER:
+        return "ENABLING_HTTP_SERVER";
+    default:
+        return "";
+    }
+}

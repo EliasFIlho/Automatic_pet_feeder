@@ -5,6 +5,7 @@
 #include <zephyr/net/wifi_mgmt.h>
 #include <zephyr/net/dhcpv4_server.h>
 #include "NetEvents.hpp"
+#include "Enums.hpp"
 #include "IWifiAp.hpp"
 
 class WifiAp : public IWifiAp

@@ -7,6 +7,7 @@
 #include "IWifi.hpp"
 #include "IStorage.hpp"
 #include "NetEvents.hpp"
+#include "Enums.hpp"
 
 
 

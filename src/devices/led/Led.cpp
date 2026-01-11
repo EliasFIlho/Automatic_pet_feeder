@@ -50,12 +50,9 @@ int32_t Led::set_output(COLOR channel, uint8_t output)
         this->colors = RGB(255, 255, 255);
         break;
     }
+
     int ret = led_strip_update_rgb(this->_led, &this->colors, 1);
-    if (ret == 0)
-    {
-        LOG_WRN("LED STRIP UPDATED");
-    }
-    else
+    if (ret != 0)
     {
         LOG_ERR("LED STRIP ERROR TO UPDATE");
     }
@@ -75,7 +72,6 @@ int32_t Led::set_mapped_output(int32_t value, COLOR channel, int32_t fromLow = -
     }
 
     int32_t out = ((value - fromLow) * 255) / (fromHigh - fromLow);
-    LOG_WRN("Led Output after map: %d",out);
     this->set_output(channel, out);
     return 0;
 }

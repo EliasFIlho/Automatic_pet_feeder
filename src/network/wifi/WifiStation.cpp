@@ -136,10 +136,6 @@ int WifiStation::connect_to_wifi()
         LOG_ERR("Error in net_mgmt: %d", ret);
         return ret;
     }
-    else
-    {
-        LOG_WRN("NET_MGMT RETURN %d", ret);
-    }
 
     ret = wait_wifi_to_connect();
     if (ret < 0)

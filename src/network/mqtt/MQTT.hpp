@@ -9,6 +9,7 @@
 #include "IJson.hpp"
 #include "SchedulerRules.hpp"
 #include "NetEvents.hpp"
+#include "Enums.hpp"
 extern k_msgq mqtt_publish_queue;
 
 enum class MQTT_STATES

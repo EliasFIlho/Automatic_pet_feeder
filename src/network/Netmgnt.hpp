@@ -43,17 +43,7 @@ state-flow
 */
 
 
-enum class WifiSmState
-{
-    INITIALIZING,
-    LOADING_CREDENTIALS,
-    CONNECTING,
-    WAIT_IP,
-    CONNECTED,
-    IFACE_ERROR,
-    ENABLING_AP,
-    ENABLING_HTTP_SERVER
-};
+
 
 struct state_transition
 {

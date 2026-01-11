@@ -9,6 +9,8 @@ TODO: Create private methods for each operation that calls other objects methods
 
 */
 
+// TODO: Improve connection state machine robustness
+
 LOG_MODULE_REGISTER(NETWORK_LOGS);
 
 K_THREAD_STACK_DEFINE(NETWORK_DISPATCH_STACK_AREA, CONFIG_NETWORK_DISPATCH_THREAD_STACK_SIZE);
@@ -131,7 +133,7 @@ void Netmgnt::network_evt_dispatch_task(void *p1, void *, void *)
 
 void Netmgnt::on_exit(WifiSmState state)
 {
-    LOG_INF("Leanving State %d", static_cast<int>(state));
+    LOG_INF("Leanving State %s", STATE_TO_STRING(state));
     switch (state)
     {
     case WifiSmState::INITIALIZING:
@@ -164,7 +166,7 @@ void Netmgnt::on_exit(WifiSmState state)
 
 void Netmgnt::transition(WifiSmState new_state)
 {
-    LOG_INF("State %d -> %d", static_cast<int>(wifi_sm.state), static_cast<int>(new_state));
+    LOG_INF("From %s State -> %s State", STATE_TO_STRING(wifi_sm.state), STATE_TO_STRING(new_state));
 
     this->on_exit(this->wifi_sm.state);
 
@@ -255,6 +257,7 @@ void Netmgnt::process_state(Events evt)
             this->transition(WifiSmState::ENABLING_AP);
         }
         break;
+    // TODO: For some reason the wifi driver sometimes (specially after reset) rise the WIFI_DISCONNECTED event, i need to see a good way to handle this.
     case WifiSmState::CONNECTING:
         if (evt == Events::WIFI_CONNECTED)
         {

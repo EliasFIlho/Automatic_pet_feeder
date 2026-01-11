@@ -19,6 +19,18 @@ enum class Events
     MQTT_NEW_DATA
 };
 
+enum class WifiSmState
+{
+    INITIALIZING,
+    LOADING_CREDENTIALS,
+    CONNECTING,
+    WAIT_IP,
+    CONNECTED,
+    IFACE_ERROR,
+    ENABLING_AP,
+    ENABLING_HTTP_SERVER
+};
+
 enum class EventGroup
 {
     WIFI,
