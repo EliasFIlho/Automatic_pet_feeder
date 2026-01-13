@@ -7,9 +7,9 @@
 TODO: Create private methods for each operation that calls other objects methods
     e.g. "this->_http.start();" becomes "this->start_http_server();"
 
-*/
+TODO: Improve connection state machine robustness
 
-// TODO: Improve connection state machine robustness
+*/
 
 LOG_MODULE_REGISTER(NETWORK_LOGS);
 
@@ -180,7 +180,7 @@ void Netmgnt::on_entry(WifiSmState state)
     switch (state)
     {
     case WifiSmState::INITIALIZING:
-        this->_led.set_output(COLOR::RED, 255);
+        this->set_led_output(COLOR::RED, 255);
         this->_wifi.wifi_init();
         break;
 
@@ -195,7 +195,7 @@ void Netmgnt::on_entry(WifiSmState state)
         break;
 
     case WifiSmState::WAIT_IP:
-        this->_led.set_output(COLOR::YELLOW, 255);
+        this->set_led_output(COLOR::YELLOW, 255);
         this->start_dhcp();
         break;
 
@@ -209,7 +209,7 @@ void Netmgnt::on_entry(WifiSmState state)
         break;
     case WifiSmState::ENABLING_AP:
         this->wifi_sm.tries = 0;
-        this->_led.set_output(COLOR::BLUE, 255);
+        this->set_led_output(COLOR::BLUE, 255);
         this->_ap.ap_init();
         break;
     case WifiSmState::ENABLING_HTTP_SERVER:
@@ -313,4 +313,9 @@ void Netmgnt::process_state(Events evt)
     default:
         break;
     }
+}
+
+void Netmgnt::set_led_output(COLOR color, uint8_t brightness)
+{
+    this->_led.set_output(color, 255);
 }

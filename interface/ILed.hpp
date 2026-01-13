@@ -1,21 +1,7 @@
 #pragma once
 
 #include <stdint.h>
-
-enum
-{
-    LOW,
-    HIGH,
-    FADE
-};
-
-enum class COLOR
-{
-    RED,
-    GREEN,
-    BLUE,
-    YELLOW
-};
+#include "Enums.hpp"
 
 class ILed
 {

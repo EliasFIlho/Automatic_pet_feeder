@@ -2,6 +2,8 @@
 #include "ILvlSensor.hpp"
 #include "IListener.hpp"
 #include "MQTT_utils.hpp"
+#include <zephyr/drivers/sensor/vl53l0x.h>
+
 
 extern k_msgq mqtt_publish_queue;
 

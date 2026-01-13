@@ -15,6 +15,6 @@ config LEVEL_SENSOR_THREAD_PRIORITY
 
 config LEVEL_SENSOR_THREAD_PERIOD
     int "Define the period in ms of the Level Sensor thread"
-    default 60000
+    default 10000
 
 endmenu

@@ -191,7 +191,7 @@ int32_t HTTPServer::parse_credentials_data(uint8_t *buff)
         return 0;
     }
 }
-// TODO: This part is breaking the system, why? we'll see
+
 int32_t HTTPServer::write_credentials_data()
 {
     size_t ssid_len = strnlen((char *)this->credentials.ssid, CREDENTIALS_MAX_BUF_LEN);

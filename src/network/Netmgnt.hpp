@@ -84,6 +84,7 @@ private:
     void connect_to_wifi();
     void start_mqtt();
     static void network_evt_dispatch_task(void *p1, void *, void *);
+    void set_led_output(COLOR color, uint8_t brightness);
     void process_state(Events evt);
     void transition(WifiSmState new_state);
     void on_entry(WifiSmState state);

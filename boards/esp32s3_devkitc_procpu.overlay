@@ -15,12 +15,6 @@
                 <&gpio0 5 GPIO_ACTIVE_HIGH>;
     };
 
-    hc_sr04: hc_sr04 {
-        compatible = "hc-sr04";
-        trigger-gpios = <&gpio0 27 GPIO_ACTIVE_HIGH>;
-        echo-gpios = <&gpio0 26 GPIO_ACTIVE_HIGH>;
-    };
-
     aliases {
 		led-strip = &led_strip;
 	};
@@ -58,5 +52,18 @@ i2s_led: &i2s0 {
 };
 
 &dma {
+	status = "okay";
+};
+
+
+&i2c0{
+
+	vl53l0x: vl53l0x@29 {
+		compatible = "st,vl53l0x";
+		reg = <0x29>;
+		status = "okay";
+		xshut-gpios = <&gpio0 17 GPIO_ACTIVE_HIGH>;
+	}; 
+
 	status = "okay";
 };

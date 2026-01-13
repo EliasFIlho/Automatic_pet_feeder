@@ -43,3 +43,18 @@ struct EventMsg
     Events evt;
     EventGroup type;
 };
+
+enum
+{
+    LOW,
+    HIGH,
+    FADE
+};
+
+enum class COLOR
+{
+    RED,
+    GREEN,
+    BLUE,
+    YELLOW
+};

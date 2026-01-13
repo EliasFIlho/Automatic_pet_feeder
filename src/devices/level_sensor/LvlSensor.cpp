@@ -3,6 +3,7 @@
 #include <zephyr/device.h>
 #include <zephyr/logging/log.h>
 
+
 K_THREAD_STACK_DEFINE(SENSOR_STACK_AREA, CONFIG_LEVEL_SENSOR_THREAD_STACK_SIZE);
 #define SENSOR_THREAD_OPTIONS (K_FP_REGS | K_ESSENTIAL)
 
@@ -37,11 +38,13 @@ int32_t LvlSensor::init()
 {
     if (!device_is_ready(this->sensor_dev))
     {
+        LOG_ERR("DEVICE NOT READY YET");
         return -ENODEV;
     }
     else
     {
         this->sample.unit = 0;
+        LOG_INF("Starting SENSOR Task");
         k_thread_create(&this->sensor_thread, SENSOR_STACK_AREA, CONFIG_LEVEL_SENSOR_THREAD_STACK_SIZE, LvlSensor::sample_sensor, this, NULL, NULL, CONFIG_LEVEL_SENSOR_THREAD_PRIORITY, SENSOR_THREAD_OPTIONS, K_NO_WAIT);
         return 0;
     }
@@ -66,6 +69,7 @@ void LvlSensor::get_level()
     else
     {
         this->sample.value = distance.val1;
+        LOG_WRN("Sensor value: %d",sensor_value_to_milli(&distance));
     }
 }
 

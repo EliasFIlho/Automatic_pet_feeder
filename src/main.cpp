@@ -18,6 +18,8 @@
 #include <zephyr/task_wdt/task_wdt.h>
 #include <zephyr/logging/log.h>
 
+
+
 LOG_MODULE_REGISTER(LOGS);
 
 /**
@@ -31,7 +33,7 @@ K_MSGQ_DEFINE(net_evt_queue, sizeof(struct EventMsg), 10, 1);
  * @brief Device tree devices
  *
  */
-const struct device *const sensor_dev = DEVICE_DT_GET(DT_NODELABEL(hc_sr04));
+const struct device *const vl53l0x_dev = DEVICE_DT_GET(DT_NODELABEL(vl53l0x));
 const struct device *const hw_wdt_dev = DEVICE_DT_GET(DT_ALIAS(watchdog0));
 const struct device *const net_led = DEVICE_DT_GET(DT_ALIAS(led_strip));
 
@@ -55,7 +57,7 @@ WifiAp soft_ap;
 HTTPServer http_server(json, fs);
 Netmgnt net(mqtt, wifi, led, soft_ap, http_server);
 Application app(rtc, motor, fs, guard);
-LvlSensor sensor(sensor_dev);
+LvlSensor sensor(vl53l0x_dev);
 
 // TODO: Document modules with doxygen style
 // TODO: See how to use Kconfig without modify Zephyr base Kconfig
@@ -71,6 +73,7 @@ int main(void)
     net.start();
 
     app.init_application();
+    LOG_WRN("STARTING SENSOR TEST");
     sensor.init();
 
     while (true)
