@@ -8,6 +8,8 @@
 #define DATE_FORMAT "%Y-%m-%d %H:%M:%S\r\n"
 
 //TODO: Move those to a Kconfig file
+//TODO: Update this logic to use RTC device + SNTP to sync
+
 #define SNTP_HOST "a.st1.ntp.br"
 #define UTC_3 10800 // 3h in seconds
 
