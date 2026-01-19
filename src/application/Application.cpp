@@ -17,14 +17,6 @@ void Application::Update(Events evt)
 {
     switch (evt)
     {
-    case Events::WIFI_CONNECTED:
-        // Enable RTC sync using SNTP
-        this->isNetworkConnected = true;
-        break;
-    case Events::WIFI_DISCONNECTED:
-        // Disable RTC sync and go offline mode
-        this->isNetworkConnected = false;
-        break;
     case Events::MQTT_NEW_DATA:
         // Refresh the scheduller rules buffer with storage new data
         this->shouldUpdateRules = true;
@@ -155,14 +147,14 @@ void Application::app(void *p1, void *, void *)
         switch (self->state)
         {
         case APP_STATES::INIT:
-            self->_clk.sync_time();
+
             self->_motor.init();
             self->isDispenserExecuted = false;
             self->shouldUpdateRules = false;
             self->state = APP_STATES::LOAD_RULES;
             break;
         case APP_STATES::LOAD_RULES:
-        
+
             self->isRulesAvaliable = false;
             self->get_rules();
             self->state = APP_STATES::CHECK_RULES;
@@ -184,7 +176,6 @@ void Application::app(void *p1, void *, void *)
                 self->isDispenserExecuted = false; // Reset dispenser flag
                 self->state = APP_STATES::IDLE;
             }
-
             break;
         case APP_STATES::PROCESS:
             if (!self->isDispenserExecuted)

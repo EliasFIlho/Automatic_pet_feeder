@@ -99,6 +99,10 @@ void Netmgnt::Attach(IListener *listener)
         this->listener_count++;
         LOG_INF("Added Listener - %d", this->listener_count);
     }
+    else
+    {
+        LOG_ERR("ERROR: MAX LISTENERS REACHED");
+    }
 }
 
 void Netmgnt::Notify(Events evt)
@@ -203,9 +207,7 @@ void Netmgnt::on_entry(WifiSmState state)
         this->wifi_sm.tries = 0;
         this->init_rssi_monitor();
         // this->_mqtt.release_mqtt();
-        // this->start_mqtt();
-        // this->_ap.ap_init(); // Test only
-        this->_http.start(); // Test only - will be created a new state for it
+        this->start_mqtt();
         break;
     case WifiSmState::ENABLING_AP:
         this->wifi_sm.tries = 0;

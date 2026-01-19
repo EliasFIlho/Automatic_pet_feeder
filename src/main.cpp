@@ -50,7 +50,7 @@ Watchdog guard(hw_wdt_dev);
 Storage fs;
 JsonModule json;
 StepperController motor(&dir_stepper_dt, &steps_stepper_dt, &enable_stepper_dt);
-RTC rtc;
+RTC rtc(ds3231_rtc_dev);
 MQTT mqtt(guard, fs, json);
 Led led(net_led);
 WifiStation wifi(fs);
@@ -65,13 +65,16 @@ LvlSensor sensor(vl53l0x_dev);
 
 int main(void)
 {
-
+    //Some important stuff that the device realy realy need (beside the application it self)
     __ASSERT(guard.init() == 0, "Error to init watchdog");
     __ASSERT(fs.init_storage() == FILE_SYSTEM_ERROR::STORAGE_OK, "Error to init storage");
+    __ASSERT(rtc.init() == 0,"ERROR: Device not ready -> System cant run without RTC");
 
     net.Attach(&sensor);
     net.Attach(&app);
+    net.Attach(&rtc);
     net.start();
+    app.init_application();
     sensor.init();
 
     while (true)

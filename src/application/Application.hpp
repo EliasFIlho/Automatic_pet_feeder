@@ -14,6 +14,7 @@
 
 enum class APP_STATES{
     INIT,
+    SYNC_RTC,
     LOAD_RULES,
     CHECK_RULES,
     PROCESS,
@@ -34,7 +35,6 @@ private:
     APP_STATES state;
     bool isDispenserExecuted;
     bool isRulesAvaliable;
-    bool isNetworkConnected;
     bool shouldUpdateRules;
     struct k_thread app_thread;
 
