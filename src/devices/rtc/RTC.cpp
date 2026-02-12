@@ -8,14 +8,6 @@
 
 LOG_MODULE_REGISTER(RTC_LOGS);
 
-#define DATE_FORMAT "%Y-%m-%d %H:%M:%S\r\n"
-
-// TODO: Move those to a Kconfig file
-// TODO: Update this logic to use RTC device + SNTP to sync
-// TODO: Update get methods to rtc get
-
-#define UTC_3 10800 // 3h in seconds
-#define SNTP_BASE_YEAR 1900
 
 RTC::RTC(const struct device *const rtc) : _rtc(rtc)
 {
@@ -63,8 +55,7 @@ int RTC::sync_time()
     for (int count = 0; count < CONFIG_SNTP_TRY_COUNT; count++)
     {
 
-        // TODO: Set timeout in a kconfig file
-        ret = sntp_simple(CONFIG_SNTP_HOST, 4000, &this->s_time);
+        ret = sntp_simple(CONFIG_SNTP_HOST, CONFIG_SNTP_REQUEST_TIMOUT, &this->s_time);
 
         if (ret != 0)
         {
@@ -73,8 +64,11 @@ int RTC::sync_time()
         else
         {
 
-            // TODO: Test this
-            time_t unix_time = static_cast<time_t>(this->s_time.seconds - UTC_3);
+            #if CONFIG_TIME_ZONE_OPERATION
+                time_t unix_time = static_cast<time_t>(this->s_time.seconds - CONFIG_TIME_ZONE_VALUE);
+            #else
+                time_t unix_time = static_cast<time_t>(this->s_time.seconds + CONFIG_TIME_ZONE_VALUE);
+            #endif
             struct tm tm;
             gmtime_r(&unix_time, &tm);
             populate_rtc_time_spec(&tm);
@@ -130,8 +124,8 @@ int RTC::get_month()
 int RTC::get_year()
 {
     this->update_time();
-    LOG_WRN("Year %d", rtc_time_spec.tm_year + SNTP_BASE_YEAR);
-    return (this->rtc_time_spec.tm_year + SNTP_BASE_YEAR);
+    LOG_WRN("Year %d", rtc_time_spec.tm_year + CONFIG_RTC_BASE_YEAR);
+    return (this->rtc_time_spec.tm_year + CONFIG_RTC_BASE_YEAR);
 }
 
 int RTC::get_hour()
@@ -151,9 +145,9 @@ void RTC::Update(Events evt)
 {
     switch (evt)
     {
-    case Events::IP_ACQUIRED:
+    case Events::WIFI_IP_ACQUIRED:
         this->isNetworkConnected = true;
-        k_timer_start(&this->SYNC_TMR, K_SECONDS(1), K_SECONDS(CONFIG_RTC_SYNC_TIME)); // 1 sec for first sync call, them 1h period after that;
+        k_timer_start(&this->SYNC_TMR, K_NO_WAIT, K_SECONDS(CONFIG_RTC_SYNC_TIME)); // 1 sec for first sync call, them 1h period after that;
         break;
     case Events::WIFI_DISCONNECTED:
         this->isNetworkConnected = false;

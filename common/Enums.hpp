@@ -12,11 +12,12 @@ enum class Events
     WIFI_DISCONNECTED,
     WIFI_AP_ENABLE,
     WIFI_AP_DISABLED,
-    IP_ACQUIRED,
+    WIFI_IP_ACQUIRED,
     TIMEOUT,
     MQTT_CONNECTED,
     MQTT_DISCONNECTED,
-    MQTT_NEW_DATA
+    MQTT_NEW_DATA,
+    HTTP_STORED_CREDENTIALS
 };
 
 enum class WifiSmState
@@ -35,9 +36,11 @@ enum class EventGroup
 {
     WIFI,
     MQTT,
-    APP
+    APP,
+    HTTP
 };
 
+//TODO: Move this later, this file is for enuns only
 struct EventMsg
 {
     Events evt;

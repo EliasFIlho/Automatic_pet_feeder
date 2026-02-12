@@ -25,8 +25,8 @@ const char *EVENT_TO_STRING(Events evt)
         return "WIFI_AP_ENABLE";
     case Events::WIFI_AP_DISABLED:
         return "WIFI_AP_DISABLED";
-    case Events::IP_ACQUIRED:
-        return "IP_ACQUIRED";
+    case Events::WIFI_IP_ACQUIRED:
+        return "WIFI_IP_ACQUIRED";
     case Events::TIMEOUT:
         return "TIMEOUT";
     case Events::MQTT_CONNECTED:

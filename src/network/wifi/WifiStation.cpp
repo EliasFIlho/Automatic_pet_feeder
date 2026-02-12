@@ -39,6 +39,10 @@ void WifiStation::wifi_event_handler(struct net_mgmt_event_callback *cb, uint64_
     case NET_EVENT_WIFI_DISCONNECT_RESULT:
 
         LOG_WRN("DEVICE DISCONNECTD FROM NETWORK");
+        if (k_timer_remaining_get(&self->TIMEOUT_TMR) != 0)
+        {
+            k_timer_stop(&self->TIMEOUT_TMR);
+        }
         self->notify_evt(Events::WIFI_DISCONNECTED);
         break;
 
@@ -67,7 +71,7 @@ void WifiStation::dhcp4_event_handler(struct net_mgmt_event_callback *cb, uint64
 
         LOG_INF("Device got IP");
         k_timer_stop(&self->TIMEOUT_TMR);
-        self->notify_evt(Events::IP_ACQUIRED);
+        self->notify_evt(Events::WIFI_IP_ACQUIRED);
         break;
     }
     default:

@@ -34,7 +34,7 @@ K_MSGQ_DEFINE(net_evt_queue, sizeof(struct EventMsg), 10, 1);
  */
 const struct device *const vl53l0x_dev = DEVICE_DT_GET(DT_NODELABEL(vl53l0x));
 
-const struct device *const ds3231_rtc_dev = DEVICE_DT_GET(DT_NODELABEL(ds3231_rtc)); // TODO: This is a MFD so i need to check how to get the rtc node only.
+const struct device *const ds3231_rtc_dev = DEVICE_DT_GET(DT_NODELABEL(ds3231_rtc));
 const struct device *const hw_wdt_dev = DEVICE_DT_GET(DT_ALIAS(watchdog0));
 const struct device *const net_led = DEVICE_DT_GET(DT_ALIAS(led_strip));
 

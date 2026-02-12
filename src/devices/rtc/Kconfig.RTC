@@ -11,4 +11,20 @@ config SNTP_HOST
 config RTC_SYNC_TIME
     int "Sync period in seconds to avoid shiffted time"
     default "3600"
+
+config SNTP_REQUEST_TIMOUT
+    int "Max time to wait for SNTP request in miliseconds"
+    default 4000
+
+config TIME_ZONE_VALUE
+    int "Value to complement the UTC in miliseconds"
+    default 10800
+
+config TIME_ZONE_OPERATION
+    bool "if true time zone will be UTC - CONFIG_TIME_ZONE_VALUE, if false UTC + CONFIG_TIME_ZONE_VALUE"
+    default y
+
+config RTC_BASE_YEAR
+    int "Start year for RTC"
+    default 1900
 endmenu

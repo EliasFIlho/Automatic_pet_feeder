@@ -6,9 +6,6 @@
 /*
 TODO: Create private methods for each operation that calls other objects methods
     e.g. "this->_http.start();" becomes "this->start_http_server();"
-
-TODO: Improve connection state machine robustness
-
 */
 
 LOG_MODULE_REGISTER(NETWORK_LOGS);
@@ -135,34 +132,38 @@ void Netmgnt::network_evt_dispatch_task(void *p1, void *, void *)
     }
 }
 
+//TODO: Maybe add the next state as parameter to open the range of logics (WifiSmState state, WifiSmState new_state)
 void Netmgnt::on_exit(WifiSmState state)
 {
     LOG_INF("Leanving State %s", STATE_TO_STRING(state));
     switch (state)
     {
     case WifiSmState::INITIALIZING:
-
+        //TODO: Check if is something to before exit INITIALIZING state
         break;
 
     case WifiSmState::LOADING_CREDENTIALS:
+        //TODO: Check if is something to before exit LOADING_CREDENTIALS state
         break;
 
     case WifiSmState::CONNECTING:
-
+        //TODO: Check if is something to before exit CONNECTING state
         break;
 
     case WifiSmState::WAIT_IP:
-
+        //TODO: Check if is something to before exit WAIT_IP state
         break;
 
     case WifiSmState::CONNECTED:
-
+        //TODO: Check if is something to before exit CONNECTED state
+        //TODO: Block MQTT and Stop RSSI monitor
         break;
     case WifiSmState::ENABLING_AP:
-
+        //TODO: Check if is something to before exit ENABLING_AP state
         break;
     case WifiSmState::ENABLING_HTTP_SERVER:
-
+        //TODO: Check if is something to before exit ENABLING_HTTP_SERVER state
+        //TODO: Disable AP before and stop http server before leave this state
     default:
         break;
     }
@@ -215,7 +216,6 @@ void Netmgnt::on_entry(WifiSmState state)
         this->_ap.ap_init();
         break;
     case WifiSmState::ENABLING_HTTP_SERVER:
-        // TODO: At this state when some data was sent through the http server it will raise a event that will move again to connecting
         this->_http.start();
         break;
     default:
@@ -259,7 +259,7 @@ void Netmgnt::process_state(Events evt)
             this->transition(WifiSmState::ENABLING_AP);
         }
         break;
-    // TODO: For some reason the wifi driver sometimes (specially after reset) rise the WIFI_DISCONNECTED event, i need to see a good way to handle this.
+    
     case WifiSmState::CONNECTING:
         if (evt == Events::WIFI_CONNECTED)
         {
@@ -277,10 +277,14 @@ void Netmgnt::process_state(Events evt)
 
                 this->transition(WifiSmState::ENABLING_AP);
             }
+        }else if(evt == Events::WIFI_DISCONNECTED){
+            // TODO: For some reason the wifi driver sometimes (specially after reset) rise the WIFI_DISCONNECTED event, i need to see a good way to handle this.
+            LOG_WRN("See how to handle wifi disconnect event during the connect request, but right now, just try again");
+            this->transition(WifiSmState::CONNECTING);
         }
         break;
     case WifiSmState::WAIT_IP:
-        if (evt == Events::IP_ACQUIRED)
+        if (evt == Events::WIFI_IP_ACQUIRED)
         {
             this->transition(WifiSmState::CONNECTED);
         }
@@ -296,6 +300,9 @@ void Netmgnt::process_state(Events evt)
 
                 this->transition(WifiSmState::ENABLING_AP);
             }
+        }else if(evt == Events::WIFI_DISCONNECTED){
+            //TODO: Implement clear timer method
+            this->transition(WifiSmState::CONNECTING);
         }
         break;
     case WifiSmState::CONNECTED:
@@ -310,6 +317,12 @@ void Netmgnt::process_state(Events evt)
         if (evt == Events::WIFI_AP_ENABLE)
         {
             this->transition(WifiSmState::ENABLING_HTTP_SERVER);
+        }
+        break;
+    
+    case WifiSmState::ENABLING_HTTP_SERVER: //Check the name for this state
+        if(evt == Events::HTTP_STORED_CREDENTIALS){
+            this->transition(WifiSmState::LOADING_CREDENTIALS);
         }
         break;
     default:

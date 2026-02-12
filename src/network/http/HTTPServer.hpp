@@ -5,6 +5,8 @@
 #include "IStorage.hpp"
 #include <zephyr/net/http/server.h>
 #include <zephyr/net/http/service.h>
+#include "Enums.hpp"
+#include "NetEvents.hpp"
 
 #define CREDENTIALS_MAX_BUF_LEN 16
 
@@ -34,6 +36,7 @@ private:
     void config_connect_resource_struct();
     int32_t parse_credentials_data(uint8_t *buff);
     int32_t write_credentials_data();
+    void notify_evt(Events evt);
 
 public:
     void start();

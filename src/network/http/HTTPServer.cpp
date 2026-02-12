@@ -130,6 +130,7 @@ int HTTPServer::connect_handler(struct http_client_ctx *client, enum http_data_s
         // Clear buffers
         // memset(post_payload, 0, POST_PAYLOAD_MAX_LEN);
         // memset(&self->credentials, 0, sizeof(self->credentials));
+        self->notify_evt(Events::HTTP_STORED_CREDENTIALS);
         return 0;
     }
     return 0;
@@ -210,4 +211,13 @@ int32_t HTTPServer::write_credentials_data()
     }
 
     return ret;
+}
+
+
+void HTTPServer::notify_evt(Events evt)
+{
+    EventMsg msg{.evt = evt,
+                 .type = EventGroup::HTTP};
+
+    k_msgq_put(&net_evt_queue, &msg, K_NO_WAIT);
 }
