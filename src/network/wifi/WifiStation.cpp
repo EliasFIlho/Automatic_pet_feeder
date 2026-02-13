@@ -29,7 +29,7 @@ void WifiStation::wifi_event_handler(struct net_mgmt_event_callback *cb, uint64_
         int status = st ? st->status : -1;
         if (status == 0)
         {
-            k_timer_stop(&self->TIMEOUT_TMR);
+            self->stop_connect_timer();
             LOG_INF("WIFI Connected");
             self->notify_evt(Events::WIFI_CONNECTED);
         }
@@ -41,7 +41,7 @@ void WifiStation::wifi_event_handler(struct net_mgmt_event_callback *cb, uint64_
         LOG_WRN("DEVICE DISCONNECTD FROM NETWORK");
         if (k_timer_remaining_get(&self->TIMEOUT_TMR) != 0)
         {
-            k_timer_stop(&self->TIMEOUT_TMR);
+            self->stop_connect_timer();
         }
         self->notify_evt(Events::WIFI_DISCONNECTED);
         break;
@@ -70,7 +70,7 @@ void WifiStation::dhcp4_event_handler(struct net_mgmt_event_callback *cb, uint64
     {
 
         LOG_INF("Device got IP");
-        k_timer_stop(&self->TIMEOUT_TMR);
+        self->stop_connect_timer();
         self->notify_evt(Events::WIFI_IP_ACQUIRED);
         break;
     }
@@ -218,4 +218,8 @@ void WifiStation::set_credentials()
     strcpy(this->ssid, ssid);
     strcpy(this->psk, psk);
     notify_evt(Events::WIFI_CREDS_OK);
+}
+
+void WifiStation::stop_connect_timer(){
+    k_timer_stop(&this->TIMEOUT_TMR);
 }

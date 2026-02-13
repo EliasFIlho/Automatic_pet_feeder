@@ -39,6 +39,7 @@ private:
     void stop_dhcp();
     void set_credentials();
     int32_t get_rssi();
+    void stop_connect_timer();
 
     ~WifiStation();
 };

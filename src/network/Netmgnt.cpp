@@ -280,6 +280,7 @@ void Netmgnt::process_state(Events evt)
         }else if(evt == Events::WIFI_DISCONNECTED){
             // TODO: For some reason the wifi driver sometimes (specially after reset) rise the WIFI_DISCONNECTED event, i need to see a good way to handle this.
             LOG_WRN("See how to handle wifi disconnect event during the connect request, but right now, just try again");
+            this->_wifi.stop_connect_timer();
             this->transition(WifiSmState::CONNECTING);
         }
         break;
@@ -301,7 +302,8 @@ void Netmgnt::process_state(Events evt)
                 this->transition(WifiSmState::ENABLING_AP);
             }
         }else if(evt == Events::WIFI_DISCONNECTED){
-            //TODO: Implement clear timer method
+            this->_wifi.stop_connect_timer();
+            LOG_WRN("See how to handle wifi disconnect event during the connect request, but right now, just try again");
             this->transition(WifiSmState::CONNECTING);
         }
         break;

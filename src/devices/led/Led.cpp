@@ -75,3 +75,4 @@ int32_t Led::set_mapped_output(int32_t value, COLOR channel, int32_t fromLow = -
     this->set_output(channel, out);
     return 0;
 }
+

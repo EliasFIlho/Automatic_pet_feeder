@@ -11,5 +11,6 @@ public:
     virtual void set_credentials(void) = 0;
     virtual void start_dhcp() = 0;
     virtual int32_t get_rssi() = 0;
+    virtual void stop_connect_timer() = 0;
 
 };
