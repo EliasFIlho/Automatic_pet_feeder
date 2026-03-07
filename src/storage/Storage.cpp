@@ -47,7 +47,7 @@ FILE_SYSTEM_ERROR Storage::init_storage()
         return FILE_SYSTEM_ERROR::STORAGE_ERROR_PAGE_INFO;
     }
     this->fs.sector_size = info.size;
-    this->fs.sector_count = 3U;
+    this->fs.sector_count = 7U;
 
     ret = zms_mount(&this->fs);
     if (ret)
@@ -76,16 +76,7 @@ int32_t Storage::read_buffer(uint32_t id, void *ptr, size_t size)
         k_mutex_unlock(&this->lock_mutex);
         return ret;
     }
-    if (id != RULES_ID)
-    {
-        auto str_buffer = static_cast<char *>(ptr);
-        str_buffer[ret] = '\0';
-        // LOG_INF("READED DATA: %s", str_buffer);
-    }
-    else
-    {
-        LOG_INF("RULES DATA READED");
-    }
+
     k_mutex_unlock(&this->lock_mutex);
     return ret;
 }
@@ -152,4 +143,14 @@ int32_t Storage::get_free_space()
         LOG_INF("FILE SYSTEM FREE SPACE: %d", ret);
     }
     return ret;
-} 
+}
+
+
+bool Storage::is_id_empty(uint32_t id){
+    
+    if(zms_get_data_length(&this->fs,id) > 0){
+        return false;
+    }else{
+        return true;
+    }
+}

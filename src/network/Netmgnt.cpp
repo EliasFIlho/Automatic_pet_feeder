@@ -3,11 +3,6 @@
 #include <zephyr/logging/log.h>
 #include "enum_to_string.hpp"
 
-/*
-TODO: Create private methods for each operation that calls other objects methods
-    e.g. "this->_http.start();" becomes "this->start_http_server();"
-*/
-
 LOG_MODULE_REGISTER(NETWORK_LOGS);
 
 K_THREAD_STACK_DEFINE(NETWORK_DISPATCH_STACK_AREA, CONFIG_NETWORK_DISPATCH_THREAD_STACK_SIZE);

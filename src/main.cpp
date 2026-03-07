@@ -51,13 +51,14 @@ Storage fs;
 JsonModule json;
 StepperController motor(&dir_stepper_dt, &steps_stepper_dt, &enable_stepper_dt);
 RTC rtc(ds3231_rtc_dev);
-MQTT mqtt(guard, fs, json);
+SchedulerRules rules_controller(fs);
+MQTT mqtt(guard,json,rules_controller);
 Led led(net_led);
 WifiStation wifi(fs);
 WifiAp soft_ap;
 HTTPServer http_server(json, fs);
 Netmgnt net(mqtt, wifi, led, soft_ap, http_server);
-Application app(rtc, motor, fs, guard);
+Application app(rtc, motor, fs, guard,rules_controller);
 LvlSensor sensor(vl53l0x_dev);
 
 // TODO: Document modules with doxygen style

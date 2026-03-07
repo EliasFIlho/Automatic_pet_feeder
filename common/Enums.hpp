@@ -40,7 +40,7 @@ enum class EventGroup
     HTTP
 };
 
-//TODO: Move this later, this file is for enuns only
+// TODO: Move this later, this file is for enuns only
 struct EventMsg
 {
     Events evt;
@@ -60,4 +60,11 @@ enum class COLOR
     GREEN,
     BLUE,
     YELLOW
+};
+
+enum class RULE_STATE
+{
+    READY,
+    WAITING,
+    EXECUTED
 };

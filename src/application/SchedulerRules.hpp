@@ -1,6 +1,10 @@
 #pragma once
 
 #include <stdint.h>
+#include "IStorage.hpp"
+#include "ISchedulerRules.hpp"
+#include <bitset>
+#include "array"
 
 #define MAX_WEEK_DAYS_MASK_VALUE 0x7F
 
@@ -13,32 +17,21 @@
 #define MAX_MINUTE_TIME_VALUE 59
 
 
+#define RULES_ID_BASE RULES_ID_1
 
-typedef struct
+class SchedulerRules : public ISchedulerRules
 {
-    uint16_t year;
-    uint8_t month;
-    uint8_t day;
-} SpecifcDateRule_t;
+private:
 
-typedef struct
-{
-    uint8_t hour;
-    uint8_t minutes;
-} TimeRule_t;
+    IStorage &_fs;
+    std::bitset<CONFIG_MAX_SCHEDULER_RULES> map;
+public:
+    void init();
+    int32_t write_rule(void *ptr, size_t size);
+    void read_rules(std::array<Scheduled_Rule_t, CONFIG_MAX_SCHEDULER_RULES> &rules);
+    void delete_rule();
+    uint8_t get_number_of_rules();
 
-typedef enum
-{
-    WEEKLY,
-    SPECIF
-} PeriodRule_t;
-
-typedef struct SchedulerRules
-{
-    SpecifcDateRule_t date;
-    TimeRule_t time;
-    PeriodRule_t period;
-    uint8_t week_days;
-    uint8_t amount;
-
-} Rules_t;
+    SchedulerRules(IStorage &fs);
+    ~SchedulerRules();
+};

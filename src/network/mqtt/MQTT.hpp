@@ -4,7 +4,6 @@
 #include <zephyr/net/mqtt.h>
 #include "MQTT_utils.hpp"
 #include "IMQTT.hpp"
-#include "IStorage.hpp"
 #include "IWatchDog.hpp"
 #include "IJson.hpp"
 #include "SchedulerRules.hpp"
@@ -45,8 +44,8 @@ private:
     struct k_thread MQTTReadSubTask;
     k_tid_t MQTT_Thread_id;
     IWatchDog &_guard;
-    IStorage &_fs;
     IJson &_json;
+    ISchedulerRules &_rules;
 
 
 private:
@@ -74,7 +73,7 @@ private:
     void notify_evt(Events evt);
 
 public:
-    MQTT(IWatchDog &guard, IStorage &_fs, IJson &json);
+    MQTT(IWatchDog &guard, IJson &json, ISchedulerRules &rules);
     ~MQTT();
     void start_mqtt();
     void block_mqtt();

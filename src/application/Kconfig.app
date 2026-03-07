@@ -12,9 +12,9 @@ config APPLICATION_THREAD_PERIOD
     int "Define the period in ms of te application thread"
     default 5000
 
-config MOCK_TEST
-    bool "Enable application to use mocked functions"
-    default y
+config MAX_SCHEDULER_RULES
+    int "Define the max of rules that the application will handle"
+    default 5
 endmenu
 
 

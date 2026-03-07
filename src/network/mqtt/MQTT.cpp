@@ -152,8 +152,8 @@ void MQTT::on_mqtt_publish(struct mqtt_client *const client, const struct mqtt_e
     {
         if (self->validate_payload(&rules_payload))
         {
-            ret = self->_fs.write_buffer(RULES_ID, &rules_payload, sizeof(rules_payload));
-            if (ret >= 0)
+            ret = self->_rules.write_rule(&rules_payload, sizeof(rules_payload));
+            if (ret > 0)
             {
                 self->notify_evt(Events::MQTT_NEW_DATA);
             }
@@ -237,7 +237,7 @@ void MQTT::mqtt_evt_handler(struct mqtt_client *client, const struct mqtt_evt *e
  * @brief Construct a new MQTT::MQTT object
  *
  */
-MQTT::MQTT(IWatchDog &guard, IStorage &fs, IJson &json) : _guard(guard), _fs(fs), _json(json)
+MQTT::MQTT(IWatchDog &guard, IJson &json, ISchedulerRules &rules) : _guard(guard), _json(json), _rules(rules)
 {
 }
 

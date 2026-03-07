@@ -25,4 +25,5 @@ private:
     FILE_SYSTEM_ERROR init_storage();
     int32_t write_buffer(uint32_t id, void *ptr, size_t size);
     int32_t read_buffer(uint32_t id, void *ptr, size_t size);
+    bool is_id_empty(uint32_t id);
 };
