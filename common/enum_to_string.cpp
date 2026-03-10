@@ -64,3 +64,24 @@ const char *STATE_TO_STRING(WifiSmState state)
         return "";
     }
 }
+
+const char *STATE_TO_STRING(MQTT_STATES state)
+{
+    switch (state)
+    {
+    case MQTT_STATES::INIT:
+        return "INITIALIZING";
+    case MQTT_STATES::CLIENT_READY:
+        return "CLIENT_READY";
+    case MQTT_STATES::BROKER_READY:
+        return "BROKER_READY";
+    case MQTT_STATES::CONNECTING:
+        return "CONNECTING";
+    case MQTT_STATES::RUNNING:
+        return "RUNNING";
+    case MQTT_STATES::ERROR:
+        return "ERROR";
+    default:
+        return "";
+    }
+}

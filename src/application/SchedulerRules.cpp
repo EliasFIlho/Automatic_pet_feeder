@@ -1,7 +1,7 @@
 #include "SchedulerRules.hpp"
 
 // TODO: Create Errors codes to handle failed operation in the caller side
-//TODO: Check for unsafe operations
+// TODO: Check for unsafe operations
 /**
  * @brief Init rules controller and RAM with the current filesystem data at startup
  *
@@ -53,11 +53,11 @@ int32_t SchedulerRules::write_rule(void *ptr, size_t size)
  * @brief Update the RAM buffer with the filesystem data
  * TODO: Add return value to validate reads
  */
-void SchedulerRules::read_rules(std::array<Scheduled_Rule_t, CONFIG_MAX_SCHEDULER_RULES> &rules)
+int32_t SchedulerRules::read_rules(std::array<Scheduled_Rule_t, CONFIG_MAX_SCHEDULER_RULES> &rules)
 {
     if (this->map.count() <= 0)
     {
-        return; // No data stored
+        return 1; // No data stored
     }
     uint8_t idx = 0;
     for (uint32_t i = 0; i < CONFIG_MAX_SCHEDULER_RULES; i++)
@@ -71,20 +71,37 @@ void SchedulerRules::read_rules(std::array<Scheduled_Rule_t, CONFIG_MAX_SCHEDULE
                 rules[idx].state = RULE_STATE::READY;
                 rules[idx].fs_index = i;
                 idx++;
+            }else{
+                return ret;
             }
         }
     }
+    return 0;
 }
 
-void SchedulerRules::delete_rule()
+int32_t SchedulerRules::delete_rule(uint8_t rule_fs_idx)
 {
-    // TODO: Remove specific rule using filesystem index
+    uint32_t rule_id = rule_fs_idx + RULES_ID_BASE;
+    return this->_fs.delete_data(rule_id);
 }
 
-uint8_t SchedulerRules::get_number_of_rules(){
+uint32_t SchedulerRules::clear_rules()
+{
+    for (uint32_t rule_id = RULES_ID_BASE; rule_id < RULES_ID_END; rule_id++)
+    {
+        int32_t ret = this->_fs.delete_data(rule_id);
+        if (ret != 0)
+        {
+            return ret; // Some rule could not be erased;
+        }
+    }
+    return 0;
+}
+
+uint8_t SchedulerRules::get_number_of_rules()
+{
     return static_cast<uint8_t>(this->map.count());
 }
-
 
 SchedulerRules::SchedulerRules(IStorage &fs) : _fs{fs}
 {

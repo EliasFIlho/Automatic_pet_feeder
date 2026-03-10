@@ -11,15 +11,7 @@
 #include "Enums.hpp"
 extern k_msgq mqtt_publish_queue;
 
-enum class MQTT_STATES
-{
-    INIT,
-    CLIENT_READY,
-    BROKER_READY,
-    CONNECTING,
-    RUNNING,
-    ERROR,
-};
+
 
 /**
  * @brief MQTT Class

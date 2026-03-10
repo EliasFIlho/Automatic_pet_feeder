@@ -26,12 +26,16 @@ void Application::Update(Events evt)
     }
 }
 
-// TODO: Now read_rule does not return nothing, but i need to deal with a possible FS error
 int32_t Application::get_rules()
 {
-    this->_rules.read_rules(this->rules);
-    this->isRulesAvaliable = true;
-    return 0;
+    int32_t ret = this->_rules.read_rules(this->rules);
+    if (ret == 0)
+    {
+        LOG_WRN("get_rules return: %d",ret);
+
+        this->isRulesAvaliable = true;
+    }
+    return ret;
 }
 
 void Application::process_rules()
@@ -43,6 +47,12 @@ void Application::process_rules()
             LOG_INF("Running Rule %d", i.fs_index);
             this->dispense_food(i.rule.amount);
             i.state == RULE_STATE::EXECUTED;
+
+            // If rule runs in a SPECIF period, process means that it will not happen again, so can be removed from Filesystem.
+            if (i.rule.period == SPECIF)
+            {
+                this->_rules.delete_rule(i.fs_index);
+            }
         }
     }
 }
@@ -93,11 +103,6 @@ bool Application::is_week_days_match(const uint8_t week_days_mask)
 
 bool Application::check_rules(const Rules_t &rule)
 {
-    if (!this->is_time_match(rule.time))
-    {
-        return false;
-    }
-
     if (rule.period == WEEKLY)
     {
 
@@ -106,6 +111,11 @@ bool Application::check_rules(const Rules_t &rule)
     if (rule.period == SPECIF)
     {
         return this->is_date_match(rule.date);
+    }
+
+    if (!this->is_time_match(rule.time))
+    {
+        return false;
     }
 
     return false;

@@ -145,12 +145,40 @@ int32_t Storage::get_free_space()
     return ret;
 }
 
+/**
+ * @brief Check is has data on the given ID
+ *
+ * @param id ZMS ID
+ * @return true
+ * @return false
+ */
+bool Storage::is_id_empty(uint32_t id)
+{
 
-bool Storage::is_id_empty(uint32_t id){
-    
-    if(zms_get_data_length(&this->fs,id) > 0){
+    if (zms_get_data_length(&this->fs, id) > 0)
+    {
         return false;
-    }else{
+    }
+    else
+    {
         return true;
     }
+}
+
+
+/**
+ * @brief Delete data from filesystem on the given ID
+ * 
+ * @param id ZMS ID
+ * @return int32_t zms_delete() return, 0 means sucesss and ret < 0 means something goes wrong and the caller need to handler with
+ */
+int32_t Storage::delete_data(uint32_t id)
+{
+    k_mutex_lock(&this->lock_mutex, K_FOREVER);
+
+    int32_t ret = zms_delete(&this->fs, id);
+
+    k_mutex_unlock(&this->lock_mutex);
+
+    return ret;
 }

@@ -5,7 +5,7 @@
 #include <zephyr/task_wdt/task_wdt.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/data/json.h>
-
+#include "enum_to_string.hpp"
 #if CONFIG_MQTT_TLS_ENABLE
 #include "tls_cert/cert.h"
 
@@ -16,6 +16,8 @@ static const sec_tag_t m_sec_tags[] = {
 };
 
 #endif
+
+//TODO: MQTT State machine is not reconnecting after Server goes down, add transition logs to see the main issue
 
 /**
  * @brief Thread stack and option defines
@@ -256,7 +258,7 @@ MQTT::~MQTT()
 void MQTT::on_disconnect()
 {
     this->isMqttConnected = false;
-    this->nfds = 0;
+    //this->nfds = 0;
 }
 
 /**
@@ -500,6 +502,7 @@ bool MQTT::setup_client()
 
 void MQTT::populate_payload_struct(struct mqtt_binstr *payload, struct level_sensor *data)
 {
+    LOG_ERR("SENSOR BEFORE JSON ENCODE: Value: %d  Unit %d",data->value,data->unit);
     this->_json.encode(data, this->publish_buf, sizeof(this->publish_buf));
     payload->data = (uint8_t *)this->publish_buf;
     payload->len = strlen(this->publish_buf);
@@ -580,11 +583,13 @@ void MQTT::mqtt_task(void *p1, void *, void *)
         case MQTT_STATES::INIT:
             if (self->setup_client())
             {
+                LOG_WRN("MQTT STATE FROM: %s to %s",STATE_TO_STRING(MQTT_STATES::INIT),STATE_TO_STRING(MQTT_STATES::CLIENT_READY));
                 self->state = MQTT_STATES::CLIENT_READY;
             }
             else
             {
                 //LOG_WRN("Client init failed - retrying");
+                LOG_WRN("MQTT STATE FROM: %s to %s",STATE_TO_STRING(MQTT_STATES::INIT),STATE_TO_STRING(MQTT_STATES::INIT));
                 self->_guard.feed(read_mqtt_task_wdt_id);
                 k_msleep(1000);
             }
@@ -593,11 +598,13 @@ void MQTT::mqtt_task(void *p1, void *, void *)
         case MQTT_STATES::CLIENT_READY:
             if (self->setup_broker())
             {
+                LOG_WRN("MQTT STATE FROM: %s to %s",STATE_TO_STRING(MQTT_STATES::CLIENT_READY),STATE_TO_STRING(MQTT_STATES::BROKER_READY));
                 self->state = MQTT_STATES::BROKER_READY;
             }
             else
             {
                 //LOG_WRN("Broker init failed - retrying");
+                LOG_WRN("MQTT STATE FROM: %s to %s",STATE_TO_STRING(MQTT_STATES::CLIENT_READY),STATE_TO_STRING(MQTT_STATES::CLIENT_READY));
                 self->_guard.feed(read_mqtt_task_wdt_id);
                 k_msleep(1000);
             }
@@ -606,10 +613,12 @@ void MQTT::mqtt_task(void *p1, void *, void *)
         case MQTT_STATES::BROKER_READY:
             if (self->connect())
             {
+                LOG_WRN("MQTT STATE FROM: %s to %s",STATE_TO_STRING(MQTT_STATES::BROKER_READY),STATE_TO_STRING(MQTT_STATES::CONNECTING));
                 self->state = MQTT_STATES::CONNECTING;
             }
             else
             {
+                LOG_WRN("MQTT STATE FROM: %s to %s",STATE_TO_STRING(MQTT_STATES::BROKER_READY),STATE_TO_STRING(MQTT_STATES::BROKER_READY));
                 //LOG_WRN("Fail to connect - retrying");
                 self->_guard.feed(read_mqtt_task_wdt_id);
                 k_msleep(CONFIG_MQTT_THREAD_RECONNECT_PERIOD);
@@ -621,16 +630,19 @@ void MQTT::mqtt_task(void *p1, void *, void *)
             {
                 if (self->subscribe())
                 {
+                    LOG_WRN("MQTT STATE FROM: %s to %s",STATE_TO_STRING(MQTT_STATES::CONNECTING),STATE_TO_STRING(MQTT_STATES::RUNNING));
                     self->state = MQTT_STATES::RUNNING;
                 }
                 else
                 {
+                    LOG_WRN("MQTT STATE FROM: %s to %s",STATE_TO_STRING(MQTT_STATES::CONNECTING),STATE_TO_STRING(MQTT_STATES::ERROR));
                     self->state = MQTT_STATES::ERROR;
                 }
             }
             else
             {
                 //LOG_WRN("Waiting for CONACK");
+                LOG_WRN("MQTT STATE FROM: %s to %s",STATE_TO_STRING(MQTT_STATES::CONNECTING),STATE_TO_STRING(MQTT_STATES::CONNECTING));
                 self->_guard.feed(read_mqtt_task_wdt_id);
                 k_msleep(CONFIG_MQTT_THREAD_RECONNECT_PERIOD);
             }
@@ -641,6 +653,7 @@ void MQTT::mqtt_task(void *p1, void *, void *)
                 int ret = self->read_payload();
                 if (ret == -ENOTCONN)
                 {
+                    LOG_WRN("MQTT STATE FROM: %s to %s",STATE_TO_STRING(MQTT_STATES::RUNNING),STATE_TO_STRING(MQTT_STATES::ERROR));
                     self->state = MQTT_STATES::ERROR;
                 }
                 else
@@ -651,17 +664,22 @@ void MQTT::mqtt_task(void *p1, void *, void *)
             }
             else
             {
+                LOG_WRN("MQTT STATE FROM: %s to %s",STATE_TO_STRING(MQTT_STATES::RUNNING),STATE_TO_STRING(MQTT_STATES::ERROR));
                 self->state = MQTT_STATES::ERROR;
             }
+
+            LOG_WRN("MQTT STATE FROM: %s to %s",STATE_TO_STRING(MQTT_STATES::RUNNING),STATE_TO_STRING(MQTT_STATES::RUNNING));
             break;
 
         case MQTT_STATES::ERROR:
             if (self->isWifiConnected)
             {
+                LOG_WRN("MQTT STATE FROM: %s to %s",STATE_TO_STRING(MQTT_STATES::ERROR),STATE_TO_STRING(MQTT_STATES::CLIENT_READY));
                 self->state = MQTT_STATES::CLIENT_READY;
             }
             else
             {
+                LOG_WRN("MQTT STATE FROM: %s to %s",STATE_TO_STRING(MQTT_STATES::ERROR),STATE_TO_STRING(MQTT_STATES::ERROR));
                 self->state = MQTT_STATES::ERROR; // Block state machine in ERROR state until network manager set wifi on back
                 self->_guard.feed(read_mqtt_task_wdt_id);
                 k_msleep(CONFIG_MQTT_THREAD_PERIOD);

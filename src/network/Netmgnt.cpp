@@ -202,7 +202,7 @@ void Netmgnt::on_entry(WifiSmState state)
     case WifiSmState::CONNECTED:
         this->wifi_sm.tries = 0;
         this->init_rssi_monitor();
-        // this->_mqtt.release_mqtt();
+        this->_mqtt.release_mqtt();
         this->start_mqtt();
         break;
     case WifiSmState::ENABLING_AP:

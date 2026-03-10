@@ -74,7 +74,7 @@ int main(void)
     net.Attach(&sensor);
     net.Attach(&app);
     net.Attach(&rtc);
-    net.start();
+    net.start();    
     app.init_application();
     sensor.init();
 

@@ -32,6 +32,16 @@ enum class WifiSmState
     ENABLING_HTTP_SERVER
 };
 
+enum class MQTT_STATES
+{
+    INIT,
+    CLIENT_READY,
+    BROKER_READY,
+    CONNECTING,
+    RUNNING,
+    ERROR,
+};
+
 enum class EventGroup
 {
     WIFI,

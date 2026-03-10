@@ -5,3 +5,5 @@
 const char *EVENT_TO_STRING(Events evt);
 
 const char *STATE_TO_STRING(WifiSmState state);
+
+const char *STATE_TO_STRING(MQTT_STATES state);
