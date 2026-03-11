@@ -46,7 +46,7 @@ void Application::process_rules()
         {
             LOG_INF("Running Rule %d", i.fs_index);
             this->dispense_food(i.rule.amount);
-            i.state == RULE_STATE::EXECUTED;
+            i.state = RULE_STATE::EXECUTED;
 
             // If rule runs in a SPECIF period, process means that it will not happen again, so can be removed from Filesystem.
             if (i.rule.period == SPECIF)
