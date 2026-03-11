@@ -37,15 +37,12 @@ void WifiStation::wifi_event_handler(struct net_mgmt_event_callback *cb, uint64_
         break;
     }
     case NET_EVENT_WIFI_DISCONNECT_RESULT:
-
-        LOG_WRN("DEVICE DISCONNECTD FROM NETWORK");
-        if (k_timer_remaining_get(&self->TIMEOUT_TMR) != 0)
-        {
-            self->stop_connect_timer();
-        }
+    {
+        const struct wifi_status *st = (const struct wifi_status *)cb->info;
+        LOG_WRN("DEVICE DISCONNECTD FROM NETWORK - REASON: %d", st->disconn_reason);
         self->notify_evt(Events::WIFI_DISCONNECTED);
         break;
-
+    }
     case NET_EVENT_WIFI_IFACE_STATUS:
         break;
     case NET_EVENT_WIFI_SCAN_DONE:
@@ -140,6 +137,7 @@ int WifiStation::connect_to_wifi()
         LOG_ERR("Error in net_mgmt: %d", ret);
         return ret;
     }
+    LOG_INF("REQUEST WIFI CONNECT RESULT: %d", ret);
 
     ret = wait_wifi_to_connect();
     if (ret < 0)
@@ -177,7 +175,7 @@ int WifiStation::wifi_disconnect(void)
     int ret;
 
     ret = net_mgmt(NET_REQUEST_WIFI_DISCONNECT, sta_iface, NULL, 0);
-
+    LOG_INF("WIFI DISCONNECT REQUESTED: %d", ret);
     return ret;
 }
 
@@ -215,11 +213,17 @@ void WifiStation::set_credentials()
     {
         this->notify_evt(Events::WIFI_CREDS_NOT_FOUND);
     }
+
+    LOG_INF("SSID: '%s' (len=%d)", ssid, strlen(ssid));
+    LOG_INF("PSK length: %d", strlen(psk));
+    // ssid[SSID_TEMP_BUFFER_LEN] = '\0';
+    // psk[PSK_TEMP_BUFFER_LEN] = '\0';
     strcpy(this->ssid, ssid);
     strcpy(this->psk, psk);
     notify_evt(Events::WIFI_CREDS_OK);
 }
 
-void WifiStation::stop_connect_timer(){
+void WifiStation::stop_connect_timer()
+{
     k_timer_stop(&this->TIMEOUT_TMR);
 }

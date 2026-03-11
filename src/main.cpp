@@ -19,6 +19,9 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/drivers/rtc.h>
 
+
+#define CLEAR_WIFI_CRED 0
+
 LOG_MODULE_REGISTER(LOGS);
 
 /**
@@ -71,6 +74,10 @@ int main(void)
     __ASSERT(fs.init_storage() == FILE_SYSTEM_ERROR::STORAGE_OK, "Error to init storage");
     __ASSERT(rtc.init() == 0,"ERROR: Device not ready -> System cant run without RTC");
 
+#if CLEAR_WIFI_CRED
+    fs.delete_data(SSID_ID);
+    fs.delete_data(PASSWORD_ID);
+#endif
     net.Attach(&sensor);
     net.Attach(&app);
     net.Attach(&rtc);

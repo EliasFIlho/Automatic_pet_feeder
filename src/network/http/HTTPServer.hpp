@@ -29,7 +29,12 @@ private:
     Credentials_data_t credentials;
 
 private:
-    static int connect_handler(struct http_client_ctx *client, enum http_data_status status, const struct http_request_ctx *request_ctx, struct http_response_ctx *response_ctx, void *user_data);
+    static int connect_handler(struct http_client_ctx *client,
+                               enum http_transaction_status status,
+                               const struct http_request_ctx *request_ctx,
+                               struct http_response_ctx *response_ctx,
+                               void *user_data);
+                               
     void config_home_page_resource_struct();
     void config_success_page_resource_struct();
     void config_error_page_resource_struct();

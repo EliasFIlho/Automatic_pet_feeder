@@ -6,7 +6,7 @@
 #include <string.h>
 #include <zephyr/drivers/flash.h>
 #include <zephyr/storage/flash_map.h>
-#include <zephyr/fs/zms.h>
+#include <zephyr/kvss/zms.h>
 #include <zephyr/logging/log.h>
 #include <stdlib.h>
 #include <iostream>
@@ -75,6 +75,17 @@ int32_t Storage::read_buffer(uint32_t id, void *ptr, size_t size)
         LOG_ERR("ERROR TO READ DATA: %d", ret);
         k_mutex_unlock(&this->lock_mutex);
         return ret;
+    }
+    if (ret < size)
+    {
+        ((char *)ptr)[ret] = '\0';
+    }
+    else
+    {
+        // Buffer was exactly filled, overwrite last byte with \0
+        // Caller should pass size+1 buffer to avoid data truncation
+        LOG_WRN("Buffer full, forcing null termination - data may be truncated");
+        ((char *)ptr)[size - 1] = '\0';
     }
 
     k_mutex_unlock(&this->lock_mutex);
@@ -165,10 +176,9 @@ bool Storage::is_id_empty(uint32_t id)
     }
 }
 
-
 /**
  * @brief Delete data from filesystem on the given ID
- * 
+ *
  * @param id ZMS ID
  * @return int32_t zms_delete() return, 0 means sucesss and ret < 0 means something goes wrong and the caller need to handler with
  */

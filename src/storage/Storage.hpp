@@ -4,7 +4,7 @@
 #include <zephyr/sys/reboot.h>
 #include <zephyr/device.h>
 #include <string.h>
-#include <zephyr/fs/zms.h>
+#include <zephyr/kvss/zms.h>
 #include <zephyr/storage/flash_map.h>
 #include "SchedulerRules.hpp"
 #include "IStorage.hpp"

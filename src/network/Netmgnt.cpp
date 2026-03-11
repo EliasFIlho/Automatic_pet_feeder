@@ -191,6 +191,10 @@ void Netmgnt::on_entry(WifiSmState state)
     case WifiSmState::CONNECTING:
         this->_mqtt.block_mqtt();
         k_work_cancel_delayable(&this->rssi_monitor_work);
+        if(this->wifi_sm.tries > 0){
+            this->_wifi.wifi_disconnect();
+        }
+        k_sleep(K_MSEC(1000)); // Full second wait to wifi driver be able to get in STA mode
         this->connect_to_wifi();
         break;
 
@@ -275,8 +279,8 @@ void Netmgnt::process_state(Events evt)
         }else if(evt == Events::WIFI_DISCONNECTED){
             // TODO: For some reason the wifi driver sometimes (specially after reset) rise the WIFI_DISCONNECTED event, i need to see a good way to handle this.
             LOG_WRN("See how to handle wifi disconnect event during the connect request, but right now, just try again");
-            this->_wifi.stop_connect_timer();
-            this->transition(WifiSmState::CONNECTING);
+            // this->_wifi.stop_connect_timer();
+            // this->transition(WifiSmState::INITIALIZING);
         }
         break;
     case WifiSmState::WAIT_IP:

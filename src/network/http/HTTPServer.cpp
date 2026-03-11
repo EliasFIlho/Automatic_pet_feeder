@@ -85,13 +85,17 @@ void HTTPServer::config_connect_resource_struct()
     HTTPServer::connect_resource_detail.user_data = this;
 }
 
-int HTTPServer::connect_handler(struct http_client_ctx *client, enum http_data_status status, const struct http_request_ctx *request_ctx, struct http_response_ctx *response_ctx, void *user_data)
+int HTTPServer::connect_handler(struct http_client_ctx *client,
+                                enum http_transaction_status status,
+                                const struct http_request_ctx *request_ctx,
+                                struct http_response_ctx *response_ctx,
+                                void *user_data)
 {
     HTTPServer *self = static_cast<HTTPServer *>(user_data);
     static uint8_t post_payload[POST_PAYLOAD_MAX_LEN];
     static size_t cursor;
 
-    if (status == HTTP_SERVER_DATA_ABORTED)
+    if (status == HTTP_SERVER_TRANSACTION_ABORTED)
     {
         cursor = 0;
         return 0;
@@ -106,7 +110,7 @@ int HTTPServer::connect_handler(struct http_client_ctx *client, enum http_data_s
     memcpy(post_payload + cursor, request_ctx->data, request_ctx->data_len);
     cursor += request_ctx->data_len;
 
-    if (status == HTTP_SERVER_DATA_FINAL)
+    if (status == HTTP_SERVER_TRANSACTION_COMPLETE)
     {
         cursor = 0;
         LOG_INF("%s", post_payload);
@@ -212,7 +216,6 @@ int32_t HTTPServer::write_credentials_data()
 
     return ret;
 }
-
 
 void HTTPServer::notify_evt(Events evt)
 {
