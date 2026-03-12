@@ -742,7 +742,7 @@ int32_t MQTT::setup_tls()
 void MQTT::notify_evt(Events evt)
 {
     EventMsg msg{.evt = evt,
-                 .type = EventGroup::MQTT};
+                 .type = MQTT_EVT};
     k_msgq_put(&net_evt_queue, &msg, K_NO_WAIT);
 }
 

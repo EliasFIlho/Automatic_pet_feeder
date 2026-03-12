@@ -3,6 +3,9 @@
 #include <stdint.h>
 #include "Enums.hpp"
 #include <bitset>
+#include <array>
+#include "IListener.hpp"
+
 typedef struct
 {
     uint16_t year;
@@ -37,16 +40,14 @@ typedef struct
 
 } Rules_t;
 
-
-
 /**
  * @brief Struct that represent a scheduled_rule and his execution status
- * 
+ *
  * The expected usage for this struct is to application check the vales in the rule field and perform the operation
  * once operation is done check the flag
- * 
- * if the rule.period field is WEEKLY, application needs to unset WasDispenserExecuted flag, so he can operate again; 
- * 
+ *
+ * if the rule.period field is WEEKLY, application needs to unset WasDispenserExecuted flag, so he can operate again;
+ *
  */
 typedef struct
 {
@@ -55,3 +56,19 @@ typedef struct
     uint8_t fs_index;
 
 } Scheduled_Rule_t;
+
+/**
+ * @brief Struct for events queues
+ *
+ */
+struct EventMsg
+{
+    Events evt;
+    EventGroup type;
+};
+
+typedef struct
+{
+    IListener *listener;
+    uint8_t evt_group;
+} Listeners;

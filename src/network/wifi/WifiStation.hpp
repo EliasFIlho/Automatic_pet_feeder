@@ -8,7 +8,7 @@
 #include "IStorage.hpp"
 #include "NetEvents.hpp"
 #include "Enums.hpp"
-
+#include "types.hpp"
 
 
 class WifiStation : public IWifi

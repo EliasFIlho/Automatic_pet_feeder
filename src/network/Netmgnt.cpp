@@ -2,7 +2,7 @@
 #include "NetEvents.hpp"
 #include <zephyr/logging/log.h>
 #include "enum_to_string.hpp"
-
+#include "types.hpp"
 LOG_MODULE_REGISTER(NETWORK_LOGS);
 
 K_THREAD_STACK_DEFINE(NETWORK_DISPATCH_STACK_AREA, CONFIG_NETWORK_DISPATCH_THREAD_STACK_SIZE);
@@ -83,11 +83,12 @@ void Netmgnt::start_mqtt()
     this->_mqtt.start_mqtt();
 }
 
-void Netmgnt::Attach(IListener *listener)
+void Netmgnt::Attach(IListener *listener, uint8_t evt_group_maks)
 {
-    if (this->listener_count < MAX_LISTERNERS)
+    if (this->listener_count < CONFIG_NETWORK_EVENT_MAX_LISTENERS)
     {
-        this->listeners[this->listener_count] = listener;
+        this->listeners[this->listener_count].listener = listener;
+        this->listeners[this->listener_count].evt_group = evt_group_maks;
         this->listener_count++;
         LOG_INF("Added Listener - %d", this->listener_count);
     }
@@ -97,11 +98,14 @@ void Netmgnt::Attach(IListener *listener)
     }
 }
 
-void Netmgnt::Notify(Events evt)
+void Netmgnt::Notify(Events evt, uint8_t evt_group_maks)
 {
     for (int i = 0; i < this->listener_count; i++)
     {
-        this->listeners[i]->Update(evt);
+        if (this->listeners[i].evt_group & evt_group_maks)
+        {
+            this->listeners[i].listener->Update(evt);
+        }
     }
 }
 
@@ -117,48 +121,49 @@ void Netmgnt::network_evt_dispatch_task(void *p1, void *, void *)
         if (k_msgq_get(&net_evt_queue, &evt, K_FOREVER) == 0)
         {
             // Only process WIFI events types
-            if (evt.type == EventGroup::WIFI)
+            if (evt.type == WIFI_EVT || evt.type == HTTP_EVT)
             {
                 LOG_WRN("ARRIVED EVENT: %s", EVENT_TO_STRING(evt.evt));
                 self->process_state(evt.evt);
             }
-            self->Notify(evt.evt);
+            self->Notify(evt.evt, evt.type);
         }
     }
 }
 
-//TODO: Maybe add the next state as parameter to open the range of logics (WifiSmState state, WifiSmState new_state)
 void Netmgnt::on_exit(WifiSmState state)
 {
     LOG_INF("Leanving State %s", STATE_TO_STRING(state));
     switch (state)
     {
     case WifiSmState::INITIALIZING:
-        //TODO: Check if is something to before exit INITIALIZING state
+        // Nothing to do
         break;
 
     case WifiSmState::LOADING_CREDENTIALS:
-        //TODO: Check if is something to before exit LOADING_CREDENTIALS state
+        // TODO: Maybe clear buffers;
         break;
 
     case WifiSmState::CONNECTING:
-        //TODO: Check if is something to before exit CONNECTING state
+        // Nothing to do
         break;
 
     case WifiSmState::WAIT_IP:
-        //TODO: Check if is something to before exit WAIT_IP state
+        // Nothing to do
         break;
 
     case WifiSmState::CONNECTED:
-        //TODO: Check if is something to before exit CONNECTED state
-        //TODO: Block MQTT and Stop RSSI monitor
+        this->_mqtt.block_mqtt();
+        k_work_cancel_delayable(&this->rssi_monitor_work);
+
         break;
     case WifiSmState::ENABLING_AP:
-        //TODO: Check if is something to before exit ENABLING_AP state
+        // TODO: Check if is something to before exit ENABLING_AP state
         break;
     case WifiSmState::ENABLING_HTTP_SERVER:
-        //TODO: Check if is something to before exit ENABLING_HTTP_SERVER state
-        //TODO: Disable AP before and stop http server before leave this state
+        k_msleep(200); // Add intentional wait before stop AP and HTTP to give enought time to client receive the response - see for a async solution
+        this->_http.stop();
+        this->_ap.ap_stop();
     default:
         break;
     }
@@ -189,9 +194,8 @@ void Netmgnt::on_entry(WifiSmState state)
         break;
 
     case WifiSmState::CONNECTING:
-        this->_mqtt.block_mqtt();
-        k_work_cancel_delayable(&this->rssi_monitor_work);
-        if(this->wifi_sm.tries > 0){
+        if (this->wifi_sm.tries > 0)
+        {
             this->_wifi.wifi_disconnect();
         }
         k_sleep(K_MSEC(1000)); // Full second wait to wifi driver be able to get in STA mode
@@ -258,7 +262,7 @@ void Netmgnt::process_state(Events evt)
             this->transition(WifiSmState::ENABLING_AP);
         }
         break;
-    
+
     case WifiSmState::CONNECTING:
         if (evt == Events::WIFI_CONNECTED)
         {
@@ -276,7 +280,9 @@ void Netmgnt::process_state(Events evt)
 
                 this->transition(WifiSmState::ENABLING_AP);
             }
-        }else if(evt == Events::WIFI_DISCONNECTED){
+        }
+        else if (evt == Events::WIFI_DISCONNECTED)
+        {
             // TODO: For some reason the wifi driver sometimes (specially after reset) rise the WIFI_DISCONNECTED event, i need to see a good way to handle this.
             LOG_WRN("See how to handle wifi disconnect event during the connect request, but right now, just try again");
             // this->_wifi.stop_connect_timer();
@@ -300,7 +306,9 @@ void Netmgnt::process_state(Events evt)
 
                 this->transition(WifiSmState::ENABLING_AP);
             }
-        }else if(evt == Events::WIFI_DISCONNECTED){
+        }
+        else if (evt == Events::WIFI_DISCONNECTED)
+        {
             this->_wifi.stop_connect_timer();
             LOG_WRN("See how to handle wifi disconnect event during the connect request, but right now, just try again");
             this->transition(WifiSmState::CONNECTING);
@@ -320,9 +328,10 @@ void Netmgnt::process_state(Events evt)
             this->transition(WifiSmState::ENABLING_HTTP_SERVER);
         }
         break;
-    
-    case WifiSmState::ENABLING_HTTP_SERVER: //Check the name for this state
-        if(evt == Events::HTTP_STORED_CREDENTIALS){
+
+    case WifiSmState::ENABLING_HTTP_SERVER: // Check the name for this state
+        if (evt == Events::HTTP_STORED_CREDENTIALS)
+        {
             this->transition(WifiSmState::LOADING_CREDENTIALS);
         }
         break;

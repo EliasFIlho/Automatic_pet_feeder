@@ -220,7 +220,7 @@ int32_t HTTPServer::write_credentials_data()
 void HTTPServer::notify_evt(Events evt)
 {
     EventMsg msg{.evt = evt,
-                 .type = EventGroup::HTTP};
+                 .type = HTTP_EVT};
 
     k_msgq_put(&net_evt_queue, &msg, K_NO_WAIT);
 }

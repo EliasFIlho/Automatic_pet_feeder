@@ -6,10 +6,8 @@
 #include "IDispatcher.hpp"
 #include "IHTTPServer.hpp"
 #include <zephyr/kernel.h>
-
-#define MAX_LISTERNERS 5
-
-
+#include <array>
+#include "types.hpp"
 
 /*
 
@@ -27,23 +25,20 @@ state-flow
 
     CONNECTING --> CONNECTING: TIMEOUT && Tries < MAX
     CONNECTING --> ENABLING_AP: TIMEOUT && Tries > MAX
-    
+
     WAIT_IP --> CONNECTED: WIFI_IP_ACQUIRED
     WAIT_IP --> WAIT_IP: TIMEOUT && Tries < MAX
     WAIT_IP --> ENABLING_AP: TIMEOUT && Tries > MAX
 
     ENABLING_AP --> ENABLING_HTTP_SERVER: WIFI_AP_ENABLE
-    
 
-    
+
+
 
     CONNECTED --> CONNECTING: WIFI_DISCONNECTED
     CONNECTED --> [*]
 
 */
-
-
-
 
 struct state_transition
 {
@@ -70,9 +65,8 @@ private:
     struct k_work_delayable rssi_monitor_work;
     struct k_thread dispatcher_thread;
     uint8_t listener_count = 0;
-    IListener *listeners[MAX_LISTERNERS];
+    std::array<Listeners, CONFIG_NETWORK_EVENT_MAX_LISTENERS> listeners {};
     struct Wifi_State_Machine wifi_sm;
-
 
 private:
     static void rssi_monitor(struct k_work *work);
@@ -91,8 +85,8 @@ private:
     void on_exit(WifiSmState state);
 
 public:
-    void Attach(IListener *listener);
-    void Notify(Events evt);
+    void Attach(IListener *listener, uint8_t evt_group_maks);
+    void Notify(Events evt, uint8_t evt_group_maks);
     Netmgnt(IMQTT &mqtt, IWifi &wifi, ILed &led, IWifiAp &soft_ap, IHTTPServer &http_server);
     void start();
     void stop();

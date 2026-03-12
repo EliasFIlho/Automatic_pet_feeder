@@ -42,19 +42,12 @@ enum class MQTT_STATES
     ERROR,
 };
 
-enum class EventGroup
+enum EventGroup
 {
-    WIFI,
-    MQTT,
-    APP,
-    HTTP
-};
-
-// TODO: Move this later, this file is for enuns only
-struct EventMsg
-{
-    Events evt;
-    EventGroup type;
+    WIFI_EVT,
+    MQTT_EVT,
+    APP_EVT,
+    HTTP_EVT
 };
 
 enum

@@ -19,7 +19,6 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/drivers/rtc.h>
 
-
 #define CLEAR_WIFI_CRED 0
 
 LOG_MODULE_REGISTER(LOGS);
@@ -46,7 +45,7 @@ struct gpio_dt_spec steps_stepper_dt = GPIO_DT_SPEC_GET_BY_IDX(DT_NODELABEL(step
 struct gpio_dt_spec enable_stepper_dt = GPIO_DT_SPEC_GET_BY_IDX(DT_NODELABEL(stepper), gpios, 2);
 
 /**
- * @brief Objects declaration
+ * @brief Objects declaration and wiring
  *
  */
 Watchdog guard(hw_wdt_dev);
@@ -55,13 +54,13 @@ JsonModule json;
 StepperController motor(&dir_stepper_dt, &steps_stepper_dt, &enable_stepper_dt);
 RTC rtc(ds3231_rtc_dev);
 SchedulerRules rules_controller(fs);
-MQTT mqtt(guard,json,rules_controller);
+MQTT mqtt(guard, json, rules_controller);
 Led led(net_led);
 WifiStation wifi(fs);
 WifiAp soft_ap;
 HTTPServer http_server(json, fs);
 Netmgnt net(mqtt, wifi, led, soft_ap, http_server);
-Application app(rtc, motor, fs, guard,rules_controller);
+Application app(rtc, motor, fs, guard, rules_controller);
 LvlSensor sensor(vl53l0x_dev);
 
 // TODO: Document modules with doxygen style
@@ -69,19 +68,19 @@ LvlSensor sensor(vl53l0x_dev);
 
 int main(void)
 {
-    //Some important stuff that the device realy realy need (beside the application it self)
+    // Some important stuff that the device realy realy need (beside the application it self)
     __ASSERT(guard.init() == 0, "Error to init watchdog");
     __ASSERT(fs.init_storage() == FILE_SYSTEM_ERROR::STORAGE_OK, "Error to init storage");
-    __ASSERT(rtc.init() == 0,"ERROR: Device not ready -> System cant run without RTC");
+    __ASSERT(rtc.init() == 0, "ERROR: Device not ready -> System cant run without RTC");
 
 #if CLEAR_WIFI_CRED
     fs.delete_data(SSID_ID);
     fs.delete_data(PASSWORD_ID);
 #endif
-    net.Attach(&sensor);
-    net.Attach(&app);
-    net.Attach(&rtc);
-    net.start();    
+    net.Attach(&sensor, MQTT_EVT);
+    net.Attach(&app, (WIFI_EVT | MQTT_EVT));
+    net.Attach(&rtc, WIFI_EVT);
+    net.start();
     app.init_application();
     sensor.init();
 

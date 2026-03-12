@@ -9,6 +9,7 @@
 #include "SchedulerRules.hpp"
 #include "NetEvents.hpp"
 #include "Enums.hpp"
+#include "types.hpp"
 extern k_msgq mqtt_publish_queue;
 
 

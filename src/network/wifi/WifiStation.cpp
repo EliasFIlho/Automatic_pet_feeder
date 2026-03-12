@@ -196,7 +196,7 @@ int32_t WifiStation::get_rssi()
 void WifiStation::notify_evt(Events evt)
 {
     EventMsg msg{.evt = evt,
-                 .type = EventGroup::WIFI};
+                 .type = WIFI_EVT};
 
     k_msgq_put(&net_evt_queue, &msg, K_NO_WAIT);
 }

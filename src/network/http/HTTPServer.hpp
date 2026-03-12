@@ -7,6 +7,8 @@
 #include <zephyr/net/http/service.h>
 #include "Enums.hpp"
 #include "NetEvents.hpp"
+#include "types.hpp"
+
 
 #define CREDENTIALS_MAX_BUF_LEN 16
 

@@ -120,13 +120,14 @@ void WifiAp::ap_start(void)
 }
 void WifiAp::ap_stop(void)
 {
+    net_dhcpv4_server_stop(this->ap_iface);
     net_mgmt(NET_REQUEST_WIFI_AP_DISABLE, this->ap_iface, NULL, NULL);
 }
 
 void WifiAp::notify_evt(Events evt)
 {
     EventMsg msg{.evt = evt,
-                 .type = EventGroup::WIFI};
+                 .type = WIFI_EVT};
 
     k_msgq_put(&net_evt_queue, &msg, K_NO_WAIT);
 }

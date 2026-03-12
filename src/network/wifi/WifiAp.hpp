@@ -7,6 +7,7 @@
 #include "NetEvents.hpp"
 #include "Enums.hpp"
 #include "IWifiAp.hpp"
+#include "types.hpp"
 
 class WifiAp : public IWifiAp
 {
