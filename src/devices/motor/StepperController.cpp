@@ -58,49 +58,6 @@ uint32_t StepperController::init()
 }
 
 /**
- * @brief Move motor to a specific position, the initial motor position will be the current shaft position at motor object constructor
- * the current position will be updated based on the steps and the direction will defined by the distance between the desired position and
- * the current position.
- *
- * @param step
- */
-void StepperController::move_to(int step)
-{
-    int error;
-
-    if (step < this->current_position)
-    {
-        gpio_pin_set_dt(_enable, 0);
-        gpio_pin_set_dt(_direction, 0);
-        error = this->current_position - step;
-        for (int i = 0; i < error; i++)
-        {
-            gpio_pin_toggle_dt(_steps);
-            this->current_position--;
-            k_usleep(500);
-        }
-        gpio_pin_set_dt(_enable, 1);
-    }
-    else if (step > this->current_position)
-    {
-        gpio_pin_set_dt(_enable, 0);
-        gpio_pin_set_dt(_direction, 1);
-        error = step - this->current_position;
-        for (int i = 0; i < error; i++)
-        {
-            gpio_pin_toggle_dt(_steps);
-            this->current_position++;
-            k_usleep(500);
-        }
-        gpio_pin_set_dt(_enable, 1);
-    }
-    else
-    {
-        // MISRA
-    }
-}
-
-/**
  * @brief Turn motor to a fixed direction by a number of steps
  *
  * @param amout

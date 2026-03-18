@@ -47,7 +47,7 @@ void Watchdog::feed(int task_wtd_id)
 int Watchdog::create_and_get_wtd_timer_id(uint32_t reload_period)
 {
     int task_wdt_id = task_wdt_add(reload_period, NULL, NULL);
-    if (task_wdt_id != -EINVAL && task_wdt_id != ENOMEM)
+    if (task_wdt_id != -EINVAL && task_wdt_id != -ENOMEM)
     {
         LOG_INF("Task wtd created: [%d]", task_wdt_id);
     }

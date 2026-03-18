@@ -4,16 +4,15 @@
 #include "MQTT_utils.hpp"
 #include <zephyr/drivers/sensor/vl53l0x.h>
 
-
 extern k_msgq mqtt_publish_queue;
 
-class LvlSensor : public IListener
+class LvlSensor : public ILvlSensor, public IListener
 {
 private:
     struct k_thread sensor_thread;
     struct level_sensor sample;
     const struct device *sensor_dev;
-    bool isMQTTconnectd;
+    bool isMQTTconnectd = false;
 
 private:
     void get_level();
@@ -22,7 +21,7 @@ private:
     void Update(Events evt);
 
 public:
-    LvlSensor(const struct device * dev);
+    LvlSensor(const struct device *dev);
     ~LvlSensor();
     int32_t init();
 };

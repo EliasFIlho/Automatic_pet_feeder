@@ -110,13 +110,13 @@ bool WifiStation::wifi_init(void)
     }
 }
 
-int WifiStation::connect_to_wifi()
+void WifiStation::connect_to_wifi()
 {
     if (!this->sta_iface)
     {
         LOG_ERR("STA: interface no initialized");
         this->notify_evt(Events::WIFI_IFACE_ERROR);
-        return -EIO;
+        return;
     }
 
     struct wifi_connect_req_params params = {0}; // Initialize as 0 to avoid garbage
@@ -135,15 +135,13 @@ int WifiStation::connect_to_wifi()
     if (ret != 0)
     {
         LOG_ERR("Error in net_mgmt: %d", ret);
-        return ret;
+        // TODO: Create error notification for this error
+        this->notify_evt(Events::WIFI_IFACE_ERROR);
+        return;
     }
     LOG_INF("REQUEST WIFI CONNECT RESULT: %d", ret);
 
-    ret = wait_wifi_to_connect();
-    if (ret < 0)
-    {
-        return ret;
-    }
+    wait_wifi_to_connect();
 }
 
 void WifiStation::start_dhcp()
@@ -164,10 +162,9 @@ int WifiStation::wifi_wait_for_ip_addr(void)
     return 0;
 }
 
-int WifiStation::wait_wifi_to_connect(void)
+void WifiStation::wait_wifi_to_connect(void)
 {
     k_timer_start(&this->TIMEOUT_TMR, K_SECONDS(CONFIG_WIFI_CONNECT_TIMEOUT), K_NO_WAIT);
-    return 0;
 }
 
 int WifiStation::wifi_disconnect(void)
@@ -208,10 +205,12 @@ void WifiStation::set_credentials()
     if (this->_fs.read_buffer(SSID_ID, ssid, sizeof(ssid)) < 0)
     {
         this->notify_evt(Events::WIFI_CREDS_NOT_FOUND);
+        return;
     }
     if (this->_fs.read_buffer(PASSWORD_ID, psk, sizeof(psk)) < 0)
     {
         this->notify_evt(Events::WIFI_CREDS_NOT_FOUND);
+        return;
     }
 
     LOG_INF("SSID: '%s' (len=%d)", ssid, strlen(ssid));

@@ -287,6 +287,7 @@ bool MQTT::setup_broker()
     }
     else
     {
+        LOG_INF("BROKER ADDR: %s",CONFIG_MQTT_BROKER_ADDR);
         LOG_INF("SOCKET: MQTT ADDRESS CONVERTED");
         this->isBrokerSeted = true;
         return true;
@@ -344,7 +345,6 @@ int MQTT::poll_mqtt_socket(int timout)
  */
 bool MQTT::connect()
 {
-
     this->isMqttConnected = false;
     int ret;
 
@@ -667,8 +667,6 @@ void MQTT::mqtt_task(void *p1, void *, void *)
                 LOG_WRN("MQTT STATE FROM: %s to %s",STATE_TO_STRING(MQTT_STATES::RUNNING),STATE_TO_STRING(MQTT_STATES::ERROR));
                 self->state = MQTT_STATES::ERROR;
             }
-
-            LOG_WRN("MQTT STATE FROM: %s to %s",STATE_TO_STRING(MQTT_STATES::RUNNING),STATE_TO_STRING(MQTT_STATES::RUNNING));
             break;
 
         case MQTT_STATES::ERROR:

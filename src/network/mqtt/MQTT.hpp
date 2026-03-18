@@ -6,12 +6,25 @@
 #include "IMQTT.hpp"
 #include "IWatchDog.hpp"
 #include "IJson.hpp"
-#include "SchedulerRules.hpp"
 #include "NetEvents.hpp"
 #include "Enums.hpp"
 #include "types.hpp"
+#include "ISchedulerRules.hpp"
+
+
+
 extern k_msgq mqtt_publish_queue;
 
+
+#define MAX_WEEK_DAYS_MASK_VALUE 0x7F
+
+#define MAX_DAYS_SPECIFIC_VALUE 31
+#define MAX_MONTHS_SPECIFIC_VALUE 12
+#define MIN_DAYS_SPECIFIC_VALUE 1
+#define MIN_MONTHS_SPECIFIC_VALUE 1
+
+#define MAX_HOUR_TIME_VALUE 23
+#define MAX_MINUTE_TIME_VALUE 59
 
 
 /**
@@ -28,9 +41,9 @@ private:
     struct sockaddr_in broker;
     struct mqtt_utf8 user_utf8;
     struct mqtt_utf8 pass_utf8;
-    bool isMqttConnected;
-    bool isBrokerSeted;
-    bool isWifiConnected;
+    bool isMqttConnected = false;
+    bool isBrokerSeted = false;
+    bool isWifiConnected = false;
     char publish_buf[CONFIG_MQTT_PUBLISH_BUFFER_SIZE];
     uint8_t rx_buffer[CONFIG_MQTT_RX_BUFFER_SIZE];
     uint8_t tx_buffer[CONFIG_MQTT_TX_BUFFER_SIZE];

@@ -36,14 +36,14 @@ void WifiAp::wifi_ap_event_handler(struct net_mgmt_event_callback *cb, uint64_t 
     }
     case NET_EVENT_WIFI_AP_STA_CONNECTED:
     {
-        struct wifi_ap_sta_info *sta_info = (struct wifi_ap_sta_info *)cb->info;
+        //struct wifi_ap_sta_info *sta_info = (struct wifi_ap_sta_info *)cb->info;
 
         LOG_INF("station: joined ");
         break;
     }
     case NET_EVENT_WIFI_AP_STA_DISCONNECTED:
     {
-        struct wifi_ap_sta_info *sta_info = (struct wifi_ap_sta_info *)cb->info;
+        //struct wifi_ap_sta_info *sta_info = (struct wifi_ap_sta_info *)cb->info;
 
         LOG_INF("station: leave ");
         break;

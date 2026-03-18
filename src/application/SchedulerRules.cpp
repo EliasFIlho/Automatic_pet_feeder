@@ -1,7 +1,5 @@
 #include "SchedulerRules.hpp"
 
-// TODO: Create Errors codes to handle failed operation in the caller side
-// TODO: Check for unsafe operations
 /**
  * @brief Init rules controller and RAM with the current filesystem data at startup
  *
@@ -71,7 +69,9 @@ int32_t SchedulerRules::read_rules(std::array<Scheduled_Rule_t, CONFIG_MAX_SCHED
                 rules[idx].state = RULE_STATE::READY;
                 rules[idx].fs_index = i;
                 idx++;
-            }else{
+            }
+            else
+            {
                 return ret;
             }
         }
@@ -82,18 +82,23 @@ int32_t SchedulerRules::read_rules(std::array<Scheduled_Rule_t, CONFIG_MAX_SCHED
 int32_t SchedulerRules::delete_rule(uint8_t rule_fs_idx)
 {
     uint32_t rule_id = rule_fs_idx + RULES_ID_BASE;
-    return this->_fs.delete_data(rule_id);
+    int32_t ret = this->_fs.delete_data(rule_id);
+    if (ret == 0)
+    {
+        this->map.set(rule_fs_idx, false);
+    }
+    return ret;
 }
 
 uint32_t SchedulerRules::clear_rules()
 {
-    for (uint32_t rule_id = RULES_ID_BASE; rule_id < RULES_ID_END; rule_id++)
+    for (uint32_t i = 0; i < CONFIG_MAX_SCHEDULER_RULES; i++)
     {
-        int32_t ret = this->_fs.delete_data(rule_id);
-        if (ret != 0)
-        {
-            return ret; // Some rule could not be erased;
+        int32_t ret = this->_fs.delete_data(RULES_ID_BASE + i);
+        if (ret != 0) {
+            return ret;
         }
+        this->map.set(i, false);
     }
     return 0;
 }

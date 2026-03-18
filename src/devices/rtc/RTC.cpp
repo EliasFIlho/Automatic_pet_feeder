@@ -8,7 +8,6 @@
 
 LOG_MODULE_REGISTER(RTC_LOGS);
 
-
 RTC::RTC(const struct device *const rtc) : _rtc(rtc)
 {
 }
@@ -27,7 +26,10 @@ void RTC::sync_work_handler(struct k_work *work)
 {
     auto *self = CONTAINER_OF(work, RTC, sync_work);
     LOG_WRN("Sync work call");
-    self->sync_time();
+    if (self->isNetworkConnected)
+    {
+        self->sync_time();
+    }
 }
 
 int RTC::init()
@@ -39,7 +41,6 @@ int RTC::init()
     k_timer_init(&this->SYNC_TMR, this->sync_tmr_handler, NULL);
     k_timer_user_data_set(&this->SYNC_TMR, this);
     k_work_init(&this->sync_work, sync_work_handler);
-    this->isNetworkConnected = false;
     return 0;
 }
 
@@ -64,11 +65,11 @@ int RTC::sync_time()
         else
         {
 
-            #if CONFIG_TIME_ZONE_OPERATION
-                time_t unix_time = static_cast<time_t>(this->s_time.seconds - CONFIG_TIME_ZONE_VALUE);
-            #else
-                time_t unix_time = static_cast<time_t>(this->s_time.seconds + CONFIG_TIME_ZONE_VALUE);
-            #endif
+#if CONFIG_TIME_ZONE_OPERATION
+            time_t unix_time = static_cast<time_t>(this->s_time.seconds - CONFIG_TIME_ZONE_VALUE);
+#else
+            time_t unix_time = static_cast<time_t>(this->s_time.seconds + CONFIG_TIME_ZONE_VALUE);
+#endif
             struct tm tm;
             gmtime_r(&unix_time, &tm);
             populate_rtc_time_spec(&tm);
@@ -152,6 +153,7 @@ void RTC::Update(Events evt)
     case Events::WIFI_DISCONNECTED:
         this->isNetworkConnected = false;
         k_timer_stop(&this->SYNC_TMR);
+        break;
     default:
         break;
     }

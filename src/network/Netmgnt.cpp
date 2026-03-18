@@ -141,7 +141,6 @@ void Netmgnt::on_exit(WifiSmState state)
         break;
 
     case WifiSmState::LOADING_CREDENTIALS:
-        // TODO: Maybe clear buffers;
         break;
 
     case WifiSmState::CONNECTING:
@@ -158,12 +157,12 @@ void Netmgnt::on_exit(WifiSmState state)
 
         break;
     case WifiSmState::ENABLING_AP:
-        // TODO: Check if is something to before exit ENABLING_AP state
         break;
     case WifiSmState::ENABLING_HTTP_SERVER:
         k_msleep(200); // Add intentional wait before stop AP and HTTP to give enought time to client receive the response - see for a async solution
         this->_http.stop();
         this->_ap.ap_stop();
+        break;
     default:
         break;
     }
@@ -283,10 +282,7 @@ void Netmgnt::process_state(Events evt)
         }
         else if (evt == Events::WIFI_DISCONNECTED)
         {
-            // TODO: For some reason the wifi driver sometimes (specially after reset) rise the WIFI_DISCONNECTED event, i need to see a good way to handle this.
             LOG_WRN("See how to handle wifi disconnect event during the connect request, but right now, just try again");
-            // this->_wifi.stop_connect_timer();
-            // this->transition(WifiSmState::INITIALIZING);
         }
         break;
     case WifiSmState::WAIT_IP:

@@ -17,7 +17,7 @@ private:
     struct tm tm;
     struct rtc_time rtc_time_spec;
     const struct device *_rtc;
-    bool isNetworkConnected;
+    bool isNetworkConnected = false;
     struct k_timer SYNC_TMR;
     struct k_work sync_work;
 

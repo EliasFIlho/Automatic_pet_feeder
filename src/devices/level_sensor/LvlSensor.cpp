@@ -69,7 +69,7 @@ void LvlSensor::get_level()
     else
     {
         this->sample.value = distance.val1;
-        LOG_WRN("Sensor value: %d",sensor_value_to_milli(&distance));
+        LOG_WRN("Sensor value: %lld",sensor_value_to_milli(&distance));
     }
 }
 

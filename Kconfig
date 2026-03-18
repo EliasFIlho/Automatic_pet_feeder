@@ -1,0 +1,6 @@
+rsource "src/network/Kconfig.Network"
+rsource "src/network/mqtt/Kconfig.MQTT"
+rsource "src/network/wifi/Kconfig.Wifi"
+rsource "src/application/Kconfig.app"
+rsource "src/devices/rtc/Kconfig.RTC"
+rsource "src/devices/level_sensor/Kconfig.LevelSensor"

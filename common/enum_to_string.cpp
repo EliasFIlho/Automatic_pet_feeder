@@ -35,8 +35,10 @@ const char *EVENT_TO_STRING(Events evt)
         return "MQTT_DISCONNECTED";
     case Events::MQTT_NEW_DATA:
         return "MQTT_NEW_DATA";
+    case Events::HTTP_STORED_CREDENTIALS:
+        return "HTTP_STORED_CREDENTIALS";
     default:
-        return "";
+        return "UNKNOWN";
     }
 }
 
@@ -61,7 +63,7 @@ const char *STATE_TO_STRING(WifiSmState state)
     case WifiSmState::ENABLING_HTTP_SERVER:
         return "ENABLING_HTTP_SERVER";
     default:
-        return "";
+        return "UNKNOWN";
     }
 }
 
@@ -82,6 +84,6 @@ const char *STATE_TO_STRING(MQTT_STATES state)
     case MQTT_STATES::ERROR:
         return "ERROR";
     default:
-        return "";
+        return "UNKNOWN";
     }
 }

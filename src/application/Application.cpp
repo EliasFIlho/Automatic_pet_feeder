@@ -31,7 +31,7 @@ int32_t Application::get_rules()
     int32_t ret = this->_rules.read_rules(this->rules);
     if (ret == 0)
     {
-        LOG_WRN("get_rules return: %d",ret);
+        LOG_WRN("get_rules return: %d", ret);
 
         this->isRulesAvaliable = true;
     }
@@ -106,19 +106,16 @@ bool Application::check_rules(const Rules_t &rule)
     if (rule.period == WEEKLY)
     {
 
-        return this->is_week_days_match(rule.week_days);
+        return (this->is_week_days_match(rule.week_days) && this->is_time_match(rule.time));
     }
-    if (rule.period == SPECIF)
+    else if (rule.period == SPECIF)
     {
-        return this->is_date_match(rule.date);
+        return (this->is_date_match(rule.date) && this->is_time_match(rule.time));
     }
-
-    if (!this->is_time_match(rule.time))
+    else
     {
         return false;
     }
-
-    return false;
 }
 
 uint8_t Application::select_rules_to_execute()
@@ -159,7 +156,6 @@ void Application::app(void *p1, void *, void *)
         case APP_STATES::INIT:
 
             self->_motor.init();
-            self->isDispenserExecuted = false;
             self->shouldUpdateRules = false;
             self->state = APP_STATES::LOAD_RULES;
             break;

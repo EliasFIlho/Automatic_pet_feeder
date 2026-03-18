@@ -64,12 +64,12 @@ FILE_SYSTEM_ERROR Storage::init_storage()
  * @param id
  * @param ptr
  * @param size
- * @return int32_t
+ * @return Size of readed value
  */
-int32_t Storage::read_buffer(uint32_t id, void *ptr, size_t size)
+size_t Storage::read_buffer(uint32_t id, void *ptr, size_t size)
 {
     k_mutex_lock(&this->lock_mutex, K_FOREVER);
-    int ret = zms_read(&this->fs, id, ptr, size);
+    size_t ret = zms_read(&this->fs, id, ptr, size);
     if (ret < 0)
     {
         LOG_ERR("ERROR TO READ DATA: %d", ret);
@@ -82,8 +82,6 @@ int32_t Storage::read_buffer(uint32_t id, void *ptr, size_t size)
     }
     else
     {
-        // Buffer was exactly filled, overwrite last byte with \0
-        // Caller should pass size+1 buffer to avoid data truncation
         LOG_WRN("Buffer full, forcing null termination - data may be truncated");
         ((char *)ptr)[size - 1] = '\0';
     }
@@ -98,7 +96,7 @@ int32_t Storage::read_buffer(uint32_t id, void *ptr, size_t size)
  * @param id
  * @param ptr
  * @param size
- * @return int32_t
+ * @return Error code or size of writen value
  */
 int32_t Storage::write_buffer(uint32_t id, void *ptr, size_t size)
 {
@@ -119,7 +117,7 @@ int32_t Storage::write_buffer(uint32_t id, void *ptr, size_t size)
         return -ENOSPC;
     }
 
-    int ret = zms_write(&fs, id, ptr, size);
+    size_t ret = zms_write(&fs, id, ptr, size);
 
     if (ret != size)
     {
@@ -134,7 +132,7 @@ int32_t Storage::write_buffer(uint32_t id, void *ptr, size_t size)
 
     k_mutex_unlock(&this->lock_mutex);
 
-    return ret;
+    return static_cast<int32_t>(ret);
 }
 
 /**

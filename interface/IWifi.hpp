@@ -6,7 +6,7 @@ class IWifi
 public:
     virtual ~IWifi() noexcept = default;
     virtual bool wifi_init(void) = 0;
-    virtual int connect_to_wifi() = 0;
+    virtual void connect_to_wifi() = 0;
     virtual int wifi_disconnect(void) = 0;
     virtual void set_credentials(void) = 0;
     virtual void start_dhcp() = 0;

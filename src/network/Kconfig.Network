@@ -26,3 +26,6 @@ config NETWORK_EVENT_MAX_LISTENERS
     int "Max number of listeners for network events"
     default 5
 endmenu
+
+
+source "Kconfig"

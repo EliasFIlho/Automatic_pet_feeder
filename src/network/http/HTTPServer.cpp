@@ -112,14 +112,17 @@ int HTTPServer::connect_handler(struct http_client_ctx *client,
 
     if (status == HTTP_SERVER_TRANSACTION_COMPLETE)
     {
+        post_payload[cursor] = '\n';
         cursor = 0;
         LOG_INF("%s", post_payload);
         int32_t ret_parser = self->parse_credentials_data(post_payload);
         int32_t ret_fs_write = self->write_credentials_data();
-        if ((ret_parser != 0) && (ret_fs_write < 0))
+        if ((ret_parser != 0) || (ret_fs_write < 0))
         {
             response_ctx->status = HTTP_400_BAD_REQUEST;
             LOG_ERR("BAD REQUEST");
+            self->notify_evt(Events::HTTP_STORED_CREDENTIALS_ERROR);
+            return -1; //TODO: Create a better error handling for this
         }
         else
         {
@@ -130,10 +133,6 @@ int HTTPServer::connect_handler(struct http_client_ctx *client,
         response_ctx->body = NULL;
         response_ctx->body_len = 0;
         response_ctx->final_chunk = true;
-
-        // Clear buffers
-        // memset(post_payload, 0, POST_PAYLOAD_MAX_LEN);
-        // memset(&self->credentials, 0, sizeof(self->credentials));
         self->notify_evt(Events::HTTP_STORED_CREDENTIALS);
         return 0;
     }

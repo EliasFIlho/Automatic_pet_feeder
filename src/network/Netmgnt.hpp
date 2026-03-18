@@ -40,13 +40,6 @@ state-flow
 
 */
 
-struct state_transition
-{
-    WifiSmState from;
-    Events evt;
-    WifiSmState to;
-};
-
 struct Wifi_State_Machine
 {
 

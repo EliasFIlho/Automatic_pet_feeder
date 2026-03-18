@@ -1,14 +1,15 @@
 #include "JsonModule.hpp"
-#include "SchedulerRules.hpp"
 #include <zephyr/kernel.h>
 #include <zephyr/data/json.h>
+#include "types.hpp"
 #include "MQTT_utils.hpp"
 #include <zephyr/logging/log.h>
 
 LOG_MODULE_REGISTER(JSON_LOGS);
 
 // For debug
-static void print_rules(const Rules_t *r)
+
+__unused static void print_rules(const Rules_t *r)
 {
     LOG_INF("=== Scheduler Rule ===");
     LOG_INF("Date     : %04u-%02u-%02u",

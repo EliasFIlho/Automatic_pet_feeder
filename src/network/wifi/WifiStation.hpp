@@ -27,13 +27,13 @@ private:
     static void dhcp4_event_handler(struct net_mgmt_event_callback *cb, uint64_t mgmt_event, struct net_if *iface);
     static void timeout_tmr_handler(struct k_timer *timer_id);
     void notify_evt(Events evt);
-    int wait_wifi_to_connect(void);
+    void wait_wifi_to_connect(void);
     int wifi_wait_for_ip_addr(void);
     
     public:
     WifiStation(IStorage &fs);
     bool wifi_init();
-    int connect_to_wifi();
+    void connect_to_wifi();
     int wifi_disconnect();
     void start_dhcp();
     void stop_dhcp();

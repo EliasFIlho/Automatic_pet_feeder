@@ -28,7 +28,7 @@ class IStorage
 public:
     virtual ~IStorage() noexcept = default;
     virtual FILE_SYSTEM_ERROR init_storage() = 0;
-    virtual int32_t read_buffer(uint32_t id, void *ptr, size_t size) = 0;
+    virtual size_t read_buffer(uint32_t id, void *ptr, size_t size) = 0;
     virtual int32_t write_buffer(uint32_t id, void *ptr, size_t size) = 0;
     virtual bool is_id_empty(uint32_t id) = 0;
     virtual int32_t delete_data(uint32_t id) = 0;

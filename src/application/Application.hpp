@@ -5,7 +5,6 @@
 #include "IStorage.hpp"
 #include "IWatchDog.hpp"
 #include "Netmgnt.hpp"
-#include "SchedulerRules.hpp"
 #include "IListener.hpp"
 #include "ISchedulerRules.hpp"
 #include <array>
@@ -35,9 +34,8 @@ private:
     IWatchDog &_guard;
     int task_wdt_id;
     APP_STATES state;
-    bool isDispenserExecuted;
-    bool isRulesAvaliable;
-    bool shouldUpdateRules;
+    bool isRulesAvaliable = false;
+    bool shouldUpdateRules = false;
     struct k_thread app_thread;
 
 private:
