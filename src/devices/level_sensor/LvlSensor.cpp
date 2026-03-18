@@ -68,13 +68,14 @@ void LvlSensor::get_level()
     }
     else
     {
-        this->sample.value = distance.val1;
+        this->sample.value = distance.val2/1000;
         LOG_WRN("Sensor value: %lld",sensor_value_to_milli(&distance));
     }
 }
 
 int32_t LvlSensor::send_data()
 {
+    LOG_WRN("Sending data.. %d",this->sample.value);
     int ret = k_msgq_put(&mqtt_publish_queue, &this->sample, K_NO_WAIT);
     return ret;
 }

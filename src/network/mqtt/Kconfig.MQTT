@@ -82,4 +82,8 @@ config MQTT_TLS_ENABLE
     bool "Enable TLS configuration"
     default n
 
+config MQTT_USE_BROKER_DNS
+    bool "When enabled MQTT module will try to resolve DNS for connect to broker"
+    default n
+
 endmenu
