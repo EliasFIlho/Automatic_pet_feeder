@@ -288,14 +288,16 @@ bool MQTT::setup_broker()
     hints.ai_socktype = SOCK_STREAM; // TCP
 
     ret = zsock_getaddrinfo(CONFIG_MQTT_BROKER_ADDR, "1883", &hints, &res);
-    if (ret != 0) {
-		LOG_ERR("Failed to resolve broker hostname [%d]",(ret));
-		return false;
-	}
-	if (res == NULL) {
-		LOG_ERR("Broker address not found");
-		return false;
-	}
+    if (ret != 0)
+    {
+        LOG_ERR("Failed to resolve broker hostname [%d]", (ret));
+        return false;
+    }
+    if (res == NULL)
+    {
+        LOG_ERR("Broker address not found");
+        return false;
+    }
     this->broker.sin_addr.s_addr = ((struct sockaddr_in *)res->ai_addr)->sin_addr.s_addr;
     this->isBrokerSeted = true;
     LOG_WRN("DNS RESOLVED");
@@ -547,7 +549,7 @@ void MQTT::mqtt_publish_payload()
     if (k_msgq_get(&mqtt_publish_queue, &data, K_NO_WAIT) == 0)
     {
         struct mqtt_binstr payload;
-        LOG_WRN("VALUE IN MQTT QUEUE %d",data.value);
+        LOG_WRN("VALUE IN MQTT QUEUE %d", data.value);
         this->populate_payload_struct(&payload, &data);
 
         struct mqtt_topic topic = {
@@ -759,7 +761,7 @@ int32_t MQTT::setup_tls()
     tls_config->cipher_list = NULL;
     tls_config->sec_tag_list = m_sec_tags;
     tls_config->sec_tag_count = ARRAY_SIZE(m_sec_tags);
-    tls_config->hostname = "broker.local";
+    tls_config->hostname = CONFIG_MQTT_BROKER_ADDR;
     return 0;
 }
 #endif
