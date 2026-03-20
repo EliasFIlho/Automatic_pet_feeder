@@ -30,7 +30,7 @@ enum class WifiSmState
     CONNECTED,
     IFACE_ERROR,
     ENABLING_AP,
-    ENABLING_HTTP_SERVER
+    WAITING_USER_INPUT
 };
 
 enum class MQTT_STATES

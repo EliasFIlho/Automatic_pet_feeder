@@ -122,7 +122,7 @@ int HTTPServer::connect_handler(struct http_client_ctx *client,
             response_ctx->status = HTTP_400_BAD_REQUEST;
             LOG_ERR("BAD REQUEST");
             self->notify_evt(Events::HTTP_STORED_CREDENTIALS_ERROR);
-            return -1; //TODO: Create a better error handling for this
+            return -1;
         }
         else
         {
@@ -133,6 +133,7 @@ int HTTPServer::connect_handler(struct http_client_ctx *client,
         response_ctx->body = NULL;
         response_ctx->body_len = 0;
         response_ctx->final_chunk = true;
+        k_msleep(200);
         self->notify_evt(Events::HTTP_STORED_CREDENTIALS);
         return 0;
     }

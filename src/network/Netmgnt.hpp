@@ -75,7 +75,9 @@ private:
     void process_state(Events evt);
     void transition(WifiSmState new_state);
     void on_entry(WifiSmState state);
-    void on_exit(WifiSmState state);
+    void on_exit(WifiSmState from_state, WifiSmState to_state);
+    void restart_state();
+    bool canRetry();
 
 public:
     void Attach(IListener *listener, uint8_t evt_group_maks);

@@ -3,6 +3,8 @@
 #include <zephyr/logging/log.h>
 #include "enum_to_string.hpp"
 #include "types.hpp"
+#include <zephyr/sys/reboot.h>
+
 LOG_MODULE_REGISTER(NETWORK_LOGS);
 
 K_THREAD_STACK_DEFINE(NETWORK_DISPATCH_STACK_AREA, CONFIG_NETWORK_DISPATCH_THREAD_STACK_SIZE);
@@ -120,7 +122,6 @@ void Netmgnt::network_evt_dispatch_task(void *p1, void *, void *)
     {
         if (k_msgq_get(&net_evt_queue, &evt, K_FOREVER) == 0)
         {
-            // Only process WIFI events types
             if (evt.type == WIFI_EVT || evt.type == HTTP_EVT)
             {
                 LOG_WRN("ARRIVED EVENT: %s", EVENT_TO_STRING(evt.evt));
@@ -131,10 +132,10 @@ void Netmgnt::network_evt_dispatch_task(void *p1, void *, void *)
     }
 }
 
-void Netmgnt::on_exit(WifiSmState state)
+void Netmgnt::on_exit(WifiSmState from_state, WifiSmState to_state)
 {
-    LOG_INF("Leanving State %s", STATE_TO_STRING(state));
-    switch (state)
+    LOG_INF("Leanving State %s", STATE_TO_STRING(from_state));
+    switch (from_state)
     {
     case WifiSmState::INITIALIZING:
         // Nothing to do
@@ -144,11 +145,17 @@ void Netmgnt::on_exit(WifiSmState state)
         break;
 
     case WifiSmState::CONNECTING:
-        // Nothing to do
+        if (to_state != WifiSmState::CONNECTING)
+        {
+            this->wifi_sm.tries = 0;
+        }
         break;
 
     case WifiSmState::WAIT_IP:
-        // Nothing to do
+        if (to_state != WifiSmState::WAIT_IP)
+        {
+            this->wifi_sm.tries = 0;
+        }
         break;
 
     case WifiSmState::CONNECTED:
@@ -157,11 +164,15 @@ void Netmgnt::on_exit(WifiSmState state)
 
         break;
     case WifiSmState::ENABLING_AP:
+        // Nothing to do
         break;
-    case WifiSmState::ENABLING_HTTP_SERVER:
-        k_msleep(200); // Add intentional wait before stop AP and HTTP to give enought time to client receive the response - see for a async solution
-        this->_http.stop();
-        this->_ap.ap_stop();
+    case WifiSmState::WAITING_USER_INPUT:
+        if (to_state != WifiSmState::WAITING_USER_INPUT)
+        {
+
+            this->_http.stop();
+            this->_ap.ap_stop();
+        }
         break;
     default:
         break;
@@ -172,7 +183,7 @@ void Netmgnt::transition(WifiSmState new_state)
 {
     LOG_INF("From %s State -> %s State", STATE_TO_STRING(wifi_sm.state), STATE_TO_STRING(new_state));
 
-    this->on_exit(this->wifi_sm.state);
+    this->on_exit(this->wifi_sm.state, new_state);
 
     this->wifi_sm.state = new_state;
 
@@ -185,6 +196,7 @@ void Netmgnt::on_entry(WifiSmState state)
     {
     case WifiSmState::INITIALIZING:
         this->set_led_output(COLOR::RED, 255);
+        this->wifi_sm.tries = 0;
         this->_wifi.wifi_init();
         break;
 
@@ -207,18 +219,22 @@ void Netmgnt::on_entry(WifiSmState state)
         break;
 
     case WifiSmState::CONNECTED:
-        this->wifi_sm.tries = 0;
         this->init_rssi_monitor();
         this->_mqtt.release_mqtt();
         this->start_mqtt();
         break;
     case WifiSmState::ENABLING_AP:
-        this->wifi_sm.tries = 0;
         this->set_led_output(COLOR::BLUE, 255);
         this->_ap.ap_init();
         break;
-    case WifiSmState::ENABLING_HTTP_SERVER:
+    case WifiSmState::WAITING_USER_INPUT:
         this->_http.start();
+        break;
+    case WifiSmState::IFACE_ERROR:
+        LOG_ERR("WiFi interface error — cold rebooting");
+        k_msleep(100);
+        sys_reboot(SYS_REBOOT_COLD);
+
         break;
     default:
         break;
@@ -233,7 +249,7 @@ void Netmgnt::process_state(Events evt)
     case WifiSmState::INITIALIZING:
         if (evt == Events::START)
         {
-            this->transition(WifiSmState::INITIALIZING);
+            this->on_entry(WifiSmState::INITIALIZING); // explicit first boot kick
         }
         else if (evt == Events::WIFI_IFACE_UP)
         {
@@ -253,7 +269,7 @@ void Netmgnt::process_state(Events evt)
         else if (evt == Events::WIFI_CREDS_FAIL)
         {
 
-            this->transition(WifiSmState::LOADING_CREDENTIALS);
+            this->restart_state();
         }
         else if (evt == Events::WIFI_CREDS_NOT_FOUND)
         {
@@ -269,10 +285,10 @@ void Netmgnt::process_state(Events evt)
         }
         else if (evt == Events::TIMEOUT)
         {
-            if (++wifi_sm.tries < CONFIG_NETWORK_CONNECTION_MAX_TRIES)
+            if (this->canRetry())
             {
 
-                this->transition(WifiSmState::CONNECTING);
+                this->restart_state();
             }
             else
             {
@@ -282,7 +298,7 @@ void Netmgnt::process_state(Events evt)
         }
         else if (evt == Events::WIFI_DISCONNECTED)
         {
-            LOG_WRN("See how to handle wifi disconnect event during the connect request, but right now, just try again");
+            LOG_WRN("Ignoring WIFI_DISCONNECTED during CONNECTING");
         }
         break;
     case WifiSmState::WAIT_IP:
@@ -292,10 +308,10 @@ void Netmgnt::process_state(Events evt)
         }
         else if (evt == Events::TIMEOUT)
         {
-            if (++wifi_sm.tries < CONFIG_NETWORK_CONNECTION_MAX_TRIES)
+            if (this->canRetry())
             {
 
-                this->transition(WifiSmState::WAIT_IP);
+                this->restart_state();
             }
             else
             {
@@ -306,7 +322,6 @@ void Netmgnt::process_state(Events evt)
         else if (evt == Events::WIFI_DISCONNECTED)
         {
             this->_wifi.stop_connect_timer();
-            LOG_WRN("See how to handle wifi disconnect event during the connect request, but right now, just try again");
             this->transition(WifiSmState::CONNECTING);
         }
         break;
@@ -316,20 +331,25 @@ void Netmgnt::process_state(Events evt)
             this->transition(WifiSmState::CONNECTING);
         }
         break;
-    case WifiSmState::IFACE_ERROR:
-        break;
     case WifiSmState::ENABLING_AP:
         if (evt == Events::WIFI_AP_ENABLE)
         {
-            this->transition(WifiSmState::ENABLING_HTTP_SERVER);
+            this->transition(WifiSmState::WAITING_USER_INPUT);
         }
         break;
 
-    case WifiSmState::ENABLING_HTTP_SERVER: // Check the name for this state
+    case WifiSmState::WAITING_USER_INPUT:
+
         if (evt == Events::HTTP_STORED_CREDENTIALS)
         {
             this->transition(WifiSmState::LOADING_CREDENTIALS);
         }
+        else if (evt == Events::HTTP_STORED_CREDENTIALS_ERROR)
+        {
+            this->restart_state();
+        }
+        break;
+    case WifiSmState::IFACE_ERROR:
         break;
     default:
         break;
@@ -338,5 +358,21 @@ void Netmgnt::process_state(Events evt)
 
 void Netmgnt::set_led_output(COLOR color, uint8_t brightness)
 {
-    this->_led.set_output(color, 255);
+    this->_led.set_output(color, brightness);
+}
+
+void Netmgnt::restart_state()
+
+{
+
+    LOG_INF("Restarting state %s", STATE_TO_STRING(wifi_sm.state));
+
+    this->on_exit(this->wifi_sm.state, this->wifi_sm.state);
+
+    this->on_entry(this->wifi_sm.state);
+}
+
+bool Netmgnt::canRetry()
+{
+    return ++this->wifi_sm.tries < CONFIG_NETWORK_CONNECTION_MAX_TRIES;
 }

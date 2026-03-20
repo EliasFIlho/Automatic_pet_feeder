@@ -60,7 +60,7 @@ const char *STATE_TO_STRING(WifiSmState state)
         return "IFACE_ERROR";
     case WifiSmState::ENABLING_AP:
         return "ENABLING_AP";
-    case WifiSmState::ENABLING_HTTP_SERVER:
+    case WifiSmState::WAITING_USER_INPUT:
         return "ENABLING_HTTP_SERVER";
     default:
         return "UNKNOWN";

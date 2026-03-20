@@ -16,9 +16,6 @@ static const sec_tag_t m_sec_tags[] = {
 };
 
 #endif
-
-// TODO: MQTT State machine is not reconnecting after Server goes down, add transition logs to see the main issue
-
 /**
  * @brief Thread stack and option defines
  *
@@ -268,7 +265,6 @@ void MQTT::on_disconnect()
  * @return false
  */
 
-// TODO: Try to get the broker ip using getaddrinfo
 bool MQTT::setup_broker()
 {
     this->isBrokerSeted = false;

@@ -64,7 +64,6 @@ Application app(rtc, motor, fs, guard, rules_controller);
 LvlSensor sensor(vl53l0x_dev);
 
 // TODO: Document modules with doxygen style
-// TODO: See how to use Kconfig without modify Zephyr base Kconfig
 
 int main(void)
 {
