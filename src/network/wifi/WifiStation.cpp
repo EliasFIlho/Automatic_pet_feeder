@@ -135,7 +135,6 @@ void WifiStation::connect_to_wifi()
     if (ret != 0)
     {
         LOG_ERR("Error in net_mgmt: %d", ret);
-        // TODO: Create error notification for this error
         this->notify_evt(Events::WIFI_IFACE_ERROR);
         return;
     }
