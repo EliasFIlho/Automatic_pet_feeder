@@ -142,4 +142,6 @@ A **rule** is a set of time constraints that, when all matched, trigger a feedin
 
 Rules are delivered to the device via the MQTT subscribe channel and stored persistently in flash.
 
+NOTE: weekday is a bit mask, which means that only one single byte is sent for validation and not list so the value needs to be between 1 and 0x7F. Example: for sunday and wednesday will be 0b00001001 = 9
+
 ---
