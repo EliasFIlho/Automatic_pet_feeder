@@ -15,6 +15,10 @@ static const sec_tag_t m_sec_tags[] = {
     MQTT_CA_CERT_TAG,
 };
 
+
+
+//TODO: Implement ON_ENTRY, ON_EXIT and Transition methods for this module, also update doc
+
 #endif
 /**
  * @brief Thread stack and option defines
