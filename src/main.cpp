@@ -60,7 +60,7 @@ WifiStation wifi(fs);
 WifiAp soft_ap;
 HTTPServer http_server(json, fs);
 Netmgnt net(mqtt, wifi, led, soft_ap, http_server);
-Application app(rtc, motor, fs, guard, rules_controller);
+Application app(rtc, motor, guard, rules_controller);
 LvlSensor sensor(vl53l0x_dev);
 
 // TODO: Document modules with doxygen style

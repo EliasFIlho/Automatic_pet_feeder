@@ -30,7 +30,6 @@ private:
     ISchedulerRules &_rules;
     IRTC &_clk;
     IMotor &_motor;
-    IStorage &_fs;
     IWatchDog &_guard;
     int task_wdt_id;
     APP_STATES state;
@@ -52,7 +51,7 @@ private:
 
 
 public:
-    Application(IRTC &clk, IMotor &motor, IStorage &fs, IWatchDog &guard, ISchedulerRules &rules);
+    Application(IRTC &clk, IMotor &motor, IWatchDog &guard, ISchedulerRules &rules);
     ~Application();
     void init_application(); // Start application thread
 };

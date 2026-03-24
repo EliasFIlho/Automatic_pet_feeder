@@ -5,7 +5,7 @@
 K_THREAD_STACK_DEFINE(APP_STACK_AREA, CONFIG_APP_THREAD_STACK_SIZE);
 LOG_MODULE_REGISTER(APPLICATION_LOG);
 
-Application::Application(IRTC &clk, IMotor &motor, IStorage &fs, IWatchDog &guard, ISchedulerRules &rules) : _clk(clk), _motor(motor), _fs(fs), _guard(guard), _rules(rules)
+Application::Application(IRTC &clk, IMotor &motor, IWatchDog &guard, ISchedulerRules &rules) : _clk(clk), _motor(motor), _guard(guard), _rules(rules)
 {
 }
 
