@@ -115,13 +115,11 @@ void WifiAp::ap_init(void)
         LOG_ERR("ERROR TO REQUEST WIFI AP START - %d", ret);
     }
 }
-void WifiAp::ap_start(void)
-{
-}
 void WifiAp::ap_stop(void)
 {
     net_dhcpv4_server_stop(this->ap_iface);
     net_mgmt(NET_REQUEST_WIFI_AP_DISABLE, this->ap_iface, NULL, NULL);
+    net_if_down(this->ap_iface);
 }
 
 void WifiAp::notify_evt(Events evt)

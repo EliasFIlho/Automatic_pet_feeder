@@ -47,6 +47,20 @@ int32_t Netmgnt::init_rssi_monitor()
     }
 }
 
+void Netmgnt::shutdown_resources(struct k_work *work)
+{
+    k_work_delayable *dwork = k_work_delayable_from_work(work);
+    auto *self = CONTAINER_OF(dwork, Netmgnt, resources_shutdown_work);
+    self->_http.stop();
+    self->_ap.ap_stop();
+}
+
+void Netmgnt::order_shutdown_resources()
+{
+    k_work_init_delayable(&this->resources_shutdown_work, this->shutdown_resources);
+    k_work_reschedule(&this->resources_shutdown_work, K_MSEC(500));
+}
+
 void Netmgnt::rssi_monitor(struct k_work *work)
 {
     k_work_delayable *dwork = k_work_delayable_from_work(work);
@@ -169,9 +183,7 @@ void Netmgnt::on_exit(WifiSmState from_state, WifiSmState to_state)
     case WifiSmState::WAITING_USER_INPUT:
         if (to_state != WifiSmState::WAITING_USER_INPUT)
         {
-
-            this->_http.stop();
-            this->_ap.ap_stop();
+            this->order_shutdown_resources();
         }
         break;
     default:
@@ -342,7 +354,7 @@ void Netmgnt::process_state(Events evt)
 
         if (evt == Events::HTTP_STORED_CREDENTIALS)
         {
-            this->transition(WifiSmState::LOADING_CREDENTIALS);
+            this->transition(WifiSmState::INITIALIZING);
         }
         else if (evt == Events::HTTP_STORED_CREDENTIALS_ERROR)
         {

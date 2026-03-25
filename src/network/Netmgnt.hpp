@@ -56,6 +56,7 @@ private:
     IWifiAp &_ap;
     IHTTPServer &_http;
     struct k_work_delayable rssi_monitor_work;
+    struct k_work_delayable resources_shutdown_work;
     struct k_thread dispatcher_thread;
     uint8_t listener_count = 0;
     std::array<Listeners, CONFIG_NETWORK_EVENT_MAX_LISTENERS> listeners {};
@@ -64,6 +65,9 @@ private:
 private:
     static void rssi_monitor(struct k_work *work);
     int32_t init_rssi_monitor();
+    static void shutdown_resources(struct k_work *work);
+    void order_shutdown_resources();
+
     void set_wifi_credentials();
 
     void start_dhcp();

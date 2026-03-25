@@ -66,15 +66,15 @@ FILE_SYSTEM_ERROR Storage::init_storage()
  * @param size
  * @return Size of readed value
  */
-size_t Storage::read_buffer(uint32_t id, void *ptr, size_t size)
+int32_t Storage::read_buffer(uint32_t id, void *ptr, size_t size)
 {
     k_mutex_lock(&this->lock_mutex, K_FOREVER);
-    size_t ret = zms_read(&this->fs, id, ptr, size);
+    ssize_t ret = zms_read(&this->fs, id, ptr, size);
     if (ret < 0)
     {
         LOG_ERR("ERROR TO READ DATA: %d", ret);
         k_mutex_unlock(&this->lock_mutex);
-        return ret;
+        return static_cast<int32_t>(ret);
     }
     if (ret < size)
     {
@@ -87,7 +87,7 @@ size_t Storage::read_buffer(uint32_t id, void *ptr, size_t size)
     }
 
     k_mutex_unlock(&this->lock_mutex);
-    return ret;
+    return static_cast<int32_t>(ret);
 }
 
 /**

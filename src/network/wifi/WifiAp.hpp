@@ -26,7 +26,6 @@ private:
 
 public:
     void ap_init(void);
-    void ap_start(void);
     void ap_stop(void);
     bool is_ap_enabled(void);
 
