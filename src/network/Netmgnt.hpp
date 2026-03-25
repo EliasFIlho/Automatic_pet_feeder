@@ -82,7 +82,7 @@ private:
     void on_exit(WifiSmState from_state, WifiSmState to_state);
     void restart_state();
     bool canRetry();
-
+    void notify_evt(Events evt);
 public:
     void Attach(IListener *listener, uint8_t evt_group_maks);
     void Notify(Events evt, uint8_t evt_group_maks);

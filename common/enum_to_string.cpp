@@ -37,6 +37,8 @@ const char *EVENT_TO_STRING(Events evt)
         return "MQTT_NEW_DATA";
     case Events::HTTP_STORED_CREDENTIALS:
         return "HTTP_STORED_CREDENTIALS";
+    case Events::SHUTDOWN_FINISHED:
+        return "SHUTDOWN_FINISHED";
     default:
         return "UNKNOWN";
     }
@@ -62,6 +64,10 @@ const char *STATE_TO_STRING(WifiSmState state)
         return "ENABLING_AP";
     case WifiSmState::WAITING_USER_INPUT:
         return "ENABLING_HTTP_SERVER";
+    case WifiSmState::RESTART:
+        return "RESTART";
+    case WifiSmState::SHUTDOWN_RESOURCES:
+        return "SHUTDOWN_RESOURCES";
     default:
         return "UNKNOWN";
     }

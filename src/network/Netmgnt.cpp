@@ -53,6 +53,7 @@ void Netmgnt::shutdown_resources(struct k_work *work)
     auto *self = CONTAINER_OF(dwork, Netmgnt, resources_shutdown_work);
     self->_http.stop();
     self->_ap.ap_stop();
+    self->notify_evt(Events::SHUTDOWN_FINISHED);
 }
 
 void Netmgnt::order_shutdown_resources()
@@ -156,6 +157,7 @@ void Netmgnt::on_exit(WifiSmState from_state, WifiSmState to_state)
         break;
 
     case WifiSmState::LOADING_CREDENTIALS:
+        // Nothing to do
         break;
 
     case WifiSmState::CONNECTING:
@@ -181,10 +183,14 @@ void Netmgnt::on_exit(WifiSmState from_state, WifiSmState to_state)
         // Nothing to do
         break;
     case WifiSmState::WAITING_USER_INPUT:
-        if (to_state != WifiSmState::WAITING_USER_INPUT)
-        {
-            this->order_shutdown_resources();
-        }
+
+        break;
+    case WifiSmState::SHUTDOWN_RESOURCES:
+        // Nothing to do
+        break;
+
+    case WifiSmState::RESTART:
+        // Do nothing - device wil be restarted, never reach herer
         break;
     default:
         break;
@@ -244,9 +250,15 @@ void Netmgnt::on_entry(WifiSmState state)
         break;
     case WifiSmState::IFACE_ERROR:
         LOG_ERR("WiFi interface error — cold rebooting");
-        k_msleep(100);
         sys_reboot(SYS_REBOOT_COLD);
+        break;
 
+    case WifiSmState::SHUTDOWN_RESOURCES:
+        this->order_shutdown_resources();
+        break;
+    case WifiSmState::RESTART:
+        LOG_WRN("RESTARTING DEVICE");
+        sys_reboot(SYS_REBOOT_COLD);
         break;
     default:
         break;
@@ -351,17 +363,29 @@ void Netmgnt::process_state(Events evt)
         break;
 
     case WifiSmState::WAITING_USER_INPUT:
-
+    
         if (evt == Events::HTTP_STORED_CREDENTIALS)
         {
-            this->transition(WifiSmState::INITIALIZING);
+            this->transition(WifiSmState::SHUTDOWN_RESOURCES);
         }
         else if (evt == Events::HTTP_STORED_CREDENTIALS_ERROR)
         {
             this->restart_state();
         }
         break;
+
+    case WifiSmState::SHUTDOWN_RESOURCES:
+        if (evt == Events::SHUTDOWN_FINISHED)
+        {
+            this->transition(WifiSmState::RESTART);
+        }
+        break;
     case WifiSmState::IFACE_ERROR:
+        // Never reached
+        break;
+
+    case WifiSmState::RESTART:
+        // Never reached
         break;
     default:
         break;
@@ -387,4 +411,15 @@ void Netmgnt::restart_state()
 bool Netmgnt::canRetry()
 {
     return ++this->wifi_sm.tries < CONFIG_NETWORK_CONNECTION_MAX_TRIES;
+}
+
+
+
+
+void Netmgnt::notify_evt(Events evt)
+{
+    EventMsg msg{.evt = evt,
+                 .type = WIFI_EVT};
+
+    k_msgq_put(&net_evt_queue, &msg, K_NO_WAIT);
 }
