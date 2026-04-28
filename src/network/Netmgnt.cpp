@@ -4,10 +4,19 @@
 #include "enum_to_string.hpp"
 #include "types.hpp"
 #include <zephyr/sys/reboot.h>
+#include <zephyr/net/dns_sd.h>
 
 LOG_MODULE_REGISTER(NETWORK_LOGS);
 
 K_THREAD_STACK_DEFINE(NETWORK_DISPATCH_STACK_AREA, CONFIG_NETWORK_DISPATCH_THREAD_STACK_SIZE);
+
+
+static const uint16_t petfeeder_port = 80;
+
+#define DEFAULT_PORT 0
+DNS_SD_REGISTER_TCP_SERVICE(petfeeder_config, CONFIG_NET_HOSTNAME,
+                            "_petfeeder", "local", DNS_SD_EMPTY_TXT,
+                            petfeeder_port);
 
 Netmgnt::Netmgnt(IMQTT &mqtt, IWifi &wifi, ILed &led, IWifiAp &soft_ap, IHTTPServer &http_server) : _mqtt(mqtt), _wifi(wifi), _led(led), _ap(soft_ap), _http(http_server)
 {
@@ -240,6 +249,7 @@ void Netmgnt::on_entry(WifiSmState state)
         this->init_rssi_monitor();
         this->_mqtt.release_mqtt();
         this->start_mqtt();
+        this->_http.start();
         break;
     case WifiSmState::ENABLING_AP:
         this->set_led_output(COLOR::BLUE, 255);
