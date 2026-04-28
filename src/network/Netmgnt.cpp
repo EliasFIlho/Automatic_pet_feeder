@@ -13,7 +13,6 @@ K_THREAD_STACK_DEFINE(NETWORK_DISPATCH_STACK_AREA, CONFIG_NETWORK_DISPATCH_THREA
 
 static const uint16_t petfeeder_port = 80;
 
-#define DEFAULT_PORT 0
 DNS_SD_REGISTER_TCP_SERVICE(petfeeder_config, CONFIG_NET_HOSTNAME,
                             "_petfeeder", "local", DNS_SD_EMPTY_TXT,
                             petfeeder_port);
@@ -249,7 +248,7 @@ void Netmgnt::on_entry(WifiSmState state)
         this->init_rssi_monitor();
         this->_mqtt.release_mqtt();
         this->start_mqtt();
-        this->_http.start();
+        this->_http.start(); //Test Only
         break;
     case WifiSmState::ENABLING_AP:
         this->set_led_output(COLOR::BLUE, 255);
