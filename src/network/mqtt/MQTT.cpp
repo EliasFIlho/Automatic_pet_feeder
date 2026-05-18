@@ -54,6 +54,12 @@ static const struct json_obj_descr rules_json_obj[] = {
 
 };
 
+const MQTT::TopicEntry MQTT::topic_dispatch[] = {
+    {CONFIG_MQTT_ADD_RULES_TOPIC, MQTT::on_mqtt_add_rule_topic},
+    {CONFIG_MQTT_REMOVE_RULES_TOPIC, MQTT::on_mqtt_remove_rule_topic},
+    {CONFIG_MQTT_FEED_NOW_TOPIC, MQTT::on_mqtt_feed_topic},
+};
+
 /**
  * @brief Parse payload
  * @param payload
@@ -137,7 +143,7 @@ void MQTT::on_mqtt_publish(struct mqtt_client *const client, const struct mqtt_e
     auto *self = static_cast<MQTT *>(client->user_data);
     int ret;
     char payload[500];
-    ret = mqtt_read_publish_payload(client, payload, 500);
+    ret = mqtt_read_publish_payload(client, payload, sizeof(payload));
     if (ret < 0)
     {
         LOG_ERR("Failed to read received MQTT payload [%d]", ret);
@@ -145,19 +151,49 @@ void MQTT::on_mqtt_publish(struct mqtt_client *const client, const struct mqtt_e
     }
     /* Place null terminator at end of payload buffer */
     payload[ret] = '\0';
+
+    const char *evt_topic = (const char *)evt->param.publish.message.topic.topic.utf8;
+    const uint32_t evt_topic_size = evt->param.publish.message.topic.topic.size;
+    for (int i = 0; i < ARRAY_SIZE(MQTT::topic_dispatch); i++)
+    {
+
+        if (strlen(MQTT::topic_dispatch[i].topic) == evt_topic_size &&
+            (strncmp(MQTT::topic_dispatch[i].topic, evt_topic, evt_topic_size) == 0))
+        {
+            LOG_INF("CALLING HANDLER FOR TOPIC: %s", MQTT::topic_dispatch[i].topic);
+            MQTT::topic_dispatch[i].handler(client, (const uint8_t *)payload);
+            break;
+        }
+    }
+}
+
+void MQTT::on_mqtt_add_rule_topic(struct mqtt_client *client, const uint8_t *payload)
+{
+
+    auto *self = static_cast<MQTT *>(client->user_data);
     Rules_t rules_payload;
 
-    if (self->parse_payload(payload, &rules_payload))
+    if (self->parse_payload((char *)payload, &rules_payload))
     {
         if (self->validate_payload(&rules_payload))
         {
-            ret = self->_rules.write_rule(&rules_payload, sizeof(rules_payload));
+            int ret = self->_rules.write_rule(&rules_payload, sizeof(rules_payload));
             if (ret > 0)
             {
                 self->notify_evt(Events::MQTT_NEW_DATA);
             }
         }
     }
+}
+void MQTT::on_mqtt_remove_rule_topic(struct mqtt_client *client, const uint8_t *payload)
+{
+    auto *self = static_cast<MQTT *>(client->user_data);
+    LOG_WRN("Remove rule topic was written, check the payload and execute");
+}
+void MQTT::on_mqtt_feed_topic(struct mqtt_client *client, const uint8_t *payload)
+{
+    auto *self = static_cast<MQTT *>(client->user_data);
+    LOG_WRN("Feed topic was written, check the payload and execute");
 }
 
 /**
@@ -190,10 +226,11 @@ void MQTT::mqtt_evt_handler(struct mqtt_client *client, const struct mqtt_evt *e
 
         break;
     case MQTT_EVT_PUBLISH:
-
+        LOG_WRN("PUBLISH EVENT REACHED");
         self->on_mqtt_publish(client, evt);
 
         break;
+
     case MQTT_EVT_PUBACK:
         if (evt->result == MQTT_SUBACK_FAILURE)
         {
@@ -398,9 +435,11 @@ bool MQTT::subscribe()
 {
     int ret;
     struct mqtt_topic sub_topics[] = {
-        {.topic = {
-             .utf8 = (uint8_t *)CONFIG_MQTT_RULES_TOPIC,
-             .size = sizeof(CONFIG_MQTT_RULES_TOPIC) - 1},
+        {.topic = {.utf8 = (uint8_t *)CONFIG_MQTT_ADD_RULES_TOPIC, .size = sizeof(CONFIG_MQTT_ADD_RULES_TOPIC) - 1},
+         .qos = 0},
+        {.topic = {.utf8 = (uint8_t *)CONFIG_MQTT_REMOVE_RULES_TOPIC, .size = sizeof(CONFIG_MQTT_REMOVE_RULES_TOPIC) - 1},
+         .qos = 0},
+        {.topic = {.utf8 = (uint8_t *)CONFIG_MQTT_FEED_NOW_TOPIC, .size = sizeof(CONFIG_MQTT_FEED_NOW_TOPIC) - 1},
          .qos = 0}};
 
     const struct mqtt_subscription_list sub_list = {
@@ -411,12 +450,16 @@ bool MQTT::subscribe()
     ret = mqtt_subscribe(&this->client_ctx, &sub_list);
     if (ret < 0)
     {
-        LOG_ERR("MQTT ERROR: ERROR TO SUBSCRIBE IN TOPIC: %s -- RET: %d", CONFIG_MQTT_RULES_TOPIC, ret);
+        LOG_ERR("MQTT ERROR: ERROR TO SUBSCRIBE IN TOPIC: %s -- RET: %d", CONFIG_MQTT_ADD_RULES_TOPIC, ret);
+        LOG_ERR("MQTT ERROR: ERROR TO SUBSCRIBE IN TOPIC: %s -- RET: %d", CONFIG_MQTT_REMOVE_RULES_TOPIC, ret);
+        LOG_ERR("MQTT ERROR: ERROR TO SUBSCRIBE IN TOPIC: %s -- RET: %d", CONFIG_MQTT_FEED_NOW_TOPIC, ret);
         return false;
     }
     else
     {
-        LOG_INF("MQTT: SUBSCRIBED IN TOPIC: %s", CONFIG_MQTT_RULES_TOPIC);
+        LOG_INF("MQTT: SUBSCRIBED IN TOPIC: %s", CONFIG_MQTT_ADD_RULES_TOPIC);
+        LOG_INF("MQTT: SUBSCRIBED IN TOPIC: %s", CONFIG_MQTT_REMOVE_RULES_TOPIC);
+        LOG_INF("MQTT: SUBSCRIBED IN TOPIC: %s", CONFIG_MQTT_FEED_NOW_TOPIC);
         return true;
     }
 }

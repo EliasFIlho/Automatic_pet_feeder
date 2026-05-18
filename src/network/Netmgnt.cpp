@@ -248,7 +248,6 @@ void Netmgnt::on_entry(WifiSmState state)
         this->init_rssi_monitor();
         this->_mqtt.release_mqtt();
         this->start_mqtt();
-        this->_http.start(); //Test Only
         break;
     case WifiSmState::ENABLING_AP:
         this->set_led_output(COLOR::BLUE, 255);

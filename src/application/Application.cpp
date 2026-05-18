@@ -21,6 +21,10 @@ void Application::Update(Events evt)
         // Refresh the scheduller rules buffer with storage new data
         this->shouldUpdateRules = true;
         break;
+    case Events::MQTT_DELETED_DATA:
+        this->shouldUpdateRules = true;
+        break;
+        
     default:
         break;
     }

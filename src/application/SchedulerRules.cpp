@@ -1,5 +1,7 @@
 #include "SchedulerRules.hpp"
+#include <zephyr/logging/log.h>
 
+LOG_MODULE_REGISTER(SCHEDULER_LOG);
 /**
  * @brief Init rules controller and RAM with the current filesystem data at startup
  *
@@ -28,7 +30,9 @@ int32_t SchedulerRules::write_rule(void *ptr, size_t size)
 {
     if (map.count() >= CONFIG_MAX_SCHEDULER_RULES)
     {
+        LOG_ERR("Max number of rules reached - Delete some previous rule");
         return 0; // Rules full
+        
     }
 
     for (uint32_t i = 0; i < CONFIG_MAX_SCHEDULER_RULES; i++)
@@ -56,6 +60,7 @@ int32_t SchedulerRules::read_rules(std::array<Scheduled_Rule_t, CONFIG_MAX_SCHED
     if (this->map.count() <= 0)
     {
         return 1; // No data stored
+        LOG_WRN("No rule stored in filesystem send MQTT package to add");
     }
     uint8_t idx = 0;
     for (uint32_t i = 0; i < CONFIG_MAX_SCHEDULER_RULES; i++)
@@ -86,6 +91,7 @@ int32_t SchedulerRules::delete_rule(uint8_t rule_fs_idx)
     if (ret == 0)
     {
         this->map.set(rule_fs_idx, false);
+        LOG_WRN("Rule [%d] deleted",rule_fs_idx);
     }
     return ret;
 }
@@ -100,6 +106,7 @@ uint32_t SchedulerRules::clear_rules()
         }
         this->map.set(i, false);
     }
+    LOG_WRN("All rules deleted, filesystem clear");
     return 0;
 }
 

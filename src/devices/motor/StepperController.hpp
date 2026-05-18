@@ -15,6 +15,6 @@ private:
 public:
     StepperController(struct gpio_dt_spec * dir, struct gpio_dt_spec * step, struct gpio_dt_spec * en);
     ~StepperController();
-    void move_for(int amout);
+    void move_for(int amount);
     uint32_t init();
 };

@@ -60,13 +60,14 @@ uint32_t StepperController::init()
 /**
  * @brief Turn motor to a fixed direction by a number of steps
  *
- * @param amout
+ * @param amount
  */
-void StepperController::move_for(int amout)
+void StepperController::move_for(int amount)
 {
+    LOG_INF("TURNING MOTOR - FOR %d STEPS", amount);
     gpio_pin_set_dt(_direction, 0);
     gpio_pin_set_dt(_enable, 0);
-    for (int i = 0; i < amout; i++)
+    for (int i = 0; i < amount; i++)
     {
         gpio_pin_toggle_dt(_steps);
         current_position++;

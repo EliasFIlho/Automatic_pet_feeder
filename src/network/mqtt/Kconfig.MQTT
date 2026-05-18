@@ -41,13 +41,21 @@ config MQTT_TX_BUFFER_SIZE
     int "Tx Buffer size for MQTT"
     default 1024
 
-config MQTT_RULES_TOPIC
+config MQTT_ADD_RULES_TOPIC
     string "MQTT Topic path"
-    default "device/rules"
+    default "device/rules/add"
+
+config MQTT_FEED_NOW_TOPIC
+    string "MQTT Topic path"
+    default "device/feed"
 
 config MQTT_SENSOR_TOPIC
     string "MQTT Sensor Topic path"
     default "device/sensor/level"
+
+config MQTT_REMOVE_RULES_TOPIC
+    string "MQTT Topic path"
+    default "device/rules/remove"
 
 
 config MQTT_THREAD_STACK_SIZE

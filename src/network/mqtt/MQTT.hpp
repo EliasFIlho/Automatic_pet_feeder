@@ -27,6 +27,7 @@ extern k_msgq mqtt_publish_queue;
 #define MAX_MINUTE_TIME_VALUE 59
 
 
+
 /**
  * @brief MQTT Class
  *
@@ -53,6 +54,15 @@ private:
     IJson &_json;
     ISchedulerRules &_rules;
 
+    using TopicHandler = void (*)(struct mqtt_client *client,const uint8_t * payload);
+
+    struct TopicEntry {
+        const char  *topic;
+        TopicHandler handler;
+    };
+
+    static const TopicEntry topic_dispatch[];
+
 
 private:
     static void mqtt_task(void *p1, void *, void *);
@@ -77,6 +87,10 @@ private:
     bool parse_payload(char *payload, Rules_t *rules);
     bool validate_payload(Rules_t *rules);
     void notify_evt(Events evt);
+
+    static void on_mqtt_add_rule_topic(struct mqtt_client *client, const uint8_t * payload);
+    static void on_mqtt_remove_rule_topic(struct mqtt_client *client, const uint8_t * payload);
+    static void on_mqtt_feed_topic(struct mqtt_client *client, const uint8_t * payload);
 
 public:
     MQTT(IWatchDog &guard, IJson &json, ISchedulerRules &rules);

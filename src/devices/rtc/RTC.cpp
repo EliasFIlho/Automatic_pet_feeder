@@ -106,39 +106,39 @@ void RTC::update_time()
 int RTC::get_week_day()
 {
     this->update_time();
-    LOG_WRN("Week day %d", this->rtc_time_spec.tm_wday);
+    //LOG_WRN("Week day %d", this->rtc_time_spec.tm_wday);
     return this->rtc_time_spec.tm_wday;
 }
 
 int RTC::get_day()
 {
     this->update_time();
-    LOG_WRN("Day %d", this->rtc_time_spec.tm_mday);
+    //LOG_WRN("Day %d", this->rtc_time_spec.tm_mday);
     return this->rtc_time_spec.tm_mday;
 }
 int RTC::get_month()
 {
     this->update_time();
-    LOG_WRN("Month %d", this->rtc_time_spec.tm_mon);
+    //LOG_WRN("Month %d", this->rtc_time_spec.tm_mon);
     return this->rtc_time_spec.tm_mon;
 }
 int RTC::get_year()
 {
     this->update_time();
-    LOG_WRN("Year %d", rtc_time_spec.tm_year + CONFIG_RTC_BASE_YEAR);
+    //LOG_WRN("Year %d", rtc_time_spec.tm_year + CONFIG_RTC_BASE_YEAR);
     return (this->rtc_time_spec.tm_year + CONFIG_RTC_BASE_YEAR);
 }
 
 int RTC::get_hour()
 {
     this->update_time();
-    LOG_WRN("Hour %d", this->rtc_time_spec.tm_hour);
+    //LOG_WRN("Hour %d", this->rtc_time_spec.tm_hour);
     return this->rtc_time_spec.tm_hour;
 }
 int RTC::get_minute()
 {
     this->update_time();
-    LOG_WRN("Minute %d", this->rtc_time_spec.tm_min);
+    //LOG_WRN("Minute %d", this->rtc_time_spec.tm_min);
     return this->rtc_time_spec.tm_min;
 }
 
