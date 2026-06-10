@@ -1,4 +1,5 @@
 #include "WifiAp.hpp"
+#include <zephyr/logging/log.h>
 
 LOG_MODULE_DECLARE(NETWORK_LOGS);
 
@@ -23,7 +24,7 @@ void WifiAp::wifi_ap_event_handler(struct net_mgmt_event_callback *cb, uint64_t 
     {
         LOG_INF("AP Mode is enabled. Waiting for station to connect");
         self->isSoftAPEnabled = true;
-        self->notify_evt(Events::WIFI_AP_ENABLE);
+        self->notify_evt(Events::WIFI_AP_ENABLE,NULL);
         LOG_INF("AP Inited");
         break;
     }
@@ -31,7 +32,7 @@ void WifiAp::wifi_ap_event_handler(struct net_mgmt_event_callback *cb, uint64_t 
     {
         LOG_INF("AP Mode is disabled.");
         self->isSoftAPEnabled = false;
-        self->notify_evt(Events::WIFI_AP_DISABLED);
+        self->notify_evt(Events::WIFI_AP_DISABLED,NULL);
         break;
     }
     case NET_EVENT_WIFI_AP_STA_CONNECTED:
@@ -93,7 +94,7 @@ void WifiAp::ap_init(void)
     if (ap_iface == NULL)
     {
         LOG_ERR("ERROR TO GET AP IFACE");
-        this->notify_evt(Events::WIFI_IFACE_ERROR);
+        this->notify_evt(Events::WIFI_IFACE_ERROR,NULL);
         return;
     }
 
@@ -111,7 +112,7 @@ void WifiAp::ap_init(void)
     int ret = net_mgmt(NET_REQUEST_WIFI_AP_ENABLE, this->ap_iface, &this->ap_config, sizeof(struct wifi_connect_req_params));
     if (ret != 0)
     {
-        this->notify_evt(Events::WIFI_IFACE_ERROR); // Create error to return
+        this->notify_evt(Events::WIFI_IFACE_ERROR,NULL); // Create error to return
         LOG_ERR("ERROR TO REQUEST WIFI AP START - %d", ret);
     }
 }
@@ -122,7 +123,7 @@ void WifiAp::ap_stop(void)
     net_if_down(this->ap_iface);
 }
 
-void WifiAp::notify_evt(Events evt)
+void WifiAp::notify_evt(Events evt, void * data)
 {
     EventMsg msg{.evt = evt,
                  .type = WIFI_EVT};

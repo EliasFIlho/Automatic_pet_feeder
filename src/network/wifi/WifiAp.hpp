@@ -20,7 +20,7 @@ private:
     bool isSoftAPEnabled; // Will I need this flag? Probably not, but I’ll keep it anyway.
 
 private:
-    void notify_evt(Events evt);
+    void notify_evt(Events evt, void * data);
     static void wifi_ap_event_handler(struct net_mgmt_event_callback *cb, uint64_t mgmt_event, struct net_if *iface);
     void config_dhcp_server();
 

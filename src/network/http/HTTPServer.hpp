@@ -43,7 +43,7 @@ private:
     void config_connect_resource_struct();
     int32_t parse_credentials_data(uint8_t *buff);
     int32_t write_credentials_data();
-    void notify_evt(Events evt);
+    void notify_evt(Events evt, void * data);
 
 public:
     void start();

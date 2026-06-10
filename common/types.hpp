@@ -65,6 +65,7 @@ struct EventMsg
 {
     Events evt;
     EventGroup type;
+    void * data;
 };
 
 typedef struct

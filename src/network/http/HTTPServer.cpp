@@ -121,7 +121,7 @@ int HTTPServer::connect_handler(struct http_client_ctx *client,
         {
             response_ctx->status = HTTP_400_BAD_REQUEST;
             LOG_ERR("BAD REQUEST");
-            self->notify_evt(Events::HTTP_STORED_CREDENTIALS_ERROR);
+            self->notify_evt(Events::HTTP_STORED_CREDENTIALS_ERROR,NULL);
             return -1;
         }
         else
@@ -133,7 +133,7 @@ int HTTPServer::connect_handler(struct http_client_ctx *client,
         response_ctx->body = NULL;
         response_ctx->body_len = 0;
         response_ctx->final_chunk = true;
-        self->notify_evt(Events::HTTP_STORED_CREDENTIALS);
+        self->notify_evt(Events::HTTP_STORED_CREDENTIALS,NULL);
         return 0;
     }
     return 0;
@@ -216,7 +216,7 @@ int32_t HTTPServer::write_credentials_data()
     return ret;
 }
 
-void HTTPServer::notify_evt(Events evt)
+void HTTPServer::notify_evt(Events evt, void * data)
 {
     EventMsg msg{.evt = evt,
                  .type = HTTP_EVT};

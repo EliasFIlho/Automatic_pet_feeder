@@ -5,6 +5,8 @@ class Watchdog : public IWatchDog
 {
 private:
     const struct device *_hw_wdt_dev;
+private:
+    static void wtd_cb(int channel_id, void *user_data);
 public:
     Watchdog(const struct device *const hw_wdt_dev);
     uint32_t init();

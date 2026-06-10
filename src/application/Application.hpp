@@ -46,7 +46,7 @@ private:
     void process_rules();
     bool check_rules(const Rules_t &rule);                      // Compare current time stamp with the rules
     uint8_t select_rules_to_execute();
-    void Update(Events evt); // Callback for network events
+    void Update(Events evt, void * data); // Callback for network events
     static void app(void *p1, void *, void *); // Application function
 
 

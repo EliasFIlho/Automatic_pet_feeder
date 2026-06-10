@@ -37,6 +37,6 @@ public:
     int get_year();     // Function to parse and return the year
     int get_hour();     // Function to parse and return the hour
     int get_minute();   // Function to parse and return the minutes
-    void Update(Events evt);
+    void Update(Events evt, void * data);
     int init();
 };

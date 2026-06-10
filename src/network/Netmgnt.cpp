@@ -6,16 +6,16 @@
 #include <zephyr/sys/reboot.h>
 #include <zephyr/net/dns_sd.h>
 
+
 LOG_MODULE_REGISTER(NETWORK_LOGS);
 
 K_THREAD_STACK_DEFINE(NETWORK_DISPATCH_STACK_AREA, CONFIG_NETWORK_DISPATCH_THREAD_STACK_SIZE);
 
 
-static const uint16_t petfeeder_port = 80;
 
 DNS_SD_REGISTER_TCP_SERVICE(petfeeder_config, CONFIG_NET_HOSTNAME,
                             "_petfeeder", "local", DNS_SD_EMPTY_TXT,
-                            petfeeder_port);
+                            80);
 
 Netmgnt::Netmgnt(IMQTT &mqtt, IWifi &wifi, ILed &led, IWifiAp &soft_ap, IHTTPServer &http_server) : _mqtt(mqtt), _wifi(wifi), _led(led), _ap(soft_ap), _http(http_server)
 {
@@ -61,7 +61,7 @@ void Netmgnt::shutdown_resources(struct k_work *work)
     auto *self = CONTAINER_OF(dwork, Netmgnt, resources_shutdown_work);
     self->_http.stop();
     self->_ap.ap_stop();
-    self->notify_evt(Events::SHUTDOWN_FINISHED);
+    self->notify_evt(Events::SHUTDOWN_FINISHED,NULL);
 }
 
 void Netmgnt::order_shutdown_resources()
@@ -78,7 +78,11 @@ void Netmgnt::rssi_monitor(struct k_work *work)
     {
         int32_t rssi = self->_wifi.get_rssi();
         LOG_WRN("RSSI VALUE: %d", rssi);
-        self->_led.set_mapped_output(rssi, COLOR::GREEN, CONFIG_RSSI_LOWER_VALUE, CONFIG_RSSI_HIGHER_VALUE);
+        if(!self->_mqtt.is_connected()){
+            self->_led.set_mapped_output(rssi, COLOR::GREEN, CONFIG_RSSI_LOWER_VALUE, CONFIG_RSSI_HIGHER_VALUE);
+        }else{
+            self->_led.set_output(COLOR::MAGENTA,255);
+        }
         k_work_reschedule(dwork, K_SECONDS(CONFIG_RSSI_WORK_PERIOD));
     }
 }
@@ -89,6 +93,11 @@ void Netmgnt::set_wifi_credentials()
     this->_wifi.set_credentials();
 }
 
+void Netmgnt::scan_ssid_list(){
+
+    this->_wifi.scan_ssid_list();
+
+}
 void Netmgnt::connect_to_wifi()
 {
     this->_wifi.connect_to_wifi();
@@ -123,13 +132,13 @@ void Netmgnt::Attach(IListener *listener, uint8_t evt_group_maks)
     }
 }
 
-void Netmgnt::Notify(Events evt, uint8_t evt_group_maks)
+void Netmgnt::Notify(EventMsg evt)
 {
     for (int i = 0; i < this->listener_count; i++)
     {
-        if (this->listeners[i].evt_group & evt_group_maks)
+        if (this->listeners[i].evt_group & evt.type)
         {
-            this->listeners[i].listener->Update(evt);
+            this->listeners[i].listener->Update(evt.evt,evt.data);
         }
     }
 }
@@ -150,7 +159,7 @@ void Netmgnt::network_evt_dispatch_task(void *p1, void *, void *)
                 LOG_WRN("ARRIVED EVENT: %s", EVENT_TO_STRING(evt.evt));
                 self->process_state(evt.evt);
             }
-            self->Notify(evt.evt, evt.type);
+            self->Notify(evt);
         }
     }
 }
@@ -224,6 +233,7 @@ void Netmgnt::on_entry(WifiSmState state)
         this->set_led_output(COLOR::RED, 255);
         this->wifi_sm.tries = 0;
         this->_wifi.wifi_init();
+        this->scan_ssid_list();
         break;
 
     case WifiSmState::LOADING_CREDENTIALS:
@@ -245,9 +255,11 @@ void Netmgnt::on_entry(WifiSmState state)
         break;
 
     case WifiSmState::CONNECTED:
+        k_msleep(100);
         this->init_rssi_monitor();
         this->_mqtt.release_mqtt();
         this->start_mqtt();
+        this->_http.start();//Test only
         break;
     case WifiSmState::ENABLING_AP:
         this->set_led_output(COLOR::BLUE, 255);
@@ -422,9 +434,7 @@ bool Netmgnt::canRetry()
 }
 
 
-
-
-void Netmgnt::notify_evt(Events evt)
+void Netmgnt::notify_evt(Events evt, void * data)
 {
     EventMsg msg{.evt = evt,
                  .type = WIFI_EVT};

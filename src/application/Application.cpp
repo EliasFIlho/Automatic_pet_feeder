@@ -13,7 +13,7 @@ Application::~Application()
 {
 }
 
-void Application::Update(Events evt)
+void Application::Update(Events evt, void * data)
 {
     switch (evt)
     {
@@ -24,6 +24,13 @@ void Application::Update(Events evt)
     case Events::MQTT_DELETED_DATA:
         this->shouldUpdateRules = true;
         break;
+    
+    case Events::MQTT_FEED_NOW:{
+        const uint8_t * amount = static_cast<const uint8_t *>(data);
+        LOG_WRN("Data from event: [%d]",*amount);
+        this->dispense_food(*amount);
+        break;
+    }
         
     default:
         break;

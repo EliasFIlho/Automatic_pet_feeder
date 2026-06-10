@@ -73,6 +73,7 @@ private:
     void start_dhcp();
     void stop_dhcp();
     void connect_to_wifi();
+    void scan_ssid_list();
     void start_mqtt();
     static void network_evt_dispatch_task(void *p1, void *, void *);
     void set_led_output(COLOR color, uint8_t brightness);
@@ -82,10 +83,10 @@ private:
     void on_exit(WifiSmState from_state, WifiSmState to_state);
     void restart_state();
     bool canRetry();
-    void notify_evt(Events evt);
+    void notify_evt(Events evt, void * data);
 public:
     void Attach(IListener *listener, uint8_t evt_group_maks);
-    void Notify(Events evt, uint8_t evt_group_maks);
+    void Notify(EventMsg evt);
     Netmgnt(IMQTT &mqtt, IWifi &wifi, ILed &led, IWifiAp &soft_ap, IHTTPServer &http_server);
     void start();
     void stop();

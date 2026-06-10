@@ -5,6 +5,7 @@
 #include <zephyr/task_wdt/task_wdt.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/data/json.h>
+#include <zephyr/net/dns_resolve.h>
 #include "enum_to_string.hpp"
 #if CONFIG_MQTT_TLS_ENABLE
 #include "tls_cert/cert.h"
@@ -16,6 +17,9 @@ static const sec_tag_t m_sec_tags[] = {
 };
 
 #endif
+
+static K_SEM_DEFINE(dns_sem, 0, 1);
+
 /**
  * @brief Thread stack and option defines
  *
@@ -154,7 +158,7 @@ void MQTT::on_mqtt_publish(struct mqtt_client *const client, const struct mqtt_e
 
     const char *evt_topic = (const char *)evt->param.publish.message.topic.topic.utf8;
     const uint32_t evt_topic_size = evt->param.publish.message.topic.topic.size;
-    for (int i = 0; i < ARRAY_SIZE(MQTT::topic_dispatch); i++)
+    for (uint32_t i = 0; i < ARRAY_SIZE(MQTT::topic_dispatch); i++)
     {
 
         if (strlen(MQTT::topic_dispatch[i].topic) == evt_topic_size &&
@@ -180,7 +184,7 @@ void MQTT::on_mqtt_add_rule_topic(struct mqtt_client *client, const uint8_t *pay
             int ret = self->_rules.write_rule(&rules_payload, sizeof(rules_payload));
             if (ret > 0)
             {
-                self->notify_evt(Events::MQTT_NEW_DATA);
+                self->notify_evt(Events::MQTT_NEW_DATA, NULL);
             }
         }
     }
@@ -193,7 +197,13 @@ void MQTT::on_mqtt_remove_rule_topic(struct mqtt_client *client, const uint8_t *
 void MQTT::on_mqtt_feed_topic(struct mqtt_client *client, const uint8_t *payload)
 {
     auto *self = static_cast<MQTT *>(client->user_data);
-    LOG_WRN("Feed topic was written, check the payload and execute");
+
+
+    uint8_t amount = atoi((const char *)payload);
+
+
+    self->notify_evt(Events::MQTT_FEED_NOW, &amount);
+    LOG_WRN("Feed topic was written, amount parsed: [%d]", amount);
 }
 
 /**
@@ -214,14 +224,14 @@ void MQTT::mqtt_evt_handler(struct mqtt_client *client, const struct mqtt_evt *e
             LOG_ERR("MQTT Event Connect failed [%d]", evt->result);
             break;
         }
-        self->notify_evt(Events::MQTT_CONNECTED);
+        self->notify_evt(Events::MQTT_CONNECTED,NULL);
         self->isMqttConnected = true;
 
         break;
     case MQTT_EVT_DISCONNECT:
 
         LOG_WRN("MQTT_EVT_DISCONNECT Event");
-        self->notify_evt(Events::MQTT_DISCONNECTED);
+        self->notify_evt(Events::MQTT_DISCONNECTED,NULL);
         self->on_disconnect();
 
         break;
@@ -312,6 +322,12 @@ bool MQTT::setup_broker()
 #else
     this->broker.sin_port = htons(CONFIG_MQTT_BROKER_PORT);
 #endif
+
+    ret = this->resolve_dns();
+    if (ret != 0)
+    {
+        return false;
+    }
 
 #if CONFIG_MQTT_USE_BROKER_DNS
     struct zsock_addrinfo hints = {};
@@ -805,10 +821,11 @@ int32_t MQTT::setup_tls()
 }
 #endif
 
-void MQTT::notify_evt(Events evt)
+void MQTT::notify_evt(Events evt, void *data)
 {
     EventMsg msg{.evt = evt,
-                 .type = MQTT_EVT};
+                 .type = MQTT_EVT,
+                 .data = data};
     k_msgq_put(&net_evt_queue, &msg, K_NO_WAIT);
 }
 
@@ -820,3 +837,50 @@ void MQTT::release_mqtt()
 {
     this->isWifiConnected = true;
 }
+
+// TODO: Make this works
+void MQTT::mqtt_dns_cb(enum dns_resolve_status status, struct dns_addrinfo *info, void *user_data)
+{
+    auto *self = static_cast<MQTT *>(user_data);
+    LOG_WRN("Callback status [%d]", status);
+    if (status == DNS_EAI_INPROGRESS && info != nullptr)
+    {
+        if (info->ai_family == AF_INET)
+        {
+            struct sockaddr_in *addr = net_sin(&info->ai_addr);
+            self->broker.sin_addr = addr->sin_addr;
+            LOG_INF("Resolved broker IP: %d.%d.%d.%d",
+                    addr->sin_addr.s4_addr[0], addr->sin_addr.s4_addr[1],
+                    addr->sin_addr.s4_addr[2], addr->sin_addr.s4_addr[3]);
+        }
+    }
+    else if (status == DNS_EAI_ALLDONE || status == DNS_EAI_FAIL)
+    {
+        LOG_WRN("Releasing semaphore [%d]", status);
+        k_sem_give(&dns_sem);
+    }
+}
+
+// TODO: Make this works
+int MQTT::resolve_dns()
+{
+    uint16_t dns_id;
+    dns_init_resolver();
+    int32_t ret = dns_get_addr_info(CONFIG_MQTT_BROKER_ADDR, DNS_QUERY_TYPE_A, &dns_id, MQTT::mqtt_dns_cb, this, 1000);
+    if (ret < 0)
+    {
+        LOG_ERR("Could not resolve Broker DNS: [%d]", ret);
+        return ret;
+    }
+
+    if (k_sem_take(&dns_sem, K_MSEC(3000)) != 0)
+    {
+        LOG_ERR("DNS resolution timed out");
+        dns_cancel_addr_info(dns_id); // Cancel pending query
+        return -ETIMEDOUT;
+    }
+
+    return 0;
+}
+
+// TODO: Create a Sync rules request callback

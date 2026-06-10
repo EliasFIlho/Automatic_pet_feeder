@@ -142,7 +142,7 @@ int RTC::get_minute()
     return this->rtc_time_spec.tm_min;
 }
 
-void RTC::Update(Events evt)
+void RTC::Update(Events evt, void * data)
 {
     switch (evt)
     {

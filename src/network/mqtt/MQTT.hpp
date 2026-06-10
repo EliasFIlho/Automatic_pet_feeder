@@ -77,24 +77,25 @@ private:
     int read_payload();
     void on_disconnect();
     static void mqtt_evt_handler(struct mqtt_client *client, const struct mqtt_evt *evt);
-    bool is_connected();
     void reconnect();
     void populate_payload_struct(struct mqtt_binstr *payload, struct level_sensor *data);
     static void on_mqtt_publish(struct mqtt_client *const client, const struct mqtt_evt *evt);
-#if CONFIG_MQTT_TLS_ENABLE
+    #if CONFIG_MQTT_TLS_ENABLE
     int32_t setup_tls();
-#endif
+    #endif
     bool parse_payload(char *payload, Rules_t *rules);
     bool validate_payload(Rules_t *rules);
-    void notify_evt(Events evt);
-
+    void notify_evt(Events evt, void * data);
+    
     static void on_mqtt_add_rule_topic(struct mqtt_client *client, const uint8_t * payload);
     static void on_mqtt_remove_rule_topic(struct mqtt_client *client, const uint8_t * payload);
     static void on_mqtt_feed_topic(struct mqtt_client *client, const uint8_t * payload);
-
-public:
+    static void mqtt_dns_cb(enum dns_resolve_status status,struct dns_addrinfo *info,void *user_data);
+    int resolve_dns();
+    public:
     MQTT(IWatchDog &guard, IJson &json, ISchedulerRules &rules);
     ~MQTT();
+    bool is_connected();
     void start_mqtt();
     void block_mqtt();
     void release_mqtt();

@@ -18,7 +18,7 @@ private:
     void get_level();
     int32_t send_data();
     static void sample_sensor(void *p1, void *, void *);
-    void Update(Events evt);
+    void Update(Events evt, void * data);
 
 public:
     LvlSensor(const struct device *dev);

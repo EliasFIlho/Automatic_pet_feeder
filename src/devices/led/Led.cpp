@@ -45,6 +45,10 @@ int32_t Led::set_output(COLOR channel, uint8_t output)
     case COLOR::YELLOW:
         this->colors = RGB(output, output, 0);
         break;
+    
+    case COLOR::MAGENTA:
+        this->colors = RGB(255,0,127);
+        break;
 
     default:
         this->colors = RGB(255, 255, 255);

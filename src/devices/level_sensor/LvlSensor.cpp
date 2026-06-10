@@ -17,7 +17,7 @@ LvlSensor::~LvlSensor()
 {
 }
 
-void LvlSensor::Update(Events evt)
+void LvlSensor::Update(Events evt, void * data)
 {
     switch (evt)
     {

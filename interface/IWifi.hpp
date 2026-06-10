@@ -12,5 +12,5 @@ public:
     virtual void start_dhcp() = 0;
     virtual int32_t get_rssi() = 0;
     virtual void stop_connect_timer() = 0;
-
+    virtual void scan_ssid_list() = 0;
 };

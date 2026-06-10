@@ -68,7 +68,8 @@ enum class COLOR
     RED,
     GREEN,
     BLUE,
-    YELLOW
+    YELLOW,
+    MAGENTA
 };
 
 enum class RULE_STATE

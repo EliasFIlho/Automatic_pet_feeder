@@ -8,4 +8,5 @@ public:
     virtual void block_mqtt() = 0;
     virtual void release_mqtt() = 0;
     virtual void abort() = 0;
+    virtual bool is_connected() = 0;
 };

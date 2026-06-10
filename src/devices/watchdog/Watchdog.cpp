@@ -3,6 +3,7 @@
 #include <zephyr/kernel.h>
 #include <errno.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/sys/reboot.h>
 
 LOG_MODULE_REGISTER(WTD_LOG);
 
@@ -12,6 +13,12 @@ Watchdog::Watchdog(const struct device *const hw_wdt_dev) : _hw_wdt_dev{hw_wdt_d
 
 Watchdog::~Watchdog()
 {
+}
+
+void Watchdog::wtd_cb(int channel_id, void *user_data){
+    LOG_ERR("Watchdog trigged by task: [%d]",channel_id);
+    sys_reboot(SYS_REBOOT_COLD);
+
 }
 
 uint32_t Watchdog::init()
@@ -46,7 +53,7 @@ void Watchdog::feed(int task_wtd_id)
 }
 int Watchdog::create_and_get_wtd_timer_id(uint32_t reload_period)
 {
-    int task_wdt_id = task_wdt_add(reload_period, NULL, NULL);
+    int task_wdt_id = task_wdt_add(reload_period, Watchdog::wtd_cb, NULL);
     if (task_wdt_id != -EINVAL && task_wdt_id != -ENOMEM)
     {
         LOG_INF("Task wtd created: [%d]", task_wdt_id);

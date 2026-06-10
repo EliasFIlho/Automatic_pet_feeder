@@ -2,11 +2,11 @@ menu "WIFI options"
 
 config WIFI_CONNECT_TIMEOUT
     int "Set timeout for connection request in seconds"
-    default 30
+    default 15
 
 config WIFI_GET_IP_TIMEOUT
     int "Set timeout for DHCP request in seconds"
-    default 30
+    default 15
 
 config WIFI_PSK_BUF_LEN
     int "Wifi psk buffer len"
