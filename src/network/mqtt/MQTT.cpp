@@ -54,9 +54,7 @@ static const struct json_obj_descr rules_json_obj[] = {
     JSON_OBJ_DESCR_OBJECT(Rules_t, time, rules_time),
     JSON_OBJ_DESCR_PRIM(Rules_t, period, JSON_TOK_UINT),
     JSON_OBJ_DESCR_PRIM(Rules_t, week_days, JSON_TOK_UINT),
-    JSON_OBJ_DESCR_PRIM(Rules_t, amount, JSON_TOK_UINT),
-
-};
+    JSON_OBJ_DESCR_PRIM(Rules_t, amount, JSON_TOK_UINT)};
 
 const MQTT::TopicEntry MQTT::topic_dispatch[] = {
     {CONFIG_MQTT_ADD_RULES_TOPIC, MQTT::on_mqtt_add_rule_topic},
@@ -184,7 +182,7 @@ void MQTT::on_mqtt_add_rule_topic(struct mqtt_client *client, const uint8_t *pay
             int ret = self->_rules.write_rule(&rules_payload, sizeof(rules_payload));
             if (ret > 0)
             {
-                self->notify_evt(Events::MQTT_NEW_DATA, NULL);
+                self->notify_evt(Events::MQTT_UPDATE_DATA, NULL);
             }
         }
     }
@@ -193,14 +191,36 @@ void MQTT::on_mqtt_remove_rule_topic(struct mqtt_client *client, const uint8_t *
 {
     auto *self = static_cast<MQTT *>(client->user_data);
     LOG_WRN("Remove rule topic was written, check the payload and execute");
+
+    uint8_t rule_id = atoi((const char *)payload);
+
+    if (rule_id == 255) // For now it will be 255 later i'll create a proper payload format to do this
+    {
+        LOG_WRN("Clear rules code arrived - deleting all rules");
+        int ret = self->_rules.clear_rules();
+        if (ret > 0)
+        {
+            self->notify_evt(Events::MQTT_UPDATE_DATA, NULL);
+        }
+        return;
+    }
+
+    if (rule_id >= CONFIG_MAX_SCHEDULER_RULES)
+    {
+        LOG_ERR("Rule ID greater than MAX RULES Allowed");
+        return;
+    }
+    int ret = self->_rules.delete_rule(rule_id);
+    if (ret > 0)
+    {
+        self->notify_evt(Events::MQTT_UPDATE_DATA, NULL);
+    }
 }
 void MQTT::on_mqtt_feed_topic(struct mqtt_client *client, const uint8_t *payload)
 {
     auto *self = static_cast<MQTT *>(client->user_data);
 
-
     uint8_t amount = atoi((const char *)payload);
-
 
     self->notify_evt(Events::MQTT_FEED_NOW, &amount);
     LOG_WRN("Feed topic was written, amount parsed: [%d]", amount);
@@ -224,14 +244,14 @@ void MQTT::mqtt_evt_handler(struct mqtt_client *client, const struct mqtt_evt *e
             LOG_ERR("MQTT Event Connect failed [%d]", evt->result);
             break;
         }
-        self->notify_evt(Events::MQTT_CONNECTED,NULL);
+        self->notify_evt(Events::MQTT_CONNECTED, NULL);
         self->isMqttConnected = true;
 
         break;
     case MQTT_EVT_DISCONNECT:
 
         LOG_WRN("MQTT_EVT_DISCONNECT Event");
-        self->notify_evt(Events::MQTT_DISCONNECTED,NULL);
+        self->notify_evt(Events::MQTT_DISCONNECTED, NULL);
         self->on_disconnect();
 
         break;

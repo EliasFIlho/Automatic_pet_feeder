@@ -32,7 +32,6 @@ int32_t SchedulerRules::write_rule(void *ptr, size_t size)
     {
         LOG_ERR("Max number of rules reached - Delete some previous rule");
         return 0; // Rules full
-        
     }
 
     for (uint32_t i = 0; i < CONFIG_MAX_SCHEDULER_RULES; i++)
@@ -84,16 +83,25 @@ int32_t SchedulerRules::read_rules(std::array<Scheduled_Rule_t, CONFIG_MAX_SCHED
     return 0;
 }
 
-int32_t SchedulerRules::delete_rule(uint8_t rule_fs_idx)
+int32_t SchedulerRules::delete_rule(uint8_t rule_id)
 {
-    uint32_t rule_id = rule_fs_idx + RULES_ID_BASE;
-    int32_t ret = this->_fs.delete_data(rule_id);
-    if (ret == 0)
+    if (this->map.test(rule_id))
     {
-        this->map.set(rule_fs_idx, false);
-        LOG_WRN("Rule [%d] deleted",rule_fs_idx);
+
+        uint32_t rule = rule_id + RULES_ID_BASE;
+        if (rule <= RULES_ID_END)
+        {
+            int32_t ret = this->_fs.delete_data(rule_id);
+            if (ret == 0)
+            {
+                this->map.set(rule_id, false);
+                LOG_WRN("Rule [%d] deleted", rule_id);
+            }
+            return ret;
+        }
     }
-    return ret;
+    LOG_ERR("No rule with this ID");
+    return -1;
 }
 
 uint32_t SchedulerRules::clear_rules()
@@ -101,7 +109,8 @@ uint32_t SchedulerRules::clear_rules()
     for (uint32_t i = 0; i < CONFIG_MAX_SCHEDULER_RULES; i++)
     {
         int32_t ret = this->_fs.delete_data(RULES_ID_BASE + i);
-        if (ret != 0) {
+        if (ret != 0)
+        {
             return ret;
         }
         this->map.set(i, false);

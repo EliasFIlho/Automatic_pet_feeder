@@ -37,7 +37,6 @@ typedef struct
     PeriodRule_t period;
     uint8_t week_days;
     uint8_t amount;
-
 } Rules_t;
 
 /**

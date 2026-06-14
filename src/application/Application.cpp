@@ -17,14 +17,11 @@ void Application::Update(Events evt, void * data)
 {
     switch (evt)
     {
-    case Events::MQTT_NEW_DATA:
+    case Events::MQTT_UPDATE_DATA:
         // Refresh the scheduller rules buffer with storage new data
         this->shouldUpdateRules = true;
         break;
-    case Events::MQTT_DELETED_DATA:
-        this->shouldUpdateRules = true;
-        break;
-    
+        
     case Events::MQTT_FEED_NOW:{
         const uint8_t * amount = static_cast<const uint8_t *>(data);
         LOG_WRN("Data from event: [%d]",*amount);

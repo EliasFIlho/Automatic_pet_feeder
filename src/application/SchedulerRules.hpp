@@ -20,7 +20,7 @@ public:
     void init();
     int32_t write_rule(void *ptr, size_t size);
     int32_t read_rules(std::array<Scheduled_Rule_t, CONFIG_MAX_SCHEDULER_RULES> &rules);
-    int32_t delete_rule(uint8_t rule_fs_idx);
+    int32_t delete_rule(uint8_t rule_id);
     uint8_t get_number_of_rules();
     uint32_t clear_rules();
 

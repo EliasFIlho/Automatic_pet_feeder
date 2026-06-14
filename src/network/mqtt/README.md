@@ -52,7 +52,7 @@ The only path where the thread is stopped intentionally is `MQTT::abort()`, call
 
 ## Inbound payload flow
 
-Inbound data arrives through `MQTT_EVT_PUBLISH` in `mqtt_evt_handler`, which delegates to `on_mqtt_publish`. The payload is read from the MQTT client buffer, null-terminated, parsed into a `Rules_t` struct via the JSON codec, validated, and written to the rules store. A `MQTT_NEW_DATA` event is pushed to the queue only if all three steps succeed.
+Inbound data arrives through `MQTT_EVT_PUBLISH` in `mqtt_evt_handler`, which delegates to `on_mqtt_publish`. The payload is read from the MQTT client buffer, null-terminated, parsed into a `Rules_t` struct via the JSON codec, validated, and written to the rules store. A `MQTT_UPDATE_DATA` event is pushed to the queue only if all three steps succeed.
 
 ```mermaid
 sequenceDiagram
@@ -71,7 +71,7 @@ sequenceDiagram
         PRS->>VAL: validate_payload()
         alt valid
             VAL->>RS: write_rule()
-            RS->>Q: MQTT_NEW_DATA
+            RS->>Q: MQTT_UPDATE_DATA
         else invalid
             VAL-->>CB: return false (drop)
         end
@@ -112,4 +112,4 @@ TLS is conditionally compiled under `CONFIG_MQTT_TLS_ENABLE`. When enabled, the 
 |---|---|
 | `MQTT_CONNECTED` | `MQTT_EVT_CONNACK` with result 0 |
 | `MQTT_DISCONNECTED` | `MQTT_EVT_DISCONNECT` |
-| `MQTT_NEW_DATA` | inbound payload parsed, validated, and written successfully |
+| `MQTT_UPDATE_DATA` | inbound payload parsed, validated, and written successfully |

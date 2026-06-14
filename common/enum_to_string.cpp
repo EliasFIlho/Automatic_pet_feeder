@@ -33,8 +33,8 @@ const char *EVENT_TO_STRING(Events evt)
         return "MQTT_CONNECTED";
     case Events::MQTT_DISCONNECTED:
         return "MQTT_DISCONNECTED";
-    case Events::MQTT_NEW_DATA:
-        return "MQTT_NEW_DATA";
+    case Events::MQTT_UPDATE_DATA:
+        return "MQTT_UPDATE_DATA";
     case Events::HTTP_STORED_CREDENTIALS:
         return "HTTP_STORED_CREDENTIALS";
     case Events::SHUTDOWN_FINISHED:
