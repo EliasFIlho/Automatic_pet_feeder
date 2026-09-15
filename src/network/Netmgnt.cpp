@@ -193,6 +193,7 @@ void Netmgnt::on_exit(WifiSmState from_state, WifiSmState to_state)
 
     case WifiSmState::CONNECTED:
         this->_mqtt.block_mqtt();
+        this->_led.set_output(COLOR::RED,255);
         k_work_cancel_delayable(&this->rssi_monitor_work);
 
         break;
@@ -441,3 +442,7 @@ void Netmgnt::notify_evt(Events evt, void * data)
 
     k_msgq_put(&net_evt_queue, &msg, K_NO_WAIT);
 }
+
+
+
+//TODO: Remove AP + HTTP mode and replace for BLE advertising

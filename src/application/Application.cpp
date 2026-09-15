@@ -23,7 +23,7 @@ void Application::Update(Events evt, void * data)
         break;
         
     case Events::MQTT_FEED_NOW:{
-        const uint8_t * amount = static_cast<const uint8_t *>(data);
+        const int * amount = static_cast<const int *>(data);
         LOG_WRN("Data from event: [%d]",*amount);
         this->dispense_food(*amount);
         break;
@@ -65,7 +65,7 @@ void Application::process_rules()
     }
 }
 
-void Application::dispense_food(const uint8_t amount)
+void Application::dispense_food(const int amount)
 {
     this->_motor.move_for(amount);
 }

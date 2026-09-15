@@ -10,7 +10,6 @@
 #include "Enums.hpp"
 #include "types.hpp"
 
-
 class WifiStation : public IWifi
 {
 private:
@@ -21,16 +20,16 @@ private:
     struct net_mgmt_event_callback ipv4_cb;
     struct k_timer TIMEOUT_TMR;
     IStorage &_fs;
-    
+
 private:
     static void wifi_event_handler(struct net_mgmt_event_callback *cb, uint64_t mgmt_event, struct net_if *iface);
     static void dhcp4_event_handler(struct net_mgmt_event_callback *cb, uint64_t mgmt_event, struct net_if *iface);
     static void timeout_tmr_handler(struct k_timer *timer_id);
-    void notify_evt(Events evt, void * data);
+    void notify_evt(Events evt, void *data);
     void wait_wifi_to_connect(void);
     int wifi_wait_for_ip_addr(void);
-    
-    public:
+
+public:
     WifiStation(IStorage &fs);
     bool wifi_init();
     void connect_to_wifi();
@@ -41,6 +40,7 @@ private:
     void set_credentials();
     int32_t get_rssi();
     void stop_connect_timer();
+    int connect_to_wifi_stored();
 
     ~WifiStation();
 };

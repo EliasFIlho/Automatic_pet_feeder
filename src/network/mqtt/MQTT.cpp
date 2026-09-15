@@ -220,7 +220,7 @@ void MQTT::on_mqtt_feed_topic(struct mqtt_client *client, const uint8_t *payload
 {
     auto *self = static_cast<MQTT *>(client->user_data);
 
-    uint8_t amount = atoi((const char *)payload);
+    int amount = atoi((const char *)payload);
 
     self->notify_evt(Events::MQTT_FEED_NOW, &amount);
     LOG_WRN("Feed topic was written, amount parsed: [%d]", amount);
@@ -904,3 +904,4 @@ int MQTT::resolve_dns()
 }
 
 // TODO: Create a Sync rules request callback
+// TODO: Remove all about DNS and security, lets keep things simple for now, when it is 100% reliable and functional i can add again

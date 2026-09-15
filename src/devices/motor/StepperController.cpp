@@ -70,7 +70,6 @@ void StepperController::move_for(int amount)
     for (int i = 0; i < amount; i++)
     {
         gpio_pin_toggle_dt(_steps);
-        current_position++;
         k_usleep(500);
     }
     gpio_pin_set_dt(_enable, 1);

@@ -1,6 +1,7 @@
 #include <string.h>
 #include "WifiStation.hpp"
 #include <zephyr/logging/log.h>
+#include <zephyr/net/wifi_credentials.h>
 
 LOG_MODULE_DECLARE(NETWORK_LOGS);
 
@@ -14,7 +15,7 @@ void WifiStation::timeout_tmr_handler(struct k_timer *timer_id)
 {
     auto *self = static_cast<WifiStation *>(k_timer_user_data_get(timer_id));
 
-    self->notify_evt(Events::TIMEOUT,NULL);
+    self->notify_evt(Events::TIMEOUT, NULL);
 }
 
 void WifiStation::wifi_event_handler(struct net_mgmt_event_callback *cb, uint64_t mgmt_event, struct net_if *iface)
@@ -31,7 +32,7 @@ void WifiStation::wifi_event_handler(struct net_mgmt_event_callback *cb, uint64_
         {
             self->stop_connect_timer();
             LOG_INF("WIFI Connected");
-            self->notify_evt(Events::WIFI_CONNECTED,NULL);
+            self->notify_evt(Events::WIFI_CONNECTED, NULL);
         }
 
         break;
@@ -40,7 +41,7 @@ void WifiStation::wifi_event_handler(struct net_mgmt_event_callback *cb, uint64_
     {
         const struct wifi_status *st = (const struct wifi_status *)cb->info;
         LOG_WRN("DEVICE DISCONNECTD FROM NETWORK - REASON: %d", st->disconn_reason);
-        self->notify_evt(Events::WIFI_DISCONNECTED,NULL);
+        self->notify_evt(Events::WIFI_DISCONNECTED, NULL);
         break;
     }
     case NET_EVENT_WIFI_IFACE_STATUS:
@@ -75,7 +76,7 @@ void WifiStation::dhcp4_event_handler(struct net_mgmt_event_callback *cb, uint64
 
         LOG_INF("Device got IP");
         self->stop_connect_timer();
-        self->notify_evt(Events::WIFI_IP_ACQUIRED,NULL);
+        self->notify_evt(Events::WIFI_IP_ACQUIRED, NULL);
         break;
     }
     default:
@@ -98,7 +99,7 @@ bool WifiStation::wifi_init(void)
     this->sta_iface = net_if_get_wifi_sta();
     if (sta_iface == NULL)
     {
-        this->notify_evt(Events::WIFI_IFACE_ERROR,NULL);
+        this->notify_evt(Events::WIFI_IFACE_ERROR, NULL);
         return false;
     }
     net_mgmt_init_event_callback(&this->ipv4_cb, dhcp4_event_handler, WIFI_DHCP_CALLBACK_FLAGS);
@@ -112,7 +113,7 @@ bool WifiStation::wifi_init(void)
     }
     else
     {
-        this->notify_evt(Events::WIFI_IFACE_UP,NULL);
+        this->notify_evt(Events::WIFI_IFACE_UP, NULL);
         return true;
     }
 }
@@ -127,9 +128,10 @@ void WifiStation::connect_to_wifi()
     if (!this->sta_iface)
     {
         LOG_ERR("STA: interface no initialized");
-        this->notify_evt(Events::WIFI_IFACE_ERROR,NULL);
+        this->notify_evt(Events::WIFI_IFACE_ERROR, NULL);
         return;
     }
+#if !CONFIG_WIFI_CREDENTIALS
 
     struct wifi_connect_req_params params = {0}; // Initialize as 0 to avoid garbage
     int ret;
@@ -147,10 +149,14 @@ void WifiStation::connect_to_wifi()
     if (ret != 0)
     {
         LOG_ERR("Error in net_mgmt: %d", ret);
-        this->notify_evt(Events::WIFI_IFACE_ERROR,NULL);
+        this->notify_evt(Events::WIFI_IFACE_ERROR, NULL);
         return;
     }
     LOG_INF("REQUEST WIFI CONNECT RESULT: %d", ret);
+#else
+    this->connect_to_wifi_stored();
+
+#endif
 
     wait_wifi_to_connect();
 }
@@ -201,7 +207,7 @@ int32_t WifiStation::get_rssi()
     }
 }
 
-void WifiStation::notify_evt(Events evt, void * data)
+void WifiStation::notify_evt(Events evt, void *data)
 {
     EventMsg msg{.evt = evt,
                  .type = WIFI_EVT};
@@ -211,16 +217,17 @@ void WifiStation::notify_evt(Events evt, void * data)
 
 void WifiStation::set_credentials()
 {
+#if !CONFIG_WIFI_CREDENTIALS
     char ssid[SSID_TEMP_BUFFER_LEN];
     char psk[PSK_TEMP_BUFFER_LEN];
     if (this->_fs.read_buffer(SSID_ID, ssid, sizeof(ssid)) < 0)
     {
-        this->notify_evt(Events::WIFI_CREDS_NOT_FOUND,NULL);
+        this->notify_evt(Events::WIFI_CREDS_NOT_FOUND, NULL);
         return;
     }
     if (this->_fs.read_buffer(PASSWORD_ID, psk, sizeof(psk)) < 0)
     {
-        this->notify_evt(Events::WIFI_CREDS_NOT_FOUND,NULL);
+        this->notify_evt(Events::WIFI_CREDS_NOT_FOUND, NULL);
         return;
     }
 
@@ -228,10 +235,44 @@ void WifiStation::set_credentials()
     LOG_INF("PSK length: %d", strlen(psk));
     strcpy(this->ssid, ssid);
     strcpy(this->psk, psk);
-    notify_evt(Events::WIFI_CREDS_OK,NULL);
+    notify_evt(Events::WIFI_CREDS_OK, NULL);
+#else
+
+    if (wifi_credentials_is_empty())
+    {
+        this->notify_evt(Events::WIFI_CREDS_NOT_FOUND, NULL);
+        return;
+    }
+    else
+    {
+        notify_evt(Events::WIFI_CREDS_OK, NULL);
+        return;
+    }
+#endif
 }
 
 void WifiStation::stop_connect_timer()
 {
     k_timer_stop(&this->TIMEOUT_TMR);
 }
+
+int WifiStation::connect_to_wifi_stored()
+{
+    if (!this->sta_iface)
+    {
+        LOG_ERR("STA: interface no initialized");
+        this->notify_evt(Events::WIFI_IFACE_ERROR, NULL);
+        return -1;
+    }
+
+    int ret = net_mgmt(NET_REQUEST_WIFI_CONNECT_STORED, this->sta_iface, NULL, 0);
+    if (ret != 0)
+    {
+        LOG_ERR("Error in net_mgmt: %d", ret);
+        this->notify_evt(Events::WIFI_IFACE_ERROR, NULL);
+        return -1;
+    }
+    LOG_INF("REQUEST WIFI CONNECT RESULT: %d", ret);
+    return 0;
+}
+

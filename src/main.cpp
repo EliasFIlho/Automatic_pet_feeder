@@ -19,8 +19,6 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/drivers/rtc.h>
 
-#define CLEAR_WIFI_CRED 0
-
 LOG_MODULE_REGISTER(LOGS);
 
 /**
@@ -40,8 +38,8 @@ const struct device *const ds3231_rtc_dev = DEVICE_DT_GET(DT_NODELABEL(ds3231_rt
 const struct device *const hw_wdt_dev = DEVICE_DT_GET(DT_ALIAS(watchdog0));
 const struct device *const net_led = DEVICE_DT_GET(DT_ALIAS(led_strip));
 
-struct gpio_dt_spec dir_stepper_dt = GPIO_DT_SPEC_GET_BY_IDX(DT_NODELABEL(stepper), gpios, 0);
-struct gpio_dt_spec steps_stepper_dt = GPIO_DT_SPEC_GET_BY_IDX(DT_NODELABEL(stepper), gpios, 1);
+struct gpio_dt_spec steps_stepper_dt = GPIO_DT_SPEC_GET_BY_IDX(DT_NODELABEL(stepper), gpios, 0);
+struct gpio_dt_spec dir_stepper_dt = GPIO_DT_SPEC_GET_BY_IDX(DT_NODELABEL(stepper), gpios, 1);
 struct gpio_dt_spec enable_stepper_dt = GPIO_DT_SPEC_GET_BY_IDX(DT_NODELABEL(stepper), gpios, 2);
 
 /**
@@ -72,10 +70,6 @@ int main(void)
     __ASSERT(fs.init_storage() == FILE_SYSTEM_ERROR::STORAGE_OK, "Error to init storage");
     __ASSERT(rtc.init() == 0, "ERROR: Device not ready -> System cant run without RTC");
 
-#if CLEAR_WIFI_CRED
-    fs.delete_data(SSID_ID);
-    fs.delete_data(PASSWORD_ID);
-#endif
     net.Attach(&sensor, MQTT_EVT);
     net.Attach(&app, (WIFI_EVT | MQTT_EVT));
     net.Attach(&rtc, WIFI_EVT);

@@ -85,9 +85,9 @@ void LvlSensor::sample_sensor(void *p1, void *, void *)
     auto *self = static_cast<LvlSensor *>(p1);
     while (true)
     {
-        self->get_level();
         if (self->isMQTTconnectd)
         {
+            self->get_level();
             self->send_data();
         }
         k_msleep(CONFIG_LEVEL_SENSOR_THREAD_PERIOD);

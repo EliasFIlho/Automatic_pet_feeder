@@ -7,7 +7,6 @@
 class StepperController : public IMotor
 {
 private:
-    int current_position;
     struct gpio_dt_spec *_direction;
     struct gpio_dt_spec *_steps;
     struct gpio_dt_spec *_enable;
