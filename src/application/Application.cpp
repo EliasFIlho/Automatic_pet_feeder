@@ -181,7 +181,7 @@ void Application::app(void *p1, void *, void *)
                 break;
             }
 
-            if (self->select_rules_to_execute())
+            if (self->select_rules_to_execute() != 0)
             {
                 self->state = APP_STATES::PROCESS;
             }

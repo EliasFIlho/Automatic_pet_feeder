@@ -6,7 +6,6 @@
 #include "Storage.hpp"
 #include "SchedulerRules.hpp"
 #include "WifiStation.hpp"
-#include "WifiAp.hpp"
 #include "MQTT.hpp"
 #include "Led.hpp"
 #include "Netmgnt.hpp"
@@ -14,10 +13,12 @@
 #include "LvlSensor.hpp"
 #include "NetEvents.hpp"
 #include "JsonModule.hpp"
-#include "HTTPServer.hpp"
 #include <zephyr/task_wdt/task_wdt.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/drivers/rtc.h>
+#include <zephyr/drivers/hwinfo.h>
+#include "BluetoothLE.hpp"
+#include "Provisioning.hpp"
 
 LOG_MODULE_REGISTER(LOGS);
 
@@ -55,16 +56,56 @@ SchedulerRules rules_controller(fs);
 MQTT mqtt(guard, json, rules_controller);
 Led led(net_led);
 WifiStation wifi(fs);
-WifiAp soft_ap;
-HTTPServer http_server(json, fs);
-Netmgnt net(mqtt, wifi, led, soft_ap, http_server);
+BluetoothLE ble;
+Provisioning prov(ble);
+Netmgnt net(mqtt, wifi, led, prov);
 Application app(rtc, motor, guard, rules_controller);
 LvlSensor sensor(vl53l0x_dev);
-
 // TODO: Document modules with doxygen style
 
+struct reset_causes
+{
+    uint32_t flag;
+    const char *name;
+};
+
+struct reset_causes log_reset_tbl[] = {
+    {RESET_PIN, "RESET_PIN"},
+    {RESET_SOFTWARE, "RESET_SOFTWARE"},
+    {RESET_BROWNOUT, "RESET_BROWNOUT"},
+    {RESET_POR, "RESET_POR"},
+    {RESET_WATCHDOG, "RESET_WATCHDOG"},
+    {RESET_DEBUG, "RESET_DEBUG"},
+    {RESET_SECURITY, "RESET_SECURITY"},
+    {RESET_LOW_POWER_WAKE, "RESET_LOW_POWER_WAKE"},
+    {RESET_CPU_LOCKUP, "RESET_CPU_LOCKUP"},
+    {RESET_PARITY, "RESET_PARITY"},
+    {RESET_CLOCK, "RESET_CLOCK"},
+    {RESET_HARDWARE, "RESET_HARDWARE"},
+    {RESET_USER, "RESET_USER"},
+    {RESET_TEMPERATURE, "RESET_TEMPERATURE"},
+    {RESET_BOOTLOADER, "RESET_BOOTLOADER"},
+    {RESET_FLASH, "RESET_FLASH"}};
+
+
+//TODO: Implement a timeout/retry method for each event write in network manager
 int main(void)
 {
+    uint32_t device_reset_cause = 0;
+    if (!hwinfo_get_reset_cause(&device_reset_cause))
+    {
+        for (int i = 0; i < ARRAY_SIZE(log_reset_tbl); i++)
+        {
+            if (device_reset_cause & log_reset_tbl[i].flag)
+            {
+                LOG_WRN("LAST RESET CAUSE: [%s]", log_reset_tbl[i].name);
+            }
+        }
+    }
+    hwinfo_clear_reset_cause();
+
+    //wifi_credentials_delete_all();
+
     // Some important stuff that the device realy realy need (beside the application it self)
     __ASSERT(guard.init() == 0, "Error to init watchdog");
     __ASSERT(fs.init_storage() == FILE_SYSTEM_ERROR::STORAGE_OK, "Error to init storage");

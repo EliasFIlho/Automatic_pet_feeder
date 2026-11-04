@@ -64,7 +64,7 @@ struct EventMsg
 {
     Events evt;
     EventGroup type;
-    void * data;
+    void *data;
 };
 
 typedef struct
@@ -72,3 +72,20 @@ typedef struct
     IListener *listener;
     uint8_t evt_group;
 } Listeners;
+
+
+/**
+ * @brief Type for arrive credentials in provisioning process
+ * TODO: Use config constats to buffers size
+ *
+ */
+typedef struct
+{
+    char ssid[32];
+    size_t ssid_len;
+    char psk[64];
+    size_t psk_len;
+} ProvCredentials;
+
+typedef void (*provisioning_callback)(ProvCredentials &creds);
+

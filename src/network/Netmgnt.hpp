@@ -2,43 +2,13 @@
 #include "IMQTT.hpp"
 #include "IWifi.hpp"
 #include "ILed.hpp"
-#include "IWifiAp.hpp"
 #include "IDispatcher.hpp"
 #include "IHTTPServer.hpp"
+#include "IProvisioning.hpp"
 #include <zephyr/kernel.h>
 #include <array>
 #include "types.hpp"
 
-/*
-
-state-flow
-
-    [*] --> INITIALIZING : START
-    INITIALIZING --> LOADING_CREDENTIALS: WIFI_IFACE_UP
-    INITIALIZING --> IFACE_ERROR: WIFI_IFACE_ERROR
-
-    LOADING_CREDENTIALS --> CONNECTING: WIFI_CREDS_OK
-    LOADING_CREDENTIALS --> LOADING_CREDENTIALS: WIFI_CREDS_FAIL
-    LOADING_CREDENTIALS --> ENABLING_AP: WIFI_CREDS_NOT_FOUND
-
-    CONNECTING --> WAIT_IP: WIFI_CONNECTED
-
-    CONNECTING --> CONNECTING: TIMEOUT && Tries < MAX
-    CONNECTING --> ENABLING_AP: TIMEOUT && Tries > MAX
-
-    WAIT_IP --> CONNECTED: WIFI_IP_ACQUIRED
-    WAIT_IP --> WAIT_IP: TIMEOUT && Tries < MAX
-    WAIT_IP --> ENABLING_AP: TIMEOUT && Tries > MAX
-
-    ENABLING_AP --> ENABLING_HTTP_SERVER: WIFI_AP_ENABLE
-
-
-
-
-    CONNECTED --> CONNECTING: WIFI_DISCONNECTED
-    CONNECTED --> [*]
-
-*/
 
 struct Wifi_State_Machine
 {
@@ -53,10 +23,9 @@ private:
     IMQTT &_mqtt;
     IWifi &_wifi;
     ILed &_led;
-    IWifiAp &_ap;
-    IHTTPServer &_http;
+    IProvisioning &_prov;
+
     struct k_work_delayable rssi_monitor_work;
-    struct k_work_delayable resources_shutdown_work;
     struct k_thread dispatcher_thread;
     uint8_t listener_count = 0;
     std::array<Listeners, CONFIG_NETWORK_EVENT_MAX_LISTENERS> listeners {};
@@ -65,10 +34,8 @@ private:
 private:
     static void rssi_monitor(struct k_work *work);
     int32_t init_rssi_monitor();
-    static void shutdown_resources(struct k_work *work);
-    void order_shutdown_resources();
 
-    void set_wifi_credentials();
+    void check_wifi_credentials();
 
     void start_dhcp();
     void stop_dhcp();
@@ -87,7 +54,7 @@ private:
 public:
     void Attach(IListener *listener, uint8_t evt_group_maks);
     void Notify(EventMsg evt);
-    Netmgnt(IMQTT &mqtt, IWifi &wifi, ILed &led, IWifiAp &soft_ap, IHTTPServer &http_server);
+    Netmgnt(IMQTT &mqtt, IWifi &wifi, ILed &led, IProvisioning &prov);
     void start();
     void stop();
     ~Netmgnt();

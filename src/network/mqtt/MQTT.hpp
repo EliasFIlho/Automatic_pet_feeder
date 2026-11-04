@@ -80,9 +80,6 @@ private:
     void reconnect();
     void populate_payload_struct(struct mqtt_binstr *payload, struct level_sensor *data);
     static void on_mqtt_publish(struct mqtt_client *const client, const struct mqtt_evt *evt);
-    #if CONFIG_MQTT_TLS_ENABLE
-    int32_t setup_tls();
-    #endif
     bool parse_payload(char *payload, Rules_t *rules);
     bool validate_payload(Rules_t *rules);
     void notify_evt(Events evt, void * data);

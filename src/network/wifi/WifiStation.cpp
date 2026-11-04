@@ -215,7 +215,7 @@ void WifiStation::notify_evt(Events evt, void *data)
     k_msgq_put(&net_evt_queue, &msg, K_NO_WAIT);
 }
 
-void WifiStation::set_credentials()
+void WifiStation::check_credentials()
 {
 #if !CONFIG_WIFI_CREDENTIALS
     char ssid[SSID_TEMP_BUFFER_LEN];

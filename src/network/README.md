@@ -41,14 +41,14 @@ stateDiagram-v2
     LOADING_CREDENTIALS --> ENABLING_AP       : WIFI_CREDS_NOT_FOUND
     LOADING_CREDENTIALS --> LOADING_CREDENTIALS : WIFI_CREDS_FAIL (restart)
 
-    CONNECTING --> WAIT_IP              : WIFI_CONNECTED
+    CONNECTING --> WAITING_FOR_IP_ADDRESS              : WIFI_CONNECTED
     CONNECTING --> CONNECTING           : TIMEOUT + canRetry (restart)
     CONNECTING --> ENABLING_AP          : TIMEOUT + max retries reached
 
-    WAIT_IP --> CONNECTED               : WIFI_IP_ACQUIRED
-    WAIT_IP --> CONNECTING              : WIFI_DISCONNECTED
-    WAIT_IP --> WAIT_IP                 : TIMEOUT + canRetry (restart)
-    WAIT_IP --> ENABLING_AP             : TIMEOUT + max retries reached
+    WAITING_FOR_IP_ADDRESS --> CONNECTED               : WIFI_IP_ACQUIRED
+    WAITING_FOR_IP_ADDRESS --> CONNECTING              : WIFI_DISCONNECTED
+    WAITING_FOR_IP_ADDRESS --> WAITING_FOR_IP_ADDRESS                 : TIMEOUT + canRetry (restart)
+    WAITING_FOR_IP_ADDRESS --> ENABLING_AP             : TIMEOUT + max retries reached
 
     CONNECTED --> CONNECTING            : WIFI_DISCONNECTED
 
@@ -67,9 +67,9 @@ stateDiagram-v2
 | State | On entry | On exit |
 |---|---|---|
 | INITIALIZING | LED red, reset tries, wifi_init() | — |
-| LOADING_CREDENTIALS | set_credentials() | — |
+| LOADING_CREDENTIALS | check_credentials() | — |
 | CONNECTING | wifi_disconnect() if retrying, connect_to_wifi() | reset tries on leaving to a different state |
-| WAIT_IP | LED yellow, start_dhcp() | reset tries on leaving to a different state |
+| WAITING_FOR_IP_ADDRESS | LED yellow, start_dhcp() | reset tries on leaving to a different state |
 | CONNECTED | init RSSI monitor, release MQTT, start_mqtt() | block MQTT, cancel RSSI work |
 | ENABLING_AP | LED blue, ap_init() | — |
 | WAITING_USER_INPUT | http.start() | http.stop(), ap_stop() on leaving |

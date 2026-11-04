@@ -40,7 +40,7 @@ sequenceDiagram
     WS->>DRV: net_if_up(sta_iface)
     WS->>Q: WIFI_IFACE_UP
 
-    NM->>WS: set_credentials()
+    NM->>WS: check_credentials()
     WS->>Q: WIFI_CREDS_OK / WIFI_CREDS_NOT_FOUND
 
     NM->>WS: connect_to_wifi()

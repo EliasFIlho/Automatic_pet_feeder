@@ -21,10 +21,6 @@ const char *EVENT_TO_STRING(Events evt)
         return "WIFI_CONNECTED";
     case Events::WIFI_DISCONNECTED:
         return "WIFI_DISCONNECTED";
-    case Events::WIFI_AP_ENABLE:
-        return "WIFI_AP_ENABLE";
-    case Events::WIFI_AP_DISABLED:
-        return "WIFI_AP_DISABLED";
     case Events::WIFI_IP_ACQUIRED:
         return "WIFI_IP_ACQUIRED";
     case Events::TIMEOUT:
@@ -35,8 +31,8 @@ const char *EVENT_TO_STRING(Events evt)
         return "MQTT_DISCONNECTED";
     case Events::MQTT_UPDATE_DATA:
         return "MQTT_UPDATE_DATA";
-    case Events::HTTP_STORED_CREDENTIALS:
-        return "HTTP_STORED_CREDENTIALS";
+    case Events::PROVISIONING_CREDS_RECEIVED:
+        return "PROVISIONING_CREDS_RECEIVED";
     case Events::SHUTDOWN_FINISHED:
         return "SHUTDOWN_FINISHED";
     default:
@@ -54,20 +50,18 @@ const char *STATE_TO_STRING(WifiSmState state)
         return "LOADING_CREDENTIALS";
     case WifiSmState::CONNECTING:
         return "CONNECTING";
-    case WifiSmState::WAIT_IP:
-        return "WAIT_IP";
+    case WifiSmState::WAITING_FOR_IP_ADDRESS:
+        return "WAITING_FOR_IP_ADDRESS";
     case WifiSmState::CONNECTED:
         return "CONNECTED";
     case WifiSmState::IFACE_ERROR:
         return "IFACE_ERROR";
-    case WifiSmState::ENABLING_AP:
-        return "ENABLING_AP";
-    case WifiSmState::WAITING_USER_INPUT:
-        return "ENABLING_HTTP_SERVER";
+    case WifiSmState::PROVISIONING:
+        return "PROVISIONING";
+    case WifiSmState::STORING_CRDENTIALS:
+        return "STORING_CRDENTIALS";
     case WifiSmState::RESTART:
         return "RESTART";
-    case WifiSmState::SHUTDOWN_RESOURCES:
-        return "SHUTDOWN_RESOURCES";
     default:
         return "UNKNOWN";
     }

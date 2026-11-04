@@ -6,18 +6,15 @@
 #include <zephyr/sys/reboot.h>
 #include <zephyr/net/dns_sd.h>
 
-
 LOG_MODULE_REGISTER(NETWORK_LOGS);
 
 K_THREAD_STACK_DEFINE(NETWORK_DISPATCH_STACK_AREA, CONFIG_NETWORK_DISPATCH_THREAD_STACK_SIZE);
-
-
 
 DNS_SD_REGISTER_TCP_SERVICE(petfeeder_config, CONFIG_NET_HOSTNAME,
                             "_petfeeder", "local", DNS_SD_EMPTY_TXT,
                             80);
 
-Netmgnt::Netmgnt(IMQTT &mqtt, IWifi &wifi, ILed &led, IWifiAp &soft_ap, IHTTPServer &http_server) : _mqtt(mqtt), _wifi(wifi), _led(led), _ap(soft_ap), _http(http_server)
+Netmgnt::Netmgnt(IMQTT &mqtt, IWifi &wifi, ILed &led, IProvisioning &prov) : _mqtt(mqtt), _wifi(wifi), _led(led), _prov(prov)
 {
 }
 
@@ -55,21 +52,6 @@ int32_t Netmgnt::init_rssi_monitor()
     }
 }
 
-void Netmgnt::shutdown_resources(struct k_work *work)
-{
-    k_work_delayable *dwork = k_work_delayable_from_work(work);
-    auto *self = CONTAINER_OF(dwork, Netmgnt, resources_shutdown_work);
-    self->_http.stop();
-    self->_ap.ap_stop();
-    self->notify_evt(Events::SHUTDOWN_FINISHED,NULL);
-}
-
-void Netmgnt::order_shutdown_resources()
-{
-    k_work_init_delayable(&this->resources_shutdown_work, this->shutdown_resources);
-    k_work_reschedule(&this->resources_shutdown_work, K_MSEC(500));
-}
-
 void Netmgnt::rssi_monitor(struct k_work *work)
 {
     k_work_delayable *dwork = k_work_delayable_from_work(work);
@@ -78,25 +60,28 @@ void Netmgnt::rssi_monitor(struct k_work *work)
     {
         int32_t rssi = self->_wifi.get_rssi();
         LOG_WRN("RSSI VALUE: %d", rssi);
-        if(!self->_mqtt.is_connected()){
+        if (!self->_mqtt.is_connected())
+        {
             self->_led.set_mapped_output(rssi, COLOR::GREEN, CONFIG_RSSI_LOWER_VALUE, CONFIG_RSSI_HIGHER_VALUE);
-        }else{
-            self->_led.set_output(COLOR::MAGENTA,255);
+        }
+        else
+        {
+            self->_led.set_output(COLOR::MAGENTA, 255);
         }
         k_work_reschedule(dwork, K_SECONDS(CONFIG_RSSI_WORK_PERIOD));
     }
 }
 
-void Netmgnt::set_wifi_credentials()
+void Netmgnt::check_wifi_credentials()
 {
 
-    this->_wifi.set_credentials();
+    this->_wifi.check_credentials();
 }
 
-void Netmgnt::scan_ssid_list(){
+void Netmgnt::scan_ssid_list()
+{
 
     this->_wifi.scan_ssid_list();
-
 }
 void Netmgnt::connect_to_wifi()
 {
@@ -138,7 +123,7 @@ void Netmgnt::Notify(EventMsg evt)
     {
         if (this->listeners[i].evt_group & evt.type)
         {
-            this->listeners[i].listener->Update(evt.evt,evt.data);
+            this->listeners[i].listener->Update(evt.evt, evt.data);
         }
     }
 }
@@ -154,7 +139,7 @@ void Netmgnt::network_evt_dispatch_task(void *p1, void *, void *)
     {
         if (k_msgq_get(&net_evt_queue, &evt, K_FOREVER) == 0)
         {
-            if (evt.type == WIFI_EVT || evt.type == HTTP_EVT)
+            if (evt.type == WIFI_EVT || evt.type == PROV_EVT)
             {
                 LOG_WRN("ARRIVED EVENT: %s", EVENT_TO_STRING(evt.evt));
                 self->process_state(evt.evt);
@@ -184,8 +169,8 @@ void Netmgnt::on_exit(WifiSmState from_state, WifiSmState to_state)
         }
         break;
 
-    case WifiSmState::WAIT_IP:
-        if (to_state != WifiSmState::WAIT_IP)
+    case WifiSmState::WAITING_FOR_IP_ADDRESS:
+        if (to_state != WifiSmState::WAITING_FOR_IP_ADDRESS)
         {
             this->wifi_sm.tries = 0;
         }
@@ -193,22 +178,18 @@ void Netmgnt::on_exit(WifiSmState from_state, WifiSmState to_state)
 
     case WifiSmState::CONNECTED:
         this->_mqtt.block_mqtt();
-        this->_led.set_output(COLOR::RED,255);
+        this->_led.set_output(COLOR::RED, 255);
         k_work_cancel_delayable(&this->rssi_monitor_work);
 
         break;
-    case WifiSmState::ENABLING_AP:
-        // Nothing to do
+    case WifiSmState::PROVISIONING:
         break;
-    case WifiSmState::WAITING_USER_INPUT:
 
-        break;
-    case WifiSmState::SHUTDOWN_RESOURCES:
-        // Nothing to do
+    case WifiSmState::STORING_CRDENTIALS:
         break;
 
     case WifiSmState::RESTART:
-        // Do nothing - device wil be restarted, never reach herer
+        // Do nothing - device will be restarted, never reach herer
         break;
     default:
         break;
@@ -234,11 +215,11 @@ void Netmgnt::on_entry(WifiSmState state)
         this->set_led_output(COLOR::RED, 255);
         this->wifi_sm.tries = 0;
         this->_wifi.wifi_init();
-        this->scan_ssid_list();
+        // this->scan_ssid_list(); // Maybe not needed
         break;
 
     case WifiSmState::LOADING_CREDENTIALS:
-        this->set_wifi_credentials();
+        this->check_wifi_credentials();
         break;
 
     case WifiSmState::CONNECTING:
@@ -250,7 +231,7 @@ void Netmgnt::on_entry(WifiSmState state)
         this->connect_to_wifi();
         break;
 
-    case WifiSmState::WAIT_IP:
+    case WifiSmState::WAITING_FOR_IP_ADDRESS:
         this->set_led_output(COLOR::YELLOW, 255);
         this->start_dhcp();
         break;
@@ -260,22 +241,28 @@ void Netmgnt::on_entry(WifiSmState state)
         this->init_rssi_monitor();
         this->_mqtt.release_mqtt();
         this->start_mqtt();
-        this->_http.start();//Test only
+        if (this->_prov.isProvisioningEnabled_())
+        {
+            this->_prov.notify_connection_status(1);
+            this->_prov.stop_provisioning();
+        }
         break;
-    case WifiSmState::ENABLING_AP:
+    case WifiSmState::PROVISIONING:
         this->set_led_output(COLOR::BLUE, 255);
-        this->_ap.ap_init();
+        if (!this->_prov.isProvisioningEnabled_())
+        {
+            this->_prov.start_provisioning();
+        }
         break;
-    case WifiSmState::WAITING_USER_INPUT:
-        this->_http.start();
+
+    case WifiSmState::STORING_CRDENTIALS:
+    //TODO: Create status code and verify the best place to call this
+        this->_prov.notify_connection_status(250);
+        this->_prov.write_credentials();
         break;
     case WifiSmState::IFACE_ERROR:
         LOG_ERR("WiFi interface error — cold rebooting");
         sys_reboot(SYS_REBOOT_COLD);
-        break;
-
-    case WifiSmState::SHUTDOWN_RESOURCES:
-        this->order_shutdown_resources();
         break;
     case WifiSmState::RESTART:
         LOG_WRN("RESTARTING DEVICE");
@@ -319,14 +306,14 @@ void Netmgnt::process_state(Events evt)
         else if (evt == Events::WIFI_CREDS_NOT_FOUND)
         {
 
-            this->transition(WifiSmState::ENABLING_AP);
+            this->transition(WifiSmState::PROVISIONING);
         }
         break;
 
     case WifiSmState::CONNECTING:
         if (evt == Events::WIFI_CONNECTED)
         {
-            this->transition(WifiSmState::WAIT_IP);
+            this->transition(WifiSmState::WAITING_FOR_IP_ADDRESS);
         }
         else if (evt == Events::TIMEOUT)
         {
@@ -338,7 +325,7 @@ void Netmgnt::process_state(Events evt)
             else
             {
 
-                this->transition(WifiSmState::ENABLING_AP);
+                this->transition(WifiSmState::PROVISIONING);
             }
         }
         else if (evt == Events::WIFI_DISCONNECTED)
@@ -346,7 +333,7 @@ void Netmgnt::process_state(Events evt)
             LOG_WRN("Ignoring WIFI_DISCONNECTED during CONNECTING");
         }
         break;
-    case WifiSmState::WAIT_IP:
+    case WifiSmState::WAITING_FOR_IP_ADDRESS:
         if (evt == Events::WIFI_IP_ACQUIRED)
         {
             this->transition(WifiSmState::CONNECTED);
@@ -361,7 +348,7 @@ void Netmgnt::process_state(Events evt)
             else
             {
 
-                this->transition(WifiSmState::ENABLING_AP);
+                this->transition(WifiSmState::PROVISIONING);
             }
         }
         else if (evt == Events::WIFI_DISCONNECTED)
@@ -376,29 +363,24 @@ void Netmgnt::process_state(Events evt)
             this->transition(WifiSmState::CONNECTING);
         }
         break;
-    case WifiSmState::ENABLING_AP:
-        if (evt == Events::WIFI_AP_ENABLE)
+    case WifiSmState::PROVISIONING:
+        if (evt == Events::PROVISIONING_CREDS_RECEIVED)
         {
-            this->transition(WifiSmState::WAITING_USER_INPUT);
+            this->transition(WifiSmState::STORING_CRDENTIALS);
         }
-        break;
-
-    case WifiSmState::WAITING_USER_INPUT:
-    
-        if (evt == Events::HTTP_STORED_CREDENTIALS)
-        {
-            this->transition(WifiSmState::SHUTDOWN_RESOURCES);
-        }
-        else if (evt == Events::HTTP_STORED_CREDENTIALS_ERROR)
+        else if (evt == Events::PROVISIONING_STORE_CREDENTIALS_ERROR)
         {
             this->restart_state();
         }
         break;
-
-    case WifiSmState::SHUTDOWN_RESOURCES:
-        if (evt == Events::SHUTDOWN_FINISHED)
+    case WifiSmState::STORING_CRDENTIALS:
+        if (evt == Events::PROVISIONING_STORE_CREDENTIALS_OK)
         {
-            this->transition(WifiSmState::RESTART);
+            this->transition(WifiSmState::LOADING_CREDENTIALS);
+        }
+        else if (evt == Events::PROVISIONING_STORE_CREDENTIALS_ERROR)
+        {
+            this->transition(WifiSmState::PROVISIONING);
         }
         break;
     case WifiSmState::IFACE_ERROR:
@@ -434,8 +416,7 @@ bool Netmgnt::canRetry()
     return ++this->wifi_sm.tries < CONFIG_NETWORK_CONNECTION_MAX_TRIES;
 }
 
-
-void Netmgnt::notify_evt(Events evt, void * data)
+void Netmgnt::notify_evt(Events evt, void *data)
 {
     EventMsg msg{.evt = evt,
                  .type = WIFI_EVT};
@@ -443,6 +424,4 @@ void Netmgnt::notify_evt(Events evt, void * data)
     k_msgq_put(&net_evt_queue, &msg, K_NO_WAIT);
 }
 
-
-
-//TODO: Remove AP + HTTP mode and replace for BLE advertising
+// TODO: Update state machine to use a new provisioning interface instead.

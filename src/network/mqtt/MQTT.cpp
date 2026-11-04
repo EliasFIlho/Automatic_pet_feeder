@@ -7,16 +7,7 @@
 #include <zephyr/data/json.h>
 #include <zephyr/net/dns_resolve.h>
 #include "enum_to_string.hpp"
-#if CONFIG_MQTT_TLS_ENABLE
-#include "tls_cert/cert.h"
 
-#define MQTT_CA_CERT_TAG 1
-
-static const sec_tag_t m_sec_tags[] = {
-    MQTT_CA_CERT_TAG,
-};
-
-#endif
 
 static K_SEM_DEFINE(dns_sem, 0, 1);
 
@@ -337,11 +328,7 @@ bool MQTT::setup_broker()
     this->isBrokerSeted = false;
     int ret;
     this->broker.sin_family = AF_INET;
-#if CONFIG_MQTT_TLS_ENABLE
-    this->broker.sin_port = htons(CONFIG_MQTT_BROKER_PORT_TLS);
-#else
     this->broker.sin_port = htons(CONFIG_MQTT_BROKER_PORT);
-#endif
 
     ret = this->resolve_dns();
     if (ret != 0)
@@ -349,30 +336,6 @@ bool MQTT::setup_broker()
         return false;
     }
 
-#if CONFIG_MQTT_USE_BROKER_DNS
-    struct zsock_addrinfo hints = {};
-    struct zsock_addrinfo *res;
-
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM; // TCP
-
-    ret = zsock_getaddrinfo(CONFIG_MQTT_BROKER_ADDR, "1883", &hints, &res);
-    if (ret != 0)
-    {
-        LOG_ERR("Failed to resolve broker hostname [%d]", (ret));
-        return false;
-    }
-    if (res == NULL)
-    {
-        LOG_ERR("Broker address not found");
-        return false;
-    }
-    this->broker.sin_addr.s_addr = ((struct sockaddr_in *)res->ai_addr)->sin_addr.s_addr;
-    this->isBrokerSeted = true;
-    LOG_WRN("DNS RESOLVED");
-    return true;
-
-#else
     ret = zsock_inet_pton(AF_INET, CONFIG_MQTT_BROKER_ADDR, &this->broker.sin_addr);
     if (ret != 1)
     {
@@ -387,7 +350,7 @@ bool MQTT::setup_broker()
         return true;
     }
 
-#endif
+
 }
 
 /**
@@ -396,20 +359,11 @@ bool MQTT::setup_broker()
  */
 void MQTT::set_fds()
 {
-#if CONFIG_MQTT_TLS_ENABLE
-    if (this->client_ctx.transport.type == MQTT_TRANSPORT_SECURE)
-    {
-        this->fds[0].fd = this->client_ctx.transport.tls.sock;
-    }
-#else
 
     if (this->client_ctx.transport.type == MQTT_TRANSPORT_NON_SECURE)
     {
         this->fds[0].fd = this->client_ctx.transport.tcp.sock;
     }
-
-#endif
-
     this->fds[0].events = ZSOCK_POLLIN;
     this->fds->revents = 0;
     this->nfds = 1;
@@ -501,10 +455,8 @@ bool MQTT::subscribe()
 }
 
 /**
- * @brief Init MQTT client struct
- *
- * @return true
- * @return false
+ * @brief Init Mqtt
+ * 
  */
 void MQTT::init()
 {
@@ -591,14 +543,6 @@ bool MQTT::is_connected()
 bool MQTT::setup_client()
 {
     this->init();
-#if CONFIG_MQTT_TLS_ENABLE
-
-    if (this->setup_tls() != 0)
-    {
-        return false;
-    }
-#endif
-
     return true;
 }
 
@@ -817,29 +761,7 @@ void MQTT::abort()
     k_thread_abort(this->MQTT_Thread_id);
 }
 
-#if CONFIG_MQTT_TLS_ENABLE
-int32_t MQTT::setup_tls()
-{
 
-    struct mqtt_sec_config *tls_config;
-    this->client_ctx.transport.type = MQTT_TRANSPORT_SECURE;
-    int ret;
-
-    ret = tls_credential_add(MQTT_CA_CERT_TAG, TLS_CREDENTIAL_CA_CERTIFICATE, ca_certificate, sizeof(ca_certificate));
-    if (ret < 0)
-    {
-        LOG_ERR("Failed to register public certificate: %d", ret);
-        return ret;
-    }
-    tls_config = &this->client_ctx.transport.tls.config;
-    tls_config->peer_verify = TLS_PEER_VERIFY_REQUIRED;
-    tls_config->cipher_list = NULL;
-    tls_config->sec_tag_list = m_sec_tags;
-    tls_config->sec_tag_count = ARRAY_SIZE(m_sec_tags);
-    tls_config->hostname = CONFIG_MQTT_BROKER_ADDR;
-    return 0;
-}
-#endif
 
 void MQTT::notify_evt(Events evt, void *data)
 {
@@ -902,6 +824,3 @@ int MQTT::resolve_dns()
 
     return 0;
 }
-
-// TODO: Create a Sync rules request callback
-// TODO: Remove all about DNS and security, lets keep things simple for now, when it is 100% reliable and functional i can add again

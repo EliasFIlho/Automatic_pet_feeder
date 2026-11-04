@@ -37,7 +37,7 @@ public:
     int wifi_disconnect();
     void start_dhcp();
     void stop_dhcp();
-    void set_credentials();
+    void check_credentials();
     int32_t get_rssi();
     void stop_connect_timer();
     int connect_to_wifi_stored();
